@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dev-dist/
+*.local
+.DS_Store
+npm-debug.log*
+.vite/
+*.tsbuildinfo
+
+# Per-machine Claude Code permissions, not project configuration.
+.claude/settings.local.json

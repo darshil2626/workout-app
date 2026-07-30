@@ -1,0 +1,30 @@
+{
+  "name": "ironlog",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "_comment": "Scripts call binaries by path rather than name so they work on Windows-mounted drives in WSL, where npm cannot create node_modules/.bin links.",
+  "scripts": {
+    "dev": "node node_modules/vite/bin/vite.js --host",
+    "build": "node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build",
+    "preview": "node node_modules/vite/bin/vite.js preview --host",
+    "typecheck": "node node_modules/typescript/bin/tsc -b --noEmit",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "dependencies": {
+    "dexie": "^4.0.11",
+    "dexie-react-hooks": "^1.1.7",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.0"
+  }
+}

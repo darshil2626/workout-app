@@ -1,0 +1,112 @@
+import { useEffect, useRef, useState } from 'react'
+
+export interface HeatCell {
+  day: number
+  value: number
+  workouts: number
+}
+
+interface Props {
+  cells: HeatCell[]
+  firstDayOfWeek: 0 | 1
+  formatValue: (v: number) => string
+}
+
+/**
+ * Sequential ramp, dimmest → brightest as volume rises. Steps come from the
+ * validated blue ramp (adjacent lightness gaps ≥ 0.06 on this surface), so the
+ * bins stay distinguishable rather than blurring into each other.
+ */
+const RAMP = ['var(--heat-1)', 'var(--heat-2)', 'var(--heat-3)', 'var(--heat-4)']
+
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
+  const [active, setActive] = useState<HeatCell | null>(null)
+  const scroller = useRef<HTMLDivElement | null>(null)
+
+  // Open on the most recent weeks — that is what the user came to look at.
+  useEffect(() => {
+    const el = scroller.current
+    if (el) el.scrollLeft = el.scrollWidth
+  }, [cells.length])
+
+  const trained = cells.filter((c) => c.value > 0).map((c) => c.value)
+  // Quartile thresholds over trained days only: including rest days would push
+  // every real session into the top bin.
+  const sorted = [...trained].sort((a, b) => a - b)
+  const q = (p: number) => sorted[Math.floor(p * (sorted.length - 1))] ?? 0
+  const thresholds = [q(0.25), q(0.5), q(0.75)]
+
+  function binOf(value: number): number {
+    if (value <= 0) return -1
+    if (value <= thresholds[0]) return 0
+    if (value <= thresholds[1]) return 1
+    if (value <= thresholds[2]) return 2
+    return 3
+  }
+
+  // Pad the start so each column is a full calendar week.
+  const first = cells[0]
+  const leading = first ? (new Date(first.day).getDay() - firstDayOfWeek + 7) % 7 : 0
+  const padded: (HeatCell | null)[] = [...Array<null>(leading).fill(null), ...cells]
+  const weeks: (HeatCell | null)[][] = []
+  for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7))
+
+  return (
+    <div className="heatmap-wrap">
+      <div className="heatmap-scroll" ref={scroller}>
+        <div className="heatmap">
+          <div className="heatmap-days">
+            {DAY_LABELS.map((_, i) => (
+              // Only alternate labels are drawn: seven stacked letters is noise.
+              <span key={i} className="heatmap-day">
+                {i % 2 === 1 ? DAY_LABELS[(i + firstDayOfWeek) % 7] : ''}
+              </span>
+            ))}
+          </div>
+          {weeks.map((week, wi) => (
+            <div className="heatmap-week" key={wi}>
+              {week.map((cell, di) => {
+                if (!cell) return <span className="heatmap-cell empty" key={di} />
+                const bin = binOf(cell.value)
+                return (
+                  <button
+                    key={di}
+                    className="heatmap-cell"
+                    style={{ background: bin < 0 ? 'var(--heat-0)' : RAMP[bin] }}
+                    onPointerEnter={() => setActive(cell)}
+                    onPointerDown={() => setActive(cell)}
+                    onPointerLeave={() => setActive(null)}
+                    aria-label={`${new Date(cell.day).toDateString()}: ${
+                      cell.workouts === 0 ? 'rest day' : formatValue(cell.value)
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="heatmap-foot">
+        <span className="faint">{active ? new Date(active.day).toDateString() : 'Less'}</span>
+        {active ? (
+          <span className="muted mono">
+            {active.workouts === 0
+              ? 'Rest day'
+              : `${formatValue(active.value)} · ${active.workouts} workout${active.workouts > 1 ? 's' : ''}`}
+          </span>
+        ) : (
+          <div className="heatmap-legend">
+            <span className="heatmap-cell" style={{ background: 'var(--heat-0)' }} />
+            {RAMP.map((c) => (
+              <span key={c} className="heatmap-cell" style={{ background: c }} />
+            ))}
+          </div>
+        )}
+        {!active && <span className="faint">More</span>}
+      </div>
+    </div>
+  )
+}

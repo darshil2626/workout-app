@@ -102,6 +102,56 @@ export function normalizeSetType(raw: string | undefined): SetType {
   return 'normal'
 }
 
+/**
+ * Strong's "Set Order" column is usually numeric, but also carries single-letter
+ * set-type codes (seen in the wild: "F" for a to-failure set) alongside the
+ * word forms normalizeSetType already understands.
+ */
+export function setTypeFromStrongOrder(raw: string): SetType {
+  const s = raw.trim().toLowerCase()
+  if (s === 'f') return 'failure'
+  if (s === 'w' || s === 'wu') return 'warmup'
+  if (s === 'd') return 'drop'
+  return normalizeSetType(raw)
+}
+
+/**
+ * Finds the header key matching one of `candidates`, tolerating a trailing
+ * unit annotation some Strong export variants add, e.g. "weight" also matches
+ * "weight (kg)". Headers must already be lowercased (as toRecords produces).
+ */
+export function findHeaderKey(headers: string[], candidates: string[]): string | null {
+  for (const h of headers) {
+    for (const c of candidates) {
+      if (h === c || h.startsWith(`${c} (`) || h.startsWith(`${c}(`)) return h
+    }
+  }
+  return null
+}
+
+/** Reads a unit disclosed in a header's "(...)" suffix, e.g. "weight (kg)" → 'kg'. */
+export function detectWeightUnitFromHeader(headerKey: string | null): 'kg' | 'lb' | null {
+  if (!headerKey) return null
+  if (/\(lbs?\)/.test(headerKey)) return 'lb'
+  if (/\(kgs?\)/.test(headerKey)) return 'kg'
+  return null
+}
+
+/** Reads a distance unit disclosed in a header's "(...)" suffix. 'm' means the raw value is already metres. */
+export function detectDistanceUnitFromHeader(headerKey: string | null): 'm' | 'km' | 'mi' | null {
+  if (!headerKey) return null
+  if (/\(met(?:er|re)s?\)|\(m\)/.test(headerKey)) return 'm'
+  if (/\(km\)|\(kilomet(?:er|re)s?\)/.test(headerKey)) return 'km'
+  if (/\(miles?\)|\(mi\)/.test(headerKey)) return 'mi'
+  return null
+}
+
+/** Whether a duration header's own label already says seconds, e.g. "duration (sec)". */
+export function isSecondsHeader(headerKey: string | null): boolean {
+  if (!headerKey) return false
+  return /\(sec(?:ond)?s?\)/.test(headerKey)
+}
+
 export function parseFloatOrNull(raw: string | undefined): number | null {
   if (raw === undefined) return null
   const n = Number(raw.trim())

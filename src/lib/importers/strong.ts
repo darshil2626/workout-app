@@ -1,13 +1,18 @@
-import type { DistanceUnit, Exercise, LoggedExercise, LoggedSet, WeightUnit, Workout } from '../../db/types'
+import type { DistanceUnit, Exercise, LoggedExercise, LoggedSet, SetType, WeightUnit, Workout } from '../../db/types'
 import { newId } from '../../db/db'
 import { computeTotals } from '../workout'
-import { displayToKg, displayToMetres } from '../units'
+import { displayToKg, METRES_PER_MILE } from '../units'
 import { parseCsv, sniffDelimiter, toRecords } from './csv'
 import {
   buildSetValues,
+  detectDistanceUnitFromHeader,
+  detectWeightUnitFromHeader,
   ExerciseResolver,
+  findHeaderKey,
+  isSecondsHeader,
   parseClockDuration,
   parseFloatOrNull,
+  setTypeFromStrongOrder,
   type ParsedImport,
   type RowShape,
 } from './shared'
@@ -19,12 +24,42 @@ function parseStrongDate(s: string): number | null {
   return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se)).getTime()
 }
 
+function headerRow(text: string): { headers: string[]; delimiter: string } {
+  const firstLine = text.split(/\r?\n/)[0] ?? ''
+  const delimiter = sniffDelimiter(firstLine)
+  const headers = (parseCsv(firstLine, delimiter)[0] ?? []).map((h) => h.trim().toLowerCase())
+  return { headers, delimiter }
+}
+
+/**
+ * Whether the file's own header discloses Weight/Distance units (e.g.
+ * "Weight (kg)", "Distance (meters)") — some Strong export variants do,
+ * others just say "Weight" and leave it to whatever the app was set to.
+ * The caller uses this to decide whether the user needs to be asked.
+ */
+export function sniffStrongDisclosedUnits(text: string): { weight: boolean; distance: boolean } {
+  const { headers } = headerRow(text)
+  const weightKey = findHeaderKey(headers, ['weight'])
+  const distanceKey = findHeaderKey(headers, ['distance'])
+  return {
+    weight: detectWeightUnitFromHeader(weightKey) !== null,
+    distance: detectDistanceUnitFromHeader(distanceKey) !== null,
+  }
+}
+
+function distanceToMetres(value: number, unit: 'm' | 'km' | 'mi'): number {
+  if (unit === 'm') return value
+  if (unit === 'km') return value * 1000
+  return value * METRES_PER_MILE
+}
+
 interface RawRow {
   weightKg: number | null
   reps: number | null
   durationSec: number | null
   distanceM: number | null
   rpe: number | null
+  setType: SetType
 }
 
 interface ExGroup {
@@ -48,9 +83,10 @@ export interface StrongImportOptions {
 }
 
 /**
- * Strong's CSV never records which unit Weight/Distance are in — it just
- * follows whatever the app was set to at export time — so the caller must
- * ask the user and pass it in.
+ * Some Strong export variants disclose units right in the header
+ * ("Weight (kg)", "Distance (meters)"); others just say "Weight" and follow
+ * whatever the app was set to at export time. `opts` is the fallback for
+ * whichever dimension the header doesn't disclose.
  */
 export function parseStrongCsv(
   text: string,
@@ -58,8 +94,26 @@ export function parseStrongCsv(
   existingExercises: Exercise[],
   bodyweightKg: number | null,
 ): ParsedImport {
-  const delimiter = sniffDelimiter(text.split(/\r?\n/)[0] ?? '')
+  const { headers, delimiter } = headerRow(text)
   const records = toRecords(parseCsv(text, delimiter))
+
+  const dateKey = findHeaderKey(headers, ['date']) ?? 'date'
+  const workoutNameKey = findHeaderKey(headers, ['workout name']) ?? 'workout name'
+  const durationKey = findHeaderKey(headers, ['duration'])
+  const exerciseNameKey = findHeaderKey(headers, ['exercise name']) ?? 'exercise name'
+  const setOrderKey = findHeaderKey(headers, ['set order']) ?? 'set order'
+  const weightKey = findHeaderKey(headers, ['weight'])
+  const repsKey = findHeaderKey(headers, ['reps']) ?? 'reps'
+  const rpeKey = findHeaderKey(headers, ['rpe']) ?? 'rpe'
+  const distanceKey = findHeaderKey(headers, ['distance'])
+  const secondsKey = findHeaderKey(headers, ['seconds']) ?? 'seconds'
+  const notesKey = findHeaderKey(headers, ['notes']) ?? 'notes'
+  const workoutNotesKey = findHeaderKey(headers, ['workout notes']) ?? 'workout notes'
+
+  const weightUnit = detectWeightUnitFromHeader(weightKey) ?? opts.weightUnit
+  const distanceUnit = detectDistanceUnitFromHeader(distanceKey) ?? opts.distanceUnit
+  const durationIsSeconds = isSecondsHeader(durationKey)
+
   const resolver = new ExerciseResolver(existingExercises)
   const warnings: string[] = []
 
@@ -67,8 +121,8 @@ export function parseStrongCsv(
   const workoutOrder: string[] = []
 
   for (const rec of records) {
-    const dateStr = rec['date']
-    const exerciseName = rec['exercise name']?.trim()
+    const dateStr = rec[dateKey]
+    const exerciseName = rec[exerciseNameKey]?.trim()
     if (!dateStr || !exerciseName) {
       warnings.push('Skipped a row missing a date or exercise name.')
       continue
@@ -81,10 +135,13 @@ export function parseStrongCsv(
 
     let wo = workoutGroups.get(dateStr)
     if (!wo) {
+      const durationRaw = durationKey ? rec[durationKey] : ''
       wo = {
-        name: rec['workout name']?.trim() || 'Workout',
+        name: rec[workoutNameKey]?.trim() || 'Workout',
         startedAt,
-        durationSec: parseClockDuration(rec['duration'] ?? ''),
+        durationSec: durationIsSeconds
+          ? Math.round(parseFloatOrNull(durationRaw) ?? 0)
+          : parseClockDuration(durationRaw ?? ''),
         notes: '',
         exercises: new Map(),
         order: [],
@@ -92,7 +149,7 @@ export function parseStrongCsv(
       workoutGroups.set(dateStr, wo)
       workoutOrder.push(dateStr)
     }
-    if (!wo.notes && rec['workout notes']?.trim()) wo.notes = rec['workout notes'].trim()
+    if (!wo.notes && rec[workoutNotesKey]?.trim()) wo.notes = rec[workoutNotesKey].trim()
 
     let ex = wo.exercises.get(exerciseName)
     if (!ex) {
@@ -100,17 +157,24 @@ export function parseStrongCsv(
       wo.exercises.set(exerciseName, ex)
       wo.order.push(exerciseName)
     }
-    if (!ex.notes && rec['notes']?.trim()) ex.notes = rec['notes'].trim()
+    if (!ex.notes && rec[notesKey]?.trim()) ex.notes = rec[notesKey].trim()
 
-    const weightRaw = parseFloatOrNull(rec['weight'])
-    const distanceRaw = parseFloatOrNull(rec['distance'])
-    const repsRaw = parseFloatOrNull(rec['reps'])
+    // "Note" and "Rest Timer" rows carry metadata (already captured above),
+    // not an actual performed set — skip them rather than logging a ghost set.
+    const setOrderRaw = (rec[setOrderKey] ?? '').trim()
+    const setOrderLower = setOrderRaw.toLowerCase()
+    if (setOrderLower === 'note' || setOrderLower === 'rest timer') continue
+
+    const weightRaw = parseFloatOrNull(weightKey ? rec[weightKey] : undefined)
+    const distanceRaw = parseFloatOrNull(distanceKey ? rec[distanceKey] : undefined)
+    const repsRaw = parseFloatOrNull(rec[repsKey])
     ex.rows.push({
-      weightKg: weightRaw !== null ? displayToKg(weightRaw, opts.weightUnit) : null,
+      weightKg: weightRaw !== null ? displayToKg(weightRaw, weightUnit) : null,
       reps: repsRaw !== null ? Math.round(repsRaw) : null,
-      durationSec: parseFloatOrNull(rec['seconds']),
-      distanceM: distanceRaw !== null ? displayToMetres(distanceRaw, opts.distanceUnit) : null,
-      rpe: parseFloatOrNull(rec['rpe']),
+      durationSec: parseFloatOrNull(rec[secondsKey]),
+      distanceM: distanceRaw !== null ? distanceToMetres(distanceRaw, distanceUnit) : null,
+      rpe: parseFloatOrNull(rec[rpeKey]),
+      setType: setTypeFromStrongOrder(setOrderRaw),
     })
   }
 
@@ -124,6 +188,8 @@ export function parseStrongCsv(
 
     for (const name of wo.order) {
       const group = wo.exercises.get(name)!
+      if (group.rows.length === 0) continue // only "Note"/"Rest Timer" rows — nothing was actually logged
+
       const shape: RowShape = {
         hasWeight: group.rows.some((r) => (r.weightKg ?? 0) > 0),
         hasReps: group.rows.some((r) => (r.reps ?? 0) > 0),
@@ -138,7 +204,7 @@ export function parseStrongCsv(
         id: newId(),
         ...buildSetValues(exercise.kind, r),
         rpe: r.rpe,
-        setType: 'normal',
+        setType: r.setType,
         completed: true,
       }))
 

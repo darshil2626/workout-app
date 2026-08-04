@@ -11,7 +11,7 @@ import { downloadBackup, restoreBackup, wipeAllData, type ImportSummary } from '
 import { BAR_PRESETS_KG, PLATE_PRESETS } from '../lib/plates'
 import { useRestTimer } from '../state/RestTimerContext'
 import { detectFormat } from '../lib/importers/detect'
-import { parseStrongCsv } from '../lib/importers/strong'
+import { parseStrongCsv, sniffStrongDisclosedUnits } from '../lib/importers/strong'
 import { parseHevyCsv } from '../lib/importers/hevy'
 import { applyCsvImport } from '../lib/importers/apply'
 import type { ParsedImport } from '../lib/importers/shared'
@@ -73,9 +73,17 @@ export function SettingsPage() {
     if (format === 'ironlog') {
       setPendingImport(text)
     } else if (format === 'strong') {
-      setStrongWeightUnit(settings.weightUnit)
-      setStrongDistanceUnit(settings.distanceUnit)
-      setPendingStrongText(text)
+      const disclosed = sniffStrongDisclosedUnits(text)
+      if (disclosed.weight && disclosed.distance) {
+        // The file's own header says what unit Weight/Distance are in — no need to ask.
+        await previewCsv((existing) =>
+          parseStrongCsv(text, { weightUnit: 'kg', distanceUnit: 'km' }, existing, settings.bodyweightKg),
+        )
+      } else {
+        setStrongWeightUnit(settings.weightUnit)
+        setStrongDistanceUnit(settings.distanceUnit)
+        setPendingStrongText(text)
+      }
     } else if (format === 'hevy') {
       await previewCsv((existing) => parseHevyCsv(text, existing, settings.bodyweightKg))
     } else {

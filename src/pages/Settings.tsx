@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, initDb } from '../db/db'
-import type { DistanceUnit, LengthUnit, WeightUnit } from '../db/types'
+import type { DistanceUnit, Exercise, LengthUnit, WeightUnit } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
@@ -10,9 +10,27 @@ import { displayToKg, formatWeight, parseNumber } from '../lib/units'
 import { downloadBackup, restoreBackup, wipeAllData, type ImportSummary } from '../lib/backup'
 import { BAR_PRESETS_KG, PLATE_PRESETS } from '../lib/plates'
 import { useRestTimer } from '../state/RestTimerContext'
+import { detectFormat } from '../lib/importers/detect'
+import { parseStrongCsv } from '../lib/importers/strong'
+import { parseHevyCsv } from '../lib/importers/hevy'
+import { applyCsvImport } from '../lib/importers/apply'
+import type { ParsedImport } from '../lib/importers/shared'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const STEP_PRESETS_KG = [0.5, 1, 1.25, 2.5, 5]
+
+function describeCsvPreview(parsed: ParsedImport): string {
+  const sourceLabel = parsed.source === 'strong' ? 'Strong' : 'Hevy'
+  const dates = parsed.workouts.map((w) => w.startedAt)
+  const earliest = new Date(Math.min(...dates)).toLocaleDateString()
+  const latest = new Date(Math.max(...dates)).toLocaleDateString()
+  const range = earliest === latest ? earliest : `${earliest} – ${latest}`
+  const exerciseText =
+    parsed.newExercises.length > 0 ? `, creating ${parsed.newExercises.length} new exercise(s)` : ''
+  const warnText =
+    parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) couldn't be read and were skipped.` : ''
+  return `Adds ${parsed.workouts.length} workout(s) from ${sourceLabel} (${range})${exerciseText}. This does not remove anything already on this device.${warnText}`
+}
 
 export function SettingsPage() {
   const settings = useSettings()
@@ -29,6 +47,11 @@ export function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const [pendingStrongText, setPendingStrongText] = useState<string | null>(null)
+  const [strongWeightUnit, setStrongWeightUnit] = useState<WeightUnit>('kg')
+  const [strongDistanceUnit, setStrongDistanceUnit] = useState<DistanceUnit>('km')
+  const [csvPreview, setCsvPreview] = useState<ParsedImport | null>(null)
+
   const workoutCount = useLiveQuery(() => db.workouts.where('status').equals('done').count(), [], 0)
   const exerciseCount = useLiveQuery(() => db.exercises.count(), [], 0)
   const routineCount = useLiveQuery(() => db.routines.count(), [], 0)
@@ -36,12 +59,56 @@ export function SettingsPage() {
   async function onFilePicked(file: File | undefined) {
     if (!file) return
     setError(null)
+    let text: string
     try {
-      setPendingImport(await file.text())
+      text = await file.text()
     } catch {
       setError('Could not read that file.')
+      if (fileRef.current) fileRef.current.value = ''
+      return
     }
     if (fileRef.current) fileRef.current.value = ''
+
+    const format = detectFormat(text)
+    if (format === 'ironlog') {
+      setPendingImport(text)
+    } else if (format === 'strong') {
+      setStrongWeightUnit(settings.weightUnit)
+      setStrongDistanceUnit(settings.distanceUnit)
+      setPendingStrongText(text)
+    } else if (format === 'hevy') {
+      await previewCsv((existing) => parseHevyCsv(text, existing, settings.bodyweightKg))
+    } else {
+      setError('Unrecognized file. Expected an IronLog backup (.json), or a CSV export from Strong or Hevy.')
+    }
+  }
+
+  async function previewCsv(build: (existing: Exercise[]) => ParsedImport) {
+    try {
+      const existing = await db.exercises.toArray()
+      const parsed = build(existing)
+      if (parsed.workouts.length === 0) {
+        setError('No workouts were found in that file.')
+        return
+      }
+      setCsvPreview(parsed)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not read that file.')
+    }
+  }
+
+  async function confirmStrongUnits() {
+    const text = pendingStrongText
+    setPendingStrongText(null)
+    if (!text) return
+    await previewCsv((existing) =>
+      parseStrongCsv(
+        text,
+        { weightUnit: strongWeightUnit, distanceUnit: strongDistanceUnit },
+        existing,
+        settings.bodyweightKg,
+      ),
+    )
   }
 
   async function doImport() {
@@ -56,6 +123,24 @@ export function SettingsPage() {
       setError(e instanceof Error ? e.message : 'Import failed.')
     } finally {
       setPendingImport(null)
+    }
+  }
+
+  async function doCsvImport() {
+    if (!csvPreview) return
+    const sourceLabel = csvPreview.source === 'strong' ? 'Strong' : 'Hevy'
+    try {
+      const summary = await applyCsvImport(csvPreview)
+      const warnText =
+        csvPreview.warnings.length > 0 ? ` ${csvPreview.warnings.length} row(s) were skipped.` : ''
+      setMessage(
+        `Added ${summary.workouts} workouts and ${summary.exercises} new exercises from ${sourceLabel}.${warnText}`,
+      )
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import failed.')
+    } finally {
+      setCsvPreview(null)
     }
   }
 
@@ -295,12 +380,12 @@ export function SettingsPage() {
               Export backup (.json)
             </button>
             <button className="btn btn-ghost btn-block" onClick={() => fileRef.current?.click()}>
-              Import backup
+              Import backup or CSV
             </button>
             <input
               ref={fileRef}
               type="file"
-              accept="application/json,.json"
+              accept="application/json,.json,text/csv,.csv"
               hidden
               onChange={(e) => void onFilePicked(e.target.files?.[0])}
             />
@@ -308,6 +393,10 @@ export function SettingsPage() {
               Delete all data
             </button>
           </div>
+          <p className="faint" style={{ marginTop: 10 }}>
+            Import accepts an IronLog backup (.json, replaces everything), or a CSV export from Strong
+            or Hevy (added alongside what's already here).
+          </p>
         </div>
 
         <div className="section-title">About</div>
@@ -414,6 +503,64 @@ export function SettingsPage() {
         destructive
         onConfirm={() => void doImport()}
         onCancel={() => setPendingImport(null)}
+      />
+
+      <Sheet
+        open={pendingStrongText !== null}
+        title="What units was Strong using?"
+        onClose={() => setPendingStrongText(null)}
+        footer={
+          <>
+            <button className="btn btn-ghost grow" onClick={() => setPendingStrongText(null)}>
+              Cancel
+            </button>
+            <button className="btn btn-primary grow" onClick={() => void confirmStrongUnits()}>
+              Continue
+            </button>
+          </>
+        }
+      >
+        <p className="muted" style={{ marginBottom: 14 }}>
+          Strong's export doesn't record which units it used, so pick what your app was set to when
+          you exported this file.
+        </p>
+        <div className="field">
+          <span className="field-label">Weight</span>
+          <div className="segmented">
+            {(['kg', 'lb'] as WeightUnit[]).map((u) => (
+              <button
+                key={u}
+                className={strongWeightUnit === u ? 'active' : ''}
+                onClick={() => setStrongWeightUnit(u)}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field" style={{ marginTop: 14 }}>
+          <span className="field-label">Distance</span>
+          <div className="segmented">
+            {(['km', 'mi'] as DistanceUnit[]).map((u) => (
+              <button
+                key={u}
+                className={strongDistanceUnit === u ? 'active' : ''}
+                onClick={() => setStrongDistanceUnit(u)}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Sheet>
+
+      <ConfirmSheet
+        open={csvPreview !== null}
+        title="Add this history?"
+        message={csvPreview ? describeCsvPreview(csvPreview) : undefined}
+        confirmLabel="Import"
+        onConfirm={() => void doCsvImport()}
+        onCancel={() => setCsvPreview(null)}
       />
 
       <ConfirmSheet

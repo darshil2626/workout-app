@@ -157,6 +157,16 @@ export function isSetLogged(set: LoggedSet): boolean {
   )
 }
 
+/**
+ * Whether a set records work that actually happened. Unlike isSetLogged, a zero
+ * counts as nothing and the completed flag is ignored: Strong and Hevy export
+ * sets that were added to a session but never performed as all-zero rows, and a
+ * CSV import marks every row complete.
+ */
+export function hasLoggedValue(set: LoggedSet): boolean {
+  return Boolean(set.weight) || Boolean(set.reps) || Boolean(set.durationSec) || Boolean(set.distanceM)
+}
+
 /** Human-readable summary of one set, e.g. "80 kg × 5" or "5.00 km in 25:00". */
 export function describeSet(
   set: LoggedSet,

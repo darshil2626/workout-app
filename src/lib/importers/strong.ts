@@ -1,6 +1,6 @@
 import type { DistanceUnit, Exercise, LoggedExercise, LoggedSet, SetType, WeightUnit, Workout } from '../../db/types'
 import { newId } from '../../db/db'
-import { computeTotals } from '../workout'
+import { computeTotals, hasLoggedValue } from '../workout'
 import { displayToKg, METRES_PER_MILE } from '../units'
 import { parseCsv, sniffDelimiter, toRecords } from './csv'
 import {
@@ -198,15 +198,22 @@ export function parseStrongCsv(
       }
       const exercise = resolver.resolve(name, shape)
       exerciseById.set(exercise.id, exercise)
-      exerciseIds.push(exercise.id)
 
-      const sets: LoggedSet[] = group.rows.map((r) => ({
-        id: newId(),
-        ...buildSetValues(exercise.kind, r),
-        rpe: r.rpe,
-        setType: r.setType,
-        completed: true,
-      }))
+      // Sets planned in Strong but never performed still get a row, with every
+      // value zero. Logging those as completed invents work that never happened
+      // and makes one export of a session disagree with the next.
+      const sets: LoggedSet[] = group.rows
+        .map((r) => ({
+          id: newId(),
+          ...buildSetValues(exercise.kind, r),
+          rpe: r.rpe,
+          setType: r.setType,
+          completed: true,
+        }))
+        .filter(hasLoggedValue)
+      if (sets.length === 0) continue
+
+      exerciseIds.push(exercise.id)
 
       loggedExercises.push({
         id: newId(),
@@ -216,6 +223,8 @@ export function parseStrongCsv(
         sets,
       })
     }
+
+    if (loggedExercises.length === 0) continue // nothing in this session was performed
 
     const totals = computeTotals(loggedExercises, exerciseById, bodyweightKg)
     const finishedAt = wo.durationSec > 0 ? wo.startedAt + wo.durationSec * 1000 : wo.startedAt

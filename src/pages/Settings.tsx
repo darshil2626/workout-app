@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, initDb } from '../db/db'
-import type { DistanceUnit, Exercise, LengthUnit, WeightUnit } from '../db/types'
+import type { DistanceUnit, Exercise, LengthUnit, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
@@ -14,22 +14,78 @@ import { detectFormat } from '../lib/importers/detect'
 import { parseStrongCsv, sniffStrongDisclosedUnits } from '../lib/importers/strong'
 import { parseHevyCsv } from '../lib/importers/hevy'
 import { applyCsvImport } from '../lib/importers/apply'
+import {
+  hasHistoryIssues,
+  partitionImport,
+  repairHistory,
+  scanHistoryIssues,
+  type HistoryIssues,
+} from '../lib/dedupe'
 import type { ParsedImport } from '../lib/importers/shared'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const STEP_PRESETS_KG = [0.5, 1, 1.25, 2.5, 5]
 
-function describeCsvPreview(parsed: ParsedImport): string {
+/** What a CSV import would actually do, worked out before the user commits to it. */
+interface CsvPreview {
+  parsed: ParsedImport
+  /** Workouts not already on this device — the ones that get added. */
+  fresh: Workout[]
+  /** Exercises only the fresh workouts introduce. */
+  newExercises: number
+  /** Workouts skipped because that exact session is already stored. */
+  skipped: number
+  sameTimeDifferent: number
+}
+
+function describeCsvPreview(preview: CsvPreview): string {
+  const { parsed, fresh } = preview
   const sourceLabel = parsed.source === 'strong' ? 'Strong' : 'Hevy'
-  const dates = parsed.workouts.map((w) => w.startedAt)
+  const dates = fresh.map((w) => w.startedAt)
   const earliest = new Date(Math.min(...dates)).toLocaleDateString()
   const latest = new Date(Math.max(...dates)).toLocaleDateString()
   const range = earliest === latest ? earliest : `${earliest} – ${latest}`
   const exerciseText =
-    parsed.newExercises.length > 0 ? `, creating ${parsed.newExercises.length} new exercise(s)` : ''
+    preview.newExercises > 0 ? `, creating ${preview.newExercises} new exercise(s)` : ''
+  const skipText =
+    preview.skipped > 0
+      ? ` ${preview.skipped} workout(s) in this file are already in your history and will be skipped.`
+      : ''
+  const sameTimeText =
+    preview.sameTimeDifferent > 0
+      ? ` ${preview.sameTimeDifferent} start at the same time as a session you already have but log different sets — those are added as new.`
+      : ''
   const warnText =
     parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) couldn't be read and were skipped.` : ''
-  return `Adds ${parsed.workouts.length} workout(s) from ${sourceLabel} (${range})${exerciseText}. This does not remove anything already on this device.${warnText}`
+  return `Adds ${fresh.length} workout(s) from ${sourceLabel} (${range})${exerciseText}. This does not remove anything already on this device.${skipText}${sameTimeText}${warnText}`
+}
+
+function describeHistoryIssues(issues: HistoryIssues): string {
+  const parts: string[] = []
+  if (issues.duplicates > 0) {
+    parts.push(
+      `${issues.duplicates} workout(s) are exact copies of another session — one copy of each is kept.`,
+    )
+  }
+  if (issues.placeholderSets > 0) {
+    parts.push(
+      `${issues.placeholderSets} workout(s) hold sets that record nothing (an import kept rows for sets you never performed) — those sets go and the totals are recalculated.`,
+    )
+  }
+  if (issues.emptyWorkouts > 0) {
+    parts.push(`${issues.emptyWorkouts} workout(s) record nothing at all and are deleted.`)
+  }
+  return `${parts.join(' ')} Export a backup first if you want a safety net.`
+}
+
+function describeRepair(issues: HistoryIssues): string {
+  const parts: string[] = []
+  if (issues.duplicates > 0) parts.push(`removed ${issues.duplicates} duplicate workout(s)`)
+  if (issues.placeholderSets > 0) {
+    parts.push(`cleaned empty sets out of ${issues.placeholderSets} workout(s)`)
+  }
+  if (issues.emptyWorkouts > 0) parts.push(`deleted ${issues.emptyWorkouts} empty workout(s)`)
+  return parts.length > 0 ? `History cleaned: ${parts.join(', ')}.` : 'Nothing needed cleaning.'
 }
 
 export function SettingsPage() {
@@ -50,7 +106,8 @@ export function SettingsPage() {
   const [pendingStrongText, setPendingStrongText] = useState<string | null>(null)
   const [strongWeightUnit, setStrongWeightUnit] = useState<WeightUnit>('kg')
   const [strongDistanceUnit, setStrongDistanceUnit] = useState<DistanceUnit>('km')
-  const [csvPreview, setCsvPreview] = useState<ParsedImport | null>(null)
+  const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null)
+  const [historyIssues, setHistoryIssues] = useState<HistoryIssues | null>(null)
 
   const workoutCount = useLiveQuery(() => db.workouts.where('status').equals('done').count(), [], 0)
   const exerciseCount = useLiveQuery(() => db.exercises.count(), [], 0)
@@ -59,6 +116,7 @@ export function SettingsPage() {
   async function onFilePicked(file: File | undefined) {
     if (!file) return
     setError(null)
+    setMessage(null)
     let text: string
     try {
       text = await file.text()
@@ -99,7 +157,19 @@ export function SettingsPage() {
         setError('No workouts were found in that file.')
         return
       }
-      setCsvPreview(parsed)
+      const { fresh, duplicates, sameTimeDifferent } = await partitionImport(parsed.workouts)
+      if (fresh.length === 0) {
+        setMessage('Every workout in that file is already in your history. Nothing to add.')
+        return
+      }
+      const usedIds = new Set(fresh.flatMap((w) => w.exerciseIds))
+      setCsvPreview({
+        parsed,
+        fresh,
+        newExercises: parsed.newExercises.filter((e) => usedIds.has(e.id)).length,
+        skipped: duplicates.length,
+        sameTimeDifferent,
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not read that file.')
     }
@@ -136,19 +206,43 @@ export function SettingsPage() {
 
   async function doCsvImport() {
     if (!csvPreview) return
-    const sourceLabel = csvPreview.source === 'strong' ? 'Strong' : 'Hevy'
+    const { parsed } = csvPreview
+    const sourceLabel = parsed.source === 'strong' ? 'Strong' : 'Hevy'
     try {
-      const summary = await applyCsvImport(csvPreview)
-      const warnText =
-        csvPreview.warnings.length > 0 ? ` ${csvPreview.warnings.length} row(s) were skipped.` : ''
+      const summary = await applyCsvImport(parsed)
+      const skipText =
+        summary.skipped > 0 ? ` ${summary.skipped} were already in your history and were skipped.` : ''
+      const warnText = parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) were skipped.` : ''
       setMessage(
-        `Added ${summary.workouts} workouts and ${summary.exercises} new exercises from ${sourceLabel}.${warnText}`,
+        `Added ${summary.workouts} workouts and ${summary.exercises} new exercises from ${sourceLabel}.${skipText}${warnText}`,
       )
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Import failed.')
     } finally {
       setCsvPreview(null)
+    }
+  }
+
+  async function scanHistory() {
+    setError(null)
+    setMessage(null)
+    try {
+      const issues = await scanHistoryIssues()
+      if (hasHistoryIssues(issues)) setHistoryIssues(issues)
+      else setMessage('Your history is already clean — no duplicates and no empty sets.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not scan your history.')
+    }
+  }
+
+  async function doRepairHistory() {
+    setHistoryIssues(null)
+    try {
+      setMessage(describeRepair(await repairHistory()))
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not clean up your history.')
     }
   }
 
@@ -397,13 +491,18 @@ export function SettingsPage() {
               hidden
               onChange={(e) => void onFilePicked(e.target.files?.[0])}
             />
+            <button className="btn btn-ghost btn-block" onClick={() => void scanHistory()}>
+              Clean up history
+            </button>
             <button className="btn btn-danger btn-block" onClick={() => setConfirmWipe(true)}>
               Delete all data
             </button>
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
             Import accepts an IronLog backup (.json, replaces everything), or a CSV export from Strong
-            or Hevy (added alongside what's already here).
+            or Hevy (added alongside what's already here). Re-importing a CSV is safe — sessions you
+            already have are skipped, so a longer export only adds what's new. Clean up history finds
+            duplicates and empty sets left behind by older imports.
           </p>
         </div>
 
@@ -569,6 +668,16 @@ export function SettingsPage() {
         confirmLabel="Import"
         onConfirm={() => void doCsvImport()}
         onCancel={() => setCsvPreview(null)}
+      />
+
+      <ConfirmSheet
+        open={historyIssues !== null}
+        title="Clean up history?"
+        message={historyIssues ? describeHistoryIssues(historyIssues) : undefined}
+        confirmLabel="Clean up"
+        destructive
+        onConfirm={() => void doRepairHistory()}
+        onCancel={() => setHistoryIssues(null)}
       />
 
       <ConfirmSheet

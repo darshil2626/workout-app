@@ -5,6 +5,7 @@ import { db } from '../db/db'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
+import { MuscleDiagram } from '../components/MuscleDiagram'
 import { useFormatters } from '../lib/useSettings'
 import { getExerciseHistory } from '../lib/history'
 import { describeSet, estimate1RM, setBadges } from '../lib/workout'
@@ -133,6 +134,8 @@ export function ExerciseDetailPage() {
           {exercise.muscleGroup} · {exercise.equipment}
           {exercise.isCustom ? ' · Custom' : ''}
         </p>
+
+        <MuscleDiagram primary={exercise.muscleGroup} secondary={exercise.secondaryMuscles} />
 
         {exercise.notes ? (
           <div className="card" style={{ marginTop: 12 }}>

@@ -12,11 +12,24 @@ interface Props {
   /** Receives every id the user ticked, in selection order. */
   onConfirm: (exerciseIds: string[]) => void
   title?: string
+  /** Hidden from the list — used when picking a merge target for an exercise. */
+  excludeId?: string
+  /** Picking a merge target, so only one choice makes sense. */
+  single?: boolean
+  confirmLabel?: string
 }
 
 const ALL = 'All'
 
-export function ExercisePicker({ open, onClose, onConfirm, title = 'Add exercise' }: Props) {
+export function ExercisePicker({
+  open,
+  onClose,
+  onConfirm,
+  title = 'Add exercise',
+  excludeId,
+  single = false,
+  confirmLabel,
+}: Props) {
   const [query, setQuery] = useState('')
   const [muscle, setMuscle] = useState<string>(ALL)
   const [selected, setSelected] = useState<string[]>([])
@@ -32,13 +45,17 @@ export function ExercisePicker({ open, onClose, onConfirm, title = 'Add exercise
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return exercises
-      .filter((e) => !e.archived)
+      .filter((e) => !e.archived && e.id !== excludeId)
       .filter((e) => muscle === ALL || e.muscleGroup === muscle)
       .filter((e) => q === '' || e.name.toLowerCase().includes(q))
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [exercises, query, muscle])
 
   function toggle(id: string) {
+    if (single) {
+      setSelected((prev) => (prev[0] === id ? [] : [id]))
+      return
+    }
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
@@ -75,8 +92,8 @@ export function ExercisePicker({ open, onClose, onConfirm, title = 'Add exercise
               onClick={confirm}
             >
               {selected.length === 0
-                ? 'Select exercises'
-                : `Add ${selected.length} exercise${selected.length > 1 ? 's' : ''}`}
+                ? (confirmLabel ? 'Select an exercise' : 'Select exercises')
+                : (confirmLabel ?? `Add ${selected.length} exercise${selected.length > 1 ? 's' : ''}`)}
             </button>
           </>
         }

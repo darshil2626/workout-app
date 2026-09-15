@@ -1,6 +1,11 @@
-import type { Equipment, Exercise, ExerciseKind, SetType, Workout } from '../../db/types'
+import type { Exercise, ExerciseKind, SetType, Workout } from '../../db/types'
 import { newId } from '../../db/db'
 import { fieldsFor } from '../workout'
+import { ExerciseIndex, hintFromName, inferKind } from '../exerciseMatch'
+import type { NameHint, RowShape } from '../exerciseMatch'
+
+export { hintFromName, inferKind }
+export type { NameHint, RowShape }
 
 export interface ParsedImport {
   source: 'strong' | 'hevy'
@@ -10,85 +15,33 @@ export interface ParsedImport {
   warnings: string[]
 }
 
-/** Both Strong and Hevy name exercises "Base Name (Equipment)", same convention this app's library uses. */
-const EQUIPMENT_ALIASES: Record<string, Equipment> = {
-  barbell: 'Barbell',
-  dumbbell: 'Dumbbell',
-  machine: 'Machine',
-  cable: 'Cable',
-  bodyweight: 'Bodyweight',
-  kettlebell: 'Kettlebell',
-  band: 'Band',
-  plate: 'Plate',
-  'smith machine': 'Smith Machine',
-}
-
-const KIND_HINT_ALIASES: Record<string, ExerciseKind> = {
-  assisted: 'assisted_bodyweight',
-  weighted: 'weighted_bodyweight',
-}
-
-export interface NameHint {
-  equipment: Equipment
-  kindHint: ExerciseKind | null
-}
-
-/** Reads the "(Equipment)" suffix off an exercise name, if present. */
-export function hintFromName(name: string): NameHint {
-  const m = /\(([^)]+)\)\s*$/.exec(name.trim())
-  if (!m) return { equipment: 'Other', kindHint: null }
-  const token = m[1].trim().toLowerCase()
-  if (token in KIND_HINT_ALIASES) return { equipment: 'Bodyweight', kindHint: KIND_HINT_ALIASES[token] }
-  if (token in EQUIPMENT_ALIASES) return { equipment: EQUIPMENT_ALIASES[token], kindHint: null }
-  return { equipment: 'Other', kindHint: null }
-}
-
-export interface RowShape {
-  hasWeight: boolean
-  hasReps: boolean
-  hasDuration: boolean
-  hasDistance: boolean
-}
-
-/** Infers an ExerciseKind for a brand-new exercise from the values actually seen for it. */
-export function inferKind(shape: RowShape, hint: NameHint): ExerciseKind {
-  if (hint.kindHint) return hint.kindHint
-  if (shape.hasDistance) return 'distance_duration'
-  if (shape.hasDuration && !shape.hasReps) return shape.hasWeight ? 'duration_weight' : 'duration'
-  if (hint.equipment === 'Bodyweight' || (!shape.hasWeight && shape.hasReps)) return 'bodyweight_reps'
-  if (shape.hasWeight && shape.hasReps) return 'weight_reps'
-  return 'weight_reps'
-}
-
 /**
- * Resolves an exercise name to an id, reusing an existing library entry
- * (case-insensitive) or creating a new custom one. Shared across one import
- * run so the same new name only gets created once.
+ * Resolves an exercise name to a library entry, reusing an existing one where
+ * the movement matches and otherwise creating a custom entry that is at least
+ * classified — see exerciseMatch.ts for the rules. Shared across one import run
+ * so the same new name only gets created once.
  */
 export class ExerciseResolver {
-  private byLowerName = new Map<string, Exercise>()
+  private index: ExerciseIndex
   readonly created: Exercise[] = []
 
   constructor(existing: Exercise[]) {
-    for (const e of existing) this.byLowerName.set(e.name.trim().toLowerCase(), e)
+    this.index = new ExerciseIndex(existing)
   }
 
   resolve(name: string, shape: RowShape): Exercise {
-    const key = name.trim().toLowerCase()
-    const found = this.byLowerName.get(key)
-    if (found) return found
+    const match = this.index.match(name, shape)
+    if (match.exercise) return match.exercise
 
-    const hint = hintFromName(name)
     const exercise: Exercise = {
       id: newId(),
       name: name.trim(),
-      muscleGroup: 'Other',
-      equipment: hint.equipment,
-      kind: inferKind(shape, hint),
+      ...match.classify,
       isCustom: true,
       createdAt: Date.now(),
     }
-    this.byLowerName.set(key, exercise)
+    // Added to the index so a second row for the same new name reuses it.
+    this.index.add(exercise)
     this.created.push(exercise)
     return exercise
   }

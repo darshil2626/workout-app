@@ -83,7 +83,7 @@ export function ExerciseFormSheet({ open, exercise, onClose, onSaved }: Props) {
       .filter((e) => e.id !== exercise?.id && e.name.toLowerCase() === trimmed.toLowerCase())
       .first()
     if (clash) {
-      setError('An exercise with that name already exists.')
+      setError('An exercise with that name already exists. To combine the two, use “Merge into…” on the exercise instead.')
       return
     }
 

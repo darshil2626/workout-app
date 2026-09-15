@@ -21,6 +21,12 @@ import {
   scanHistoryIssues,
   type HistoryIssues,
 } from '../lib/dedupe'
+import {
+  applyExerciseFixes,
+  hasActiveWorkout,
+  scanExerciseFixes,
+  type ExerciseFix,
+} from '../lib/exerciseRepair'
 import type { ParsedImport } from '../lib/importers/shared'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
@@ -78,6 +84,22 @@ function describeHistoryIssues(issues: HistoryIssues): string {
   return `${parts.join(' ')} Export a backup first if you want a safety net.`
 }
 
+function describeExerciseFixes(fixes: ExerciseFix[]): string {
+  const merges = fixes.filter((f) => f.into !== null)
+  const moved = merges.reduce((n, f) => n + f.workouts, 0)
+  const reclassified = fixes.length - merges.length
+  const parts: string[] = []
+  if (merges.length > 0) {
+    parts.push(
+      `${merges.length} exercise(s) are the same movement as a built-in one and will be merged into it, moving ${moved} workout(s).`,
+    )
+  }
+  if (reclassified > 0) {
+    parts.push(`${reclassified} exercise(s) will be moved out of 'Other' into the right muscle group.`)
+  }
+  return `${parts.join(' ')} Export a backup first if you want a safety net.`
+}
+
 function describeRepair(issues: HistoryIssues): string {
   const parts: string[] = []
   if (issues.duplicates > 0) parts.push(`removed ${issues.duplicates} duplicate workout(s)`)
@@ -108,6 +130,7 @@ export function SettingsPage() {
   const [strongDistanceUnit, setStrongDistanceUnit] = useState<DistanceUnit>('km')
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null)
   const [historyIssues, setHistoryIssues] = useState<HistoryIssues | null>(null)
+  const [exerciseFixes, setExerciseFixes] = useState<ExerciseFix[] | null>(null)
 
   const workoutCount = useLiveQuery(() => db.workouts.where('status').equals('done').count(), [], 0)
   const exerciseCount = useLiveQuery(() => db.exercises.count(), [], 0)
@@ -243,6 +266,36 @@ export function SettingsPage() {
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not clean up your history.')
+    }
+  }
+
+  async function scanExercises() {
+    setError(null)
+    setMessage(null)
+    try {
+      if (await hasActiveWorkout()) {
+        setError('Finish or discard the workout in progress first — merging exercises would change it underneath you.')
+        return
+      }
+      const fixes = await scanExerciseFixes()
+      if (fixes.length > 0) setExerciseFixes(fixes)
+      else setMessage('Every exercise is already matched to the library.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not scan your exercises.')
+    }
+  }
+
+  async function doFixExercises() {
+    setExerciseFixes(null)
+    try {
+      const r = await applyExerciseFixes()
+      const parts: string[] = []
+      if (r.merged > 0) parts.push(`merged ${r.merged} exercise(s) into the library across ${r.workouts} workout(s)`)
+      if (r.reclassified > 0) parts.push(`gave ${r.reclassified} exercise(s) a muscle group`)
+      setMessage(parts.length > 0 ? `Exercises matched: ${parts.join(', ')}.` : 'Nothing needed matching.')
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not match your exercises.')
     }
   }
 
@@ -494,6 +547,9 @@ export function SettingsPage() {
             <button className="btn btn-ghost btn-block" onClick={() => void scanHistory()}>
               Clean up history
             </button>
+            <button className="btn btn-ghost btn-block" onClick={() => void scanExercises()}>
+              Match imported exercises
+            </button>
             <button className="btn btn-danger btn-block" onClick={() => setConfirmWipe(true)}>
               Delete all data
             </button>
@@ -502,7 +558,8 @@ export function SettingsPage() {
             Import accepts an IronLog backup (.json, replaces everything), or a CSV export from Strong
             or Hevy (added alongside what's already here). Re-importing a CSV is safe — sessions you
             already have are skipped, so a longer export only adds what's new. Clean up history finds
-            duplicates and empty sets left behind by older imports.
+            duplicates and empty sets left behind by older imports; Match imported exercises folds
+            differently-named imports into the built-in library.
           </p>
         </div>
 
@@ -678,6 +735,16 @@ export function SettingsPage() {
         destructive
         onConfirm={() => void doRepairHistory()}
         onCancel={() => setHistoryIssues(null)}
+      />
+
+      <ConfirmSheet
+        open={exerciseFixes !== null}
+        title="Match imported exercises?"
+        message={exerciseFixes ? describeExerciseFixes(exerciseFixes) : undefined}
+        confirmLabel="Match"
+        destructive
+        onConfirm={() => void doFixExercises()}
+        onCancel={() => setExerciseFixes(null)}
       />
 
       <ConfirmSheet

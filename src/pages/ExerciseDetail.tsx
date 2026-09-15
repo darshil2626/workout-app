@@ -5,11 +5,13 @@ import { db } from '../db/db'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
+import { ExercisePicker } from '../components/ExercisePicker'
 import { MuscleDiagram } from '../components/MuscleDiagram'
 import { useFormatters } from '../lib/useSettings'
 import { getExerciseHistory } from '../lib/history'
 import { describeSet, estimate1RM, setBadges } from '../lib/workout'
 import { formatDateLabel } from '../lib/time'
+import { hasActiveWorkout, mergeExercises } from '../lib/exerciseRepair'
 import { IconMore, IconTrash } from '../components/Icons'
 import { ChartCard } from '../components/charts/ChartCard'
 import { LineChart } from '../components/charts/LineChart'
@@ -28,6 +30,9 @@ export function ExerciseDetailPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
   const [menu, setMenu] = useState(false)
+  const [mergePicker, setMergePicker] = useState(false)
+  const [mergeTargetId, setMergeTargetId] = useState<string | null>(null)
+  const [mergeError, setMergeError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [blockedDelete, setBlockedDelete] = useState(false)
@@ -36,6 +41,10 @@ export function ExerciseDetailPage() {
 
   const exercise = useLiveQuery(async () => (id ? ((await db.exercises.get(id)) ?? null) : null), [id])
   const history = useLiveQuery(async () => (id ? await getExerciseHistory(id) : []), [id], [])
+  const mergeTarget = useLiveQuery(
+    async () => (mergeTargetId ? ((await db.exercises.get(mergeTargetId)) ?? null) : null),
+    [mergeTargetId],
+  )
 
   const records = useMemo(() => {
     let heaviestKg = 0
@@ -103,6 +112,28 @@ export function ExerciseDetailPage() {
         </div>
       </>
     )
+  }
+
+  async function startMerge(ids: string[]) {
+    setMergePicker(false)
+    if (ids.length === 0) return
+    if (await hasActiveWorkout()) {
+      setMergeError('Finish or discard the workout in progress first.')
+      return
+    }
+    setMergeTargetId(ids[0])
+  }
+
+  async function confirmMerge() {
+    const targetId = mergeTargetId
+    setMergeTargetId(null)
+    if (!targetId || !exercise) return
+    try {
+      await mergeExercises(exercise.id, targetId)
+      navigate(`/exercises/${targetId}`, { replace: true })
+    } catch (e) {
+      setMergeError(e instanceof Error ? e.message : 'Could not merge those exercises.')
+    }
   }
 
   async function remove() {
@@ -297,6 +328,15 @@ export function ExerciseDetailPage() {
           <span className="grow">Edit exercise</span>
         </button>
         <button
+          className="sheet-list-item"
+          onClick={() => {
+            setMenu(false)
+            setMergePicker(true)
+          }}
+        >
+          <span className="grow">Merge into…</span>
+        </button>
+        <button
           className="sheet-list-item danger"
           onClick={() => {
             setMenu(false)
@@ -310,6 +350,35 @@ export function ExerciseDetailPage() {
       </Sheet>
 
       <ExerciseFormSheet open={editing} exercise={exercise} onClose={() => setEditing(false)} />
+
+      <ExercisePicker
+        open={mergePicker}
+        title={`Merge "${exercise.name}" into`}
+        confirmLabel="Choose"
+        single
+        excludeId={exercise.id}
+        onConfirm={(ids) => void startMerge(ids)}
+        onClose={() => setMergePicker(false)}
+      />
+
+      <ConfirmSheet
+        open={mergeTargetId !== null}
+        title="Merge these exercises?"
+        message={`Every set logged as "${exercise.name}" (${history.length} session(s)) moves to "${mergeTarget?.name ?? ''}", and any routine using it is repointed. "${exercise.name}" is then deleted. This cannot be undone.`}
+        confirmLabel="Merge"
+        destructive
+        onConfirm={() => void confirmMerge()}
+        onCancel={() => setMergeTargetId(null)}
+      />
+
+      <ConfirmSheet
+        open={mergeError !== null}
+        title="Can't merge"
+        message={mergeError ?? undefined}
+        confirmLabel="OK"
+        onConfirm={() => setMergeError(null)}
+        onCancel={() => setMergeError(null)}
+      />
 
       <ConfirmSheet
         open={confirmDelete}

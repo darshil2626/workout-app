@@ -6,7 +6,7 @@ import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
 import { ExercisePicker } from '../components/ExercisePicker'
-import { MuscleDiagram } from '../components/MuscleDiagram'
+import { ExerciseArt } from '../components/ExerciseArt'
 import { useFormatters } from '../lib/useSettings'
 import { getExerciseHistory } from '../lib/history'
 import { describeSet, estimate1RM, setBadges } from '../lib/workout'
@@ -166,7 +166,7 @@ export function ExerciseDetailPage() {
           {exercise.isCustom ? ' · Custom' : ''}
         </p>
 
-        <MuscleDiagram primary={exercise.muscleGroup} secondary={exercise.secondaryMuscles} />
+        <ExerciseArt exerciseId={exercise.id} />
 
         {exercise.notes ? (
           <div className="card" style={{ marginTop: 12 }}>

@@ -572,6 +572,13 @@ export function SettingsPage() {
           <p className="faint" style={{ marginTop: 10 }}>
             iPhone: Share → Add to Home Screen. Android: menu → Install app.
           </p>
+          <p className="faint" style={{ marginTop: 10 }}>
+            Exercise illustrations by Bryl Lim and Everkinetic, licensed{' '}
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">
+              CC BY-SA 4.0
+            </a>
+            .
+          </p>
         </div>
       </div>
 

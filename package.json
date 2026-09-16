@@ -9,7 +9,8 @@
     "build": "node node_modules/typescript/bin/tsc -b && node node_modules/vite/bin/vite.js build",
     "preview": "node node_modules/vite/bin/vite.js preview --host",
     "typecheck": "node node_modules/typescript/bin/tsc -b --noEmit",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "art": "node scripts/match-exercise-illustrations.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

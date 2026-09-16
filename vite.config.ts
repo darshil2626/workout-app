@@ -42,6 +42,20 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+        // The exercise illustrations are ~7 MB across 480 files. Precaching
+        // them would block the first load on downloading the lot, so they are
+        // fetched and kept on first view instead.
+        globIgnores: ['**/exercise-art/**'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/exercise-art\/.*\.svg$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-art',
+              expiration: { maxEntries: 600 },
+            },
+          },
+        ],
       },
     }),
   ],

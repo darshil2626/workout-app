@@ -113,7 +113,8 @@ src/
   components/          Reusable UI: set rows, sheets, pickers, nav
   components/charts/   SVG line/column/bar/heatmap primitives, each with a table twin
   pages/               One file per screen
-scripts/               Icon generator (no image dependencies)
+public/exercise-art/   Exercise illustrations, three frames each (CC BY-SA 4.0)
+scripts/               Icon generator (no image dependencies), illustration matcher
 ```
 
 Weights are stored in kilograms, durations in seconds, distances in metres and
@@ -128,6 +129,7 @@ timestamps in epoch milliseconds — conversion happens only at the UI edge.
 | `npm run preview` | Serve the built app locally |
 | `npm run typecheck` | Type-check only |
 | `npm run icons` | Regenerate the app icons |
+| `npm run art` | Re-match exercises to illustrations and download any new frames |
 
 ### A note for WSL
 

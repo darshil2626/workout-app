@@ -94,9 +94,30 @@ export function effectiveWeightKg(
   }
 }
 
-/** Warm-up sets are excluded, matching how lifters read their own totals. */
-export function countsTowardVolume(set: LoggedSet): boolean {
-  return set.completed && set.setType !== 'warmup'
+/**
+ * The number a "heaviest weight" record is measured in: what was actually
+ * loaded, not the total force moved. A weighted pull-up at +20 kg records
+ * 20 kg, so the record tracks added load instead of creeping up every time a
+ * weigh-in does, and an assisted movement records nothing because a bigger
+ * number there means less work. Volume and 1RM still use effectiveWeightKg.
+ */
+export function prWeightKg(set: LoggedSet, kind: ExerciseKind): number {
+  switch (kind) {
+    case 'weight_reps':
+    case 'duration_weight':
+    case 'weighted_bodyweight':
+      return set.weight ?? 0
+    default:
+      return 0
+  }
+}
+
+/**
+ * Warm-up sets are excluded by default, matching how lifters read their own
+ * totals, but `countWarmups` reflects the user's setting for it.
+ */
+export function countsTowardVolume(set: LoggedSet, countWarmups = false): boolean {
+  return set.completed && (countWarmups || set.setType !== 'warmup')
 }
 
 export interface WorkoutTotals {
@@ -111,6 +132,7 @@ export function computeTotals(
   exercises: LoggedExercise[],
   exerciseById: Map<string, Exercise>,
   bodyweightKg: number | null | undefined,
+  countWarmups = false,
 ): WorkoutTotals {
   let totalVolumeKg = 0
   let totalSets = 0
@@ -121,7 +143,7 @@ export function computeTotals(
   for (const le of exercises) {
     const kind = exerciseById.get(le.exerciseId)?.kind ?? 'weight_reps'
     for (const set of le.sets) {
-      if (!countsTowardVolume(set)) continue
+      if (!countsTowardVolume(set, countWarmups)) continue
       totalSets += 1
       totalReps += set.reps ?? 0
       totalDurationSec += set.durationSec ?? 0

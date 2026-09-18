@@ -9,6 +9,7 @@ import { formatDuration } from '../lib/time'
 import { displayToKg, formatWeight, parseNumber } from '../lib/units'
 import { downloadBackup, restoreBackup, wipeAllData, type ImportSummary } from '../lib/backup'
 import { BAR_PRESETS_KG, PLATE_PRESETS } from '../lib/plates'
+import { measurementWeightUnit } from '../lib/measurements'
 import { useRestTimer } from '../state/RestTimerContext'
 import { detectFormat } from '../lib/importers/detect'
 import { parseStrongCsv, sniffStrongDisclosedUnits } from '../lib/importers/strong'
@@ -17,6 +18,7 @@ import { applyCsvImport } from '../lib/importers/apply'
 import {
   hasHistoryIssues,
   partitionImport,
+  recomputeAllWorkoutTotals,
   repairHistory,
   scanHistoryIssues,
   type HistoryIssues,
@@ -124,6 +126,8 @@ export function SettingsPage() {
   const [pendingImport, setPendingImport] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Set while a bulk rewrite of stored history is in flight.
+  const [busy, setBusy] = useState(false)
 
   const [pendingStrongText, setPendingStrongText] = useState<string | null>(null)
   const [strongWeightUnit, setStrongWeightUnit] = useState<WeightUnit>('kg')
@@ -308,10 +312,32 @@ export function SettingsPage() {
     setMessage('All data deleted.')
   }
 
+  /**
+   * History lists read each session's cached totals, so flipping this has to
+   * re-total every stored workout or the numbers would disagree with the rule.
+   */
+  async function toggleWarmupSets() {
+    setBusy(true)
+    setError(null)
+    try {
+      await updateSettings({ countWarmupSets: !settings.countWarmupSets })
+      const changed = await recomputeAllWorkoutTotals()
+      setMessage(
+        changed === 0
+          ? 'Warm-up setting updated.'
+          : `Warm-up setting updated. ${changed} session${changed === 1 ? '' : 's'} re-totalled.`,
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update that setting.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function saveBodyweight() {
     const n = bodyweight === null ? null : parseNumber(bodyweight)
     void updateSettings({
-      bodyweightKg: n === null ? null : displayToKg(n, settings.weightUnit),
+      bodyweightKg: n === null ? null : displayToKg(n, measurementWeightUnit(settings)),
     })
     setBodyweight(null)
   }
@@ -362,6 +388,20 @@ export function SettingsPage() {
             </div>
           </div>
           <div className="field" style={{ marginTop: 14 }}>
+            <span className="field-label">Bodyweight</span>
+            <div className="segmented">
+              {(['kg', 'lb'] as WeightUnit[]).map((u) => (
+                <button
+                  key={u}
+                  className={measurementWeightUnit(settings) === u ? 'active' : ''}
+                  onClick={() => void updateSettings({ measurementWeightUnit: u })}
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field" style={{ marginTop: 14 }}>
             <span className="field-label">Body measurements</span>
             <div className="segmented">
               {(['cm', 'in'] as LengthUnit[]).map((u) => (
@@ -376,6 +416,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
+            Bodyweight has its own unit, so you can lift in one and weigh yourself in the other.
             Everything is stored in kilograms and centimetres internally, so switching units never
             changes what you lifted or measured.
           </p>
@@ -453,6 +494,24 @@ export function SettingsPage() {
 
         <div className="section-title">Lifting</div>
         <div className="card">
+          <div className="row-between">
+            <div className="stack grow">
+              <span>Count warm-up sets</span>
+              <span className="faint">
+                Include them in volume, set counts and records. Off by default — a warm-up is
+                preparation, not a training stimulus.
+              </span>
+            </div>
+            <button
+              className={`switch${settings.countWarmupSets ? ' on' : ''}`}
+              role="switch"
+              aria-checked={settings.countWarmupSets}
+              aria-label="Count warm-up sets"
+              disabled={busy}
+              onClick={() => void toggleWarmupSets()}
+            />
+          </div>
+          <div className="divider" />
           <button className="row-between" style={{ width: '100%' }} onClick={() => setStepSheet(true)}>
             <div className="stack grow" style={{ textAlign: 'left' }}>
               <span>Weight increment</span>
@@ -486,14 +545,17 @@ export function SettingsPage() {
           </button>
           <div className="divider" />
           <div className="field">
-            <span className="field-label">Bodyweight ({settings.weightUnit})</span>
+            <span className="field-label">Bodyweight ({measurementWeightUnit(settings)})</span>
             <div className="row" style={{ gap: 8 }}>
               <input
                 className="input grow"
                 type="text"
                 inputMode="decimal"
                 value={
-                  bodyweight ?? (settings.bodyweightKg === null ? '' : formatWeight(settings.bodyweightKg, settings.weightUnit))
+                  bodyweight ??
+                  (settings.bodyweightKg === null
+                    ? ''
+                    : formatWeight(settings.bodyweightKg, measurementWeightUnit(settings)))
                 }
                 onChange={(e) => setBodyweight(e.target.value)}
                 placeholder="Not set"

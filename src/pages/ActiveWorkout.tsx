@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Exercise, LoggedExercise, LoggedSet, SetType } from '../db/types'
-import { useActiveWorkout } from '../state/ActiveWorkoutContext'
+import { useActiveWorkout, type SessionRating } from '../state/ActiveWorkoutContext'
 import { useRestTimer } from '../state/RestTimerContext'
+import { useSetTimer } from '../state/SetTimerContext'
 import { useFormatters } from '../lib/useSettings'
 import { useNow } from '../lib/useNow'
 import {
   computeTotals,
   elapsedSeconds,
   fieldsFor,
+  isSetLogged,
   SET_TYPE_LABEL,
   setBadges,
 } from '../lib/workout'
@@ -27,13 +29,19 @@ import { SetRow } from '../components/SetRow'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { PlateCalculator } from '../components/PlateCalculator'
+import { FinishSheet } from '../components/FinishSheet'
+import { useSortable } from '../lib/useSortable'
+import { formatVolumeCompact } from '../lib/units'
 import {
   IconArrowDown,
   IconArrowUp,
+  IconGrip,
   IconLink,
+  IconMinimise,
   IconMore,
   IconNote,
   IconPlus,
+  IconSwap,
   IconTimer,
   IconTrash,
 } from '../components/Icons'
@@ -63,21 +71,28 @@ function useRecordBaselines(
   exerciseIds: string[],
   exerciseById: Map<string, Exercise>,
   bodyweightKg: number | null,
+  countWarmups: boolean,
   excludeWorkoutId?: string,
 ) {
   const key = exerciseIds.join('|')
+  // Keyed on the kinds actually being queried rather than the library's size:
+  // a rename, a kind change or a merge leaves the count untouched, and keying
+  // on size would then serve a baseline computed from a stale exercise map.
+  const kindKey = exerciseIds.map((id) => exerciseById.get(id)?.kind ?? '?').join('|')
   return useLiveQuery(
     async () => {
       const map = new Map<string, ExerciseRecords>()
       for (const id of key === '' ? [] : key.split('|')) {
         const exercise = exerciseById.get(id)
         if (!exercise) continue
-        map.set(id, await loadRecords(id, exercise.kind, bodyweightKg, excludeWorkoutId))
+        map.set(id, await loadRecords(id, exercise.kind, bodyweightKg, countWarmups, excludeWorkoutId))
       }
       return map
     },
-    [key, excludeWorkoutId, bodyweightKg, exerciseById.size],
-    new Map<string, ExerciseRecords>(),
+    [key, kindKey, excludeWorkoutId, bodyweightKg, countWarmups],
+    // Undefined until the first scan resolves, so "not loaded yet" stays
+    // distinguishable from "loaded, and this exercise has no history".
+    undefined,
   )
 }
 
@@ -88,7 +103,9 @@ export function ActiveWorkoutPage() {
     loading,
     addExercises,
     removeExercise,
+    replaceExercise,
     moveExercise,
+    reorderExercises,
     addSet,
     removeSet,
     updateSet,
@@ -99,11 +116,19 @@ export function ActiveWorkoutPage() {
     discard,
   } = useActiveWorkout()
   const restTimer = useRestTimer()
+  const setTimer = useSetTimer()
   const fmt = useFormatters()
   const now = useNow(1000)
 
   const [picking, setPicking] = useState(false)
+  // The block whose exercise is being swapped out, and the replacement chosen
+  // for it while the cross-kind warning is up.
+  const [replacing, setReplacing] = useState<LoggedExercise | null>(null)
+  const [replaceWarning, setReplaceWarning] = useState<{ leId: string; exerciseId: string } | null>(
+    null,
+  )
   const [confirmFinish, setConfirmFinish] = useState(false)
+  const [rating, setRating] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [setMenu, setSetMenu] = useState<{ leId: string; set: LoggedSet } | null>(null)
   const [exMenu, setExMenu] = useState<LoggedExercise | null>(null)
@@ -112,22 +137,79 @@ export function ActiveWorkoutPage() {
   // Non-null while the plate calculator sheet is open; holds the target weight.
   const [plateTarget, setPlateTarget] = useState<number | null | undefined>(undefined)
 
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
-  const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
+  // Undefined until the library loads. Defaulting to [] here would make every
+  // exercise look unknown for a tick, which silently suppresses PR badges and
+  // shows the wrong input columns for anything that is not weight × reps.
+  const exercises = useLiveQuery(() => db.exercises.toArray(), [], undefined)
+  const byId = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
   const previous = usePreviousPerformances(workout?.exerciseIds ?? [], workout?.id)
   const baselines = useRecordBaselines(
     workout?.exerciseIds ?? [],
     byId,
     fmt.settings.bodyweightKg,
+    fmt.settings.countWarmupSets,
     workout?.id,
   )
 
+  /**
+   * Stops the hold timer and writes what it measured into the set: the duration,
+   * ticked complete, with rest started — the same outcome as typing the number
+   * and tapping the check, in one tap.
+   */
+  const commitSetTimer = useCallback(() => {
+    const activeId = setTimer.active?.setId
+    const seconds = setTimer.stop()
+    if (!activeId || seconds === null) return
+
+    const owner = workout?.exercises.find((le) => le.sets.some((s) => s.id === activeId))
+    if (!owner) return
+    updateSet(owner.id, activeId, { durationSec: seconds, completed: true })
+    if (fmt.settings.restTimerEnabled && fmt.settings.autoStartRestTimer) {
+      restTimer.start(owner.restSeconds ?? fmt.settings.defaultRestSeconds)
+    }
+  }, [setTimer, workout?.exercises, updateSet, restTimer, fmt.settings])
+
+  // A countdown that reaches zero records itself; the provider has already
+  // chimed, so the hold is over whether or not the screen is being watched.
+  const countdownFinished = setTimer.active?.remainingSec === 0
+  useEffect(() => {
+    if (countdownFinished) commitSetTimer()
+  }, [countdownFinished, commitSetTimer])
+
   const totals = useMemo(
-    () => computeTotals(workout?.exercises ?? [], byId, fmt.settings.bodyweightKg),
-    [workout?.exercises, byId, fmt.settings.bodyweightKg],
+    () =>
+      computeTotals(
+        workout?.exercises ?? [],
+        byId,
+        fmt.settings.bodyweightKg,
+        fmt.settings.countWarmupSets,
+      ),
+    [workout?.exercises, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
 
-  if (loading) return <div className="spinner" />
+  const blockIds = useMemo(() => (workout?.exercises ?? []).map((le) => le.id), [workout?.exercises])
+  const sortable = useSortable(blockIds, reorderExercises)
+
+  // Badged sets across the whole session, for the finish summary.
+  const prCount = useMemo(() => {
+    if (!baselines || !workout) return 0
+    let n = 0
+    for (const le of workout.exercises) {
+      const exercise = byId.get(le.exerciseId)
+      if (!exercise) continue
+      const found = findSessionPRs(
+        le.sets,
+        exercise,
+        baselines.get(le.exerciseId) ?? emptyRecords(),
+        fmt.settings.bodyweightKg,
+        fmt.settings.countWarmupSets,
+      )
+      for (const kinds of found.values()) n += kinds.length
+    }
+    return n
+  }, [baselines, workout, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets])
+
+  if (loading || !exercises) return <div className="spinner" />
 
   if (!workout) {
     return (
@@ -155,9 +237,9 @@ export function ActiveWorkoutPage() {
     }
   }
 
-  async function handleFinish() {
-    setConfirmFinish(false)
-    const id = await finish()
+  async function handleFinish(sessionRating: SessionRating) {
+    setRating(false)
+    const id = await finish(sessionRating)
     restTimer.stop()
     if (id) navigate(`/history/${id}`, { replace: true })
     else navigate('/', { replace: true })
@@ -176,6 +258,17 @@ export function ActiveWorkoutPage() {
     <>
       <header className="header">
         <div className="header-row">
+          {/* The logging screen hides the tab bar, so without this the only way
+              back to the rest of the app was the browser's back button. The
+              session keeps running; the banner on every other screen returns. */}
+          <button
+            className="icon-btn"
+            onClick={() => navigate('/')}
+            aria-label="Minimise workout"
+            title="Back to app — the workout keeps running"
+          >
+            <IconMinimise />
+          </button>
           <button className="header-action danger" onClick={() => setConfirmDiscard(true)}>
             Discard
           </button>
@@ -211,7 +304,7 @@ export function ActiveWorkoutPage() {
 
         <div className="stat-grid" style={{ margin: '10px 0 4px' }}>
           <div className="stat">
-            <div className="stat-value mono">{fmt.volume(totals.totalVolumeKg)}</div>
+            <div className="stat-value mono">{fmt.volumeCompact(totals.totalVolumeKg)}</div>
             <div className="stat-label">Volume {fmt.weightUnit}</div>
           </div>
           <div className="stat">
@@ -251,18 +344,48 @@ export function ActiveWorkoutPage() {
             const f = fieldsFor(kind)
             const badges = setBadges(le.sets)
             const prev = previous.get(le.exerciseId)
-            const prs = exercise
-              ? findSessionPRs(
-                  le.sets,
-                  exercise,
-                  baselines.get(le.exerciseId) ?? emptyRecords(),
-                  fmt.settings.bodyweightKg,
-                )
-              : new Map<string, PRKind[]>()
+            // A baseline of zeros would badge every set, so wait for the real
+            // one. Missing from a *loaded* map means no history at all, which
+            // is a genuine all-zero baseline and does badge.
+            const baseline = baselines && exercise
+              ? baselines.get(le.exerciseId) ?? emptyRecords()
+              : undefined
+            const prs =
+              exercise && baseline
+                ? findSessionPRs(
+                    le.sets,
+                    exercise,
+                    baseline,
+                    fmt.settings.bodyweightKg,
+                    fmt.settings.countWarmupSets,
+                  )
+                : new Map<string, PRKind[]>()
 
+            const offset = sortable.offsetFor(le.id)
             return (
-              <section className="ex-block" key={le.id}>
+              <section
+                className={`ex-block${sortable.draggingId === le.id ? ' dragging' : ''}`}
+                key={le.id}
+                ref={sortable.registerRef(le.id)}
+                style={
+                  offset === 0
+                    ? undefined
+                    : {
+                        transform: `translateY(${offset}px)`,
+                        // Only the rows being pushed aside animate; the dragged
+                        // one must track the finger exactly.
+                        transition: sortable.draggingId === le.id ? 'none' : 'transform 160ms ease',
+                      }
+                }
+              >
                 <div className="ex-head">
+                  <button
+                    className="ex-grip"
+                    aria-label={`Reorder ${exercise?.name ?? 'exercise'}`}
+                    {...sortable.handleProps(le.id)}
+                  >
+                    <IconGrip />
+                  </button>
                   <div className="stack grow">
                     <button
                       className="ex-name truncate"
@@ -314,18 +437,39 @@ export function ActiveWorkoutPage() {
                         previous={prev?.sets[i]}
                         prs={prs.get(set.id)}
                         fmt={fmt}
+                        timer={setTimer.active?.setId === set.id ? setTimer.active : undefined}
                         onChange={(patch) => updateSet(le.id, set.id, patch)}
                         onToggleComplete={() => handleToggleComplete(le, set)}
                         onOpenMenu={() => setSetMenu({ leId: le.id, set })}
+                        // A target already in the field counts down; an empty
+                        // one counts up until the hold gives out.
+                        onStartTimer={() => setTimer.start(set.id, set.durationSec)}
+                        onStopTimer={commitSetTimer}
                       />
                     ))}
                   </tbody>
                 </table>
 
                 <div className="ex-foot">
-                  <button className="btn btn-ghost btn-sm btn-block" onClick={() => addSet(le.id)}>
+                  <button className="btn btn-ghost btn-sm grow" onClick={() => addSet(le.id)}>
                     <IconPlus />
                     Add set
+                  </button>
+                  {/* Deleting a set was only reachable through the set-number
+                      menu, which reads as a label rather than a button. Removing
+                      the last set is the case that comes up mid-session, so it
+                      gets its own control; the menu still removes any other. */}
+                  <button
+                    className="btn btn-ghost btn-sm ex-foot-remove"
+                    onClick={() => {
+                      const last = le.sets[le.sets.length - 1]
+                      if (last) removeSet(le.id, last.id)
+                    }}
+                    disabled={le.sets.length === 0}
+                    aria-label="Remove last set"
+                    title="Remove last set"
+                  >
+                    <IconTrash />
                   </button>
                 </div>
               </section>
@@ -348,6 +492,45 @@ export function ActiveWorkoutPage() {
         open={picking}
         onClose={() => setPicking(false)}
         onConfirm={(ids) => addExercises(ids)}
+      />
+
+      {/* Replacing keeps the block's sets, so only a change of kind — which
+          changes which columns are shown — is worth warning about. */}
+      <ExercisePicker
+        open={replacing !== null}
+        title={`Replace ${byId.get(replacing?.exerciseId ?? '')?.name ?? 'exercise'}`}
+        confirmLabel="Replace"
+        single
+        excludeId={replacing?.exerciseId}
+        onClose={() => setReplacing(null)}
+        onConfirm={(ids) => {
+          const le = replacing
+          const next = ids[0]
+          setReplacing(null)
+          if (!le || !next) return
+          const from = byId.get(le.exerciseId)
+          const to = byId.get(next)
+          const logged = le.sets.some(isSetLogged)
+          if (logged && from && to && from.kind !== to.kind) {
+            setReplaceWarning({ leId: le.id, exerciseId: next })
+          } else {
+            replaceExercise(le.id, next)
+          }
+        }}
+      />
+
+      <ConfirmSheet
+        open={replaceWarning !== null}
+        title="Different exercise type"
+        message={
+          'This exercise is logged differently, so some numbers already entered may stop being shown. They are kept, not deleted.'
+        }
+        confirmLabel="Replace"
+        onConfirm={() => {
+          if (replaceWarning) replaceExercise(replaceWarning.leId, replaceWarning.exerciseId)
+          setReplaceWarning(null)
+        }}
+        onCancel={() => setReplaceWarning(null)}
       />
 
       {/* Per-set menu: RPE, plate maths, set type, delete. */}
@@ -412,6 +595,13 @@ export function ActiveWorkoutPage() {
             {setMenu?.set.setType === t && <span style={{ color: 'var(--accent)' }}>✓</span>}
           </button>
         ))}
+        {/* Routines can carry a set in as a warm-up; once it is loaded to a real
+            working weight, the silent exclusion from records surprises people. */}
+        {setMenu?.set.setType === 'warmup' && !fmt.settings.countWarmupSets && (
+          <p className="faint" style={{ marginTop: 8 }}>
+            Warm-up sets don't count towards records.
+          </p>
+        )}
         <button
           className="sheet-list-item danger"
           onClick={() => {
@@ -489,6 +679,16 @@ export function ActiveWorkoutPage() {
         <button
           className="sheet-list-item"
           onClick={() => {
+            setReplacing(exMenu)
+            setExMenu(null)
+          }}
+        >
+          <IconSwap />
+          <span className="grow">Replace exercise</span>
+        </button>
+        <button
+          className="sheet-list-item"
+          onClick={() => {
             if (exMenu) moveExercise(exMenu.id, -1)
             setExMenu(null)
           }}
@@ -543,8 +743,22 @@ export function ActiveWorkoutPage() {
             : 'No sets are ticked complete, so this session would be saved empty. Finish anyway?'
         }
         confirmLabel="Finish"
-        onConfirm={() => void handleFinish()}
+        onConfirm={() => {
+          setConfirmFinish(false)
+          setRating(true)
+        }}
         onCancel={() => setConfirmFinish(false)}
+      />
+
+      <FinishSheet
+        open={rating}
+        summary={{
+          duration: formatDuration(elapsed),
+          volume: `${formatVolumeCompact(totals.totalVolumeKg, fmt.weightUnit)} ${fmt.weightUnit}`,
+          prCount,
+        }}
+        onClose={() => setRating(false)}
+        onSave={(r) => void handleFinish(r)}
       />
 
       <ConfirmSheet

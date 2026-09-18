@@ -12,6 +12,12 @@ import { db, newId } from '../db/db'
 import type { LoggedExercise, LoggedSet, Routine, Workout } from '../db/types'
 import { computeTotals, emptySet, isSetLogged, setFromTarget } from '../lib/workout'
 
+/** How the session felt overall; both halves are optional, and skipping is fine. */
+export interface SessionRating {
+  effort?: number
+  feeling?: number
+}
+
 interface ActiveWorkoutValue {
   workout: Workout | null
   /** True until the initial hydration from IndexedDB completes. */
@@ -20,7 +26,11 @@ interface ActiveWorkoutValue {
   startFromRoutine: (routine: Routine) => Promise<string>
   addExercises: (exerciseIds: string[]) => void
   removeExercise: (loggedExerciseId: string) => void
+  /** Swaps which exercise a block logs, keeping the sets already recorded. */
+  replaceExercise: (loggedExerciseId: string, exerciseId: string) => void
   moveExercise: (loggedExerciseId: string, direction: -1 | 1) => void
+  /** Rewrites the whole running order; ids not listed keep their position. */
+  reorderExercises: (orderedIds: string[]) => void
   addSet: (loggedExerciseId: string) => void
   removeSet: (loggedExerciseId: string, setId: string) => void
   updateSet: (loggedExerciseId: string, setId: string, patch: Partial<LoggedSet>) => void
@@ -28,7 +38,7 @@ interface ActiveWorkoutValue {
   setName: (name: string) => void
   setNotes: (notes: string) => void
   /** Persists totals, marks the session done, and returns its id. */
-  finish: () => Promise<string | null>
+  finish: (rating?: SessionRating) => Promise<string | null>
   discard: () => Promise<void>
 }
 
@@ -183,6 +193,43 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
     [mutate],
   )
 
+  /**
+   * Keeps the block's id and its sets, so swapping a machine mid-session does
+   * not throw away what has already been logged under it.
+   */
+  const replaceExercise = useCallback(
+    (loggedExerciseId: string, exerciseId: string) => {
+      mutate((w) => {
+        const exercises = w.exercises.map((le) =>
+          le.id === loggedExerciseId ? { ...le, exerciseId } : le,
+        )
+        return { ...w, exercises, exerciseIds: [...new Set(exercises.map((e) => e.exerciseId))] }
+      })
+    },
+    [mutate],
+  )
+
+  const reorderExercises = useCallback(
+    (orderedIds: string[]) => {
+      mutate((w) => {
+        const byId = new Map(w.exercises.map((le) => [le.id, le]))
+        const exercises: LoggedExercise[] = []
+        for (const id of orderedIds) {
+          const le = byId.get(id)
+          if (le) {
+            exercises.push(le)
+            byId.delete(id)
+          }
+        }
+        // Anything the caller did not mention keeps its relative order at the
+        // end, so a stale id list can never drop an exercise from the session.
+        for (const le of w.exercises) if (byId.has(le.id)) exercises.push(le)
+        return { ...w, exercises }
+      })
+    },
+    [mutate],
+  )
+
   const moveExercise = useCallback(
     (loggedExerciseId: string, direction: -1 | 1) => {
       mutate((w) => {
@@ -245,7 +292,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
   const setName = useCallback((name: string) => mutate((w) => ({ ...w, name })), [mutate])
   const setNotes = useCallback((notes: string) => mutate((w) => ({ ...w, notes })), [mutate])
 
-  const finish = useCallback(async () => {
+  const finish = useCallback(async (rating?: SessionRating) => {
     if (!workout) return null
     const settings = await db.settings.get(1)
     const all = await db.exercises.bulkGet([...new Set(workout.exercises.map((e) => e.exerciseId))])
@@ -256,7 +303,12 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       .map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) }))
       .filter((le) => le.sets.length > 0)
 
-    const totals = computeTotals(exercises, byId, settings?.bodyweightKg ?? null)
+    const totals = computeTotals(
+      exercises,
+      byId,
+      settings?.bodyweightKg ?? null,
+      settings?.countWarmupSets ?? false,
+    )
     const finished: Workout = {
       ...workout,
       exercises,
@@ -267,6 +319,10 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       totalVolumeKg: totals.totalVolumeKg,
       totalSets: totals.totalSets,
       totalReps: totals.totalReps,
+      // Written with the session rather than patched in afterwards, so a
+      // rated workout is never briefly stored unrated.
+      ...(rating?.effort !== undefined ? { effort: rating.effort } : {}),
+      ...(rating?.feeling !== undefined ? { feeling: rating.feeling } : {}),
     }
     await db.workouts.put(finished)
     if (finished.routineId) {
@@ -295,7 +351,9 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       startFromRoutine,
       addExercises,
       removeExercise,
+      replaceExercise,
       moveExercise,
+      reorderExercises,
       addSet,
       removeSet,
       updateSet,
@@ -312,7 +370,9 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       startFromRoutine,
       addExercises,
       removeExercise,
+      replaceExercise,
       moveExercise,
+      reorderExercises,
       addSet,
       removeSet,
       updateSet,

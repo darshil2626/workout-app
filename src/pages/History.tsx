@@ -7,6 +7,7 @@ import { Header } from '../components/Header'
 import { useFormatters } from '../lib/useSettings'
 import { elapsedSeconds } from '../lib/workout'
 import { formatDateLabel, formatDurationShort, formatTimeOfDay } from '../lib/time'
+import { feelingFor } from '../components/FinishSheet'
 
 export function HistoryPage() {
   const navigate = useNavigate()
@@ -58,7 +59,7 @@ export function HistoryPage() {
                 <div className="stat-label">Workouts</div>
               </div>
               <div className="stat">
-                <div className="stat-value mono">{fmt.volume(totalVolume)}</div>
+                <div className="stat-value mono">{fmt.volumeCompact(totalVolume)}</div>
                 <div className="stat-label">Total {fmt.weightUnit}</div>
               </div>
               <div className="stat">
@@ -84,7 +85,14 @@ export function HistoryPage() {
                         <span style={{ fontWeight: 650 }} className="truncate">
                           {w.name}
                         </span>
-                        <span className="faint">{formatDateLabel(w.startedAt)}</span>
+                        <span className="row" style={{ gap: 6 }}>
+                          {w.feeling !== undefined && (
+                            <span title={`Felt ${feelingFor(w.feeling)?.label.toLowerCase()}`}>
+                              {feelingFor(w.feeling)?.emoji}
+                            </span>
+                          )}
+                          <span className="faint">{formatDateLabel(w.startedAt)}</span>
+                        </span>
                       </div>
                       <div className="row" style={{ gap: 14, marginTop: 6 }}>
                         <span className="muted mono">{formatDurationShort(elapsedSeconds(w))}</span>

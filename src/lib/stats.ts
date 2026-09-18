@@ -1,5 +1,12 @@
 import type { Exercise, ExerciseKind, MuscleGroup, Workout } from '../db/types'
-import { effectiveWeightKg, elapsedSeconds, estimate1RM, fieldsFor } from './workout'
+import {
+  countsTowardVolume,
+  effectiveWeightKg,
+  elapsedSeconds,
+  estimate1RM,
+  fieldsFor,
+  prWeightKg,
+} from './workout'
 
 const DAY_MS = 86400000
 
@@ -152,6 +159,7 @@ export function muscleDistribution(
   workouts: Workout[],
   exerciseById: Map<string, Exercise>,
   bodyweightKg: number | null,
+  countWarmups = false,
 ): MuscleSlice[] {
   const map = new Map<MuscleGroup, MuscleSlice>()
   for (const w of workouts) {
@@ -159,7 +167,7 @@ export function muscleDistribution(
       const exercise = exerciseById.get(le.exerciseId)
       if (!exercise) continue
       for (const s of le.sets) {
-        if (!s.completed || s.setType === 'warmup') continue
+        if (!countsTowardVolume(s, countWarmups)) continue
         const slice =
           map.get(exercise.muscleGroup) ??
           { muscle: exercise.muscleGroup, sets: 0, volumeKg: 0 }
@@ -185,13 +193,29 @@ export const PROGRESS_METRIC_LABEL: Record<ProgressMetric, string> = {
   distance: 'Best distance',
 }
 
-/** Only the metrics an exercise actually records, in the order they matter. */
+/** Chip labels. The card title carries the full name, so the chip needn't. */
+export const PROGRESS_METRIC_SHORT: Record<ProgressMetric, string> = {
+  heaviest: 'Heaviest',
+  oneRm: 'Est. 1RM',
+  volume: 'Volume',
+  reps: 'Reps',
+  duration: 'Time',
+  distance: 'Distance',
+}
+
+/**
+ * Only the metrics an exercise actually records, in the order they matter.
+ * Mirrors `relevantKinds` in ./records: a movement with no measurable load
+ * offers no weight, 1RM or volume chart, because the line would plot the
+ * user's weigh-ins rather than their training.
+ */
 export function metricsFor(kind: ExerciseKind): ProgressMetric[] {
   const f = fieldsFor(kind)
+  const loadIsMeasurable = f.weight && kind !== 'assisted_bodyweight'
   const metrics: ProgressMetric[] = []
   if (f.distance) metrics.push('distance')
-  if (f.weight || f.relativeWeight) metrics.push('heaviest')
-  if (f.weight && f.reps) metrics.push('oneRm', 'volume')
+  if (loadIsMeasurable) metrics.push('heaviest')
+  if (loadIsMeasurable && f.reps) metrics.push('oneRm', 'volume')
   if (f.duration) metrics.push('duration')
   if (f.reps) metrics.push('reps')
   return metrics
@@ -204,18 +228,19 @@ export interface ProgressPoint {
 }
 
 /**
- * One point per session for a single exercise. Warm-ups are excluded so a light
- * warm-up never registers as a drop in performance.
+ * One point per session for a single exercise. Warm-ups are excluded by default
+ * so a light warm-up never registers as a drop in performance.
  */
 export function exerciseProgress(
   history: { workout: Workout; logged: { sets: Workout['exercises'][number]['sets'] } }[],
   exercise: Exercise,
   metric: ProgressMetric,
   bodyweightKg: number | null,
+  countWarmups = false,
 ): ProgressPoint[] {
   const points: ProgressPoint[] = []
   for (const { workout, logged } of history) {
-    const sets = logged.sets.filter((s) => s.completed && s.setType !== 'warmup')
+    const sets = logged.sets.filter((s) => countsTowardVolume(s, countWarmups))
     if (sets.length === 0) continue
 
     let value = 0
@@ -223,7 +248,9 @@ export function exerciseProgress(
       const load = effectiveWeightKg(s, exercise.kind, workout.bodyweightKg ?? bodyweightKg)
       switch (metric) {
         case 'heaviest':
-          value = Math.max(value, load)
+          // Loaded weight, matching the heaviest-weight record, so the chart and
+          // the PR badge cannot disagree about what the heaviest set was.
+          value = Math.max(value, prWeightKg(s, exercise.kind))
           break
         case 'oneRm':
           if (s.reps) value = Math.max(value, estimate1RM(load, s.reps))

@@ -125,6 +125,7 @@ function planRepair(
   workouts: Workout[],
   exerciseById: Map<string, Exercise>,
   defaultBodyweightKg: number | null,
+  countWarmups: boolean,
 ): RepairPlan {
   // Cleanest copy first, then by id, so the same copy survives on every run and
   // the one carrying placeholder rows is the one that goes.
@@ -155,7 +156,12 @@ function planRepair(
 
     if (!changed) continue
     issues.placeholderSets++
-    const totals = computeTotals(exercises, exerciseById, w.bodyweightKg ?? defaultBodyweightKg)
+    const totals = computeTotals(
+      exercises,
+      exerciseById,
+      w.bodyweightKg ?? defaultBodyweightKg,
+      countWarmups,
+    )
     put.push({
       ...w,
       exercises,
@@ -176,7 +182,55 @@ async function loadForRepair(): Promise<RepairPlan> {
     db.settings.get(1),
   ])
   const exerciseById = new Map(exercises.map((e) => [e.id, e] as const))
-  return planRepair(workouts, exerciseById, settings?.bodyweightKg ?? null)
+  return planRepair(
+    workouts,
+    exerciseById,
+    settings?.bodyweightKg ?? null,
+    settings?.countWarmupSets ?? false,
+  )
+}
+
+/**
+ * Rewrites every stored session's cached totals. Needed when a setting that
+ * feeds those totals changes — the warm-up rule, or a corrected bodyweight —
+ * since history lists read the cached numbers rather than recomputing.
+ */
+export async function recomputeAllWorkoutTotals(): Promise<number> {
+  return db.transaction('rw', [db.workouts, db.exercises, db.settings], async () => {
+    const [workouts, exercises, settings] = await Promise.all([
+      db.workouts.where('status').equals('done').toArray(),
+      db.exercises.toArray(),
+      db.settings.get(1),
+    ])
+    const exerciseById = new Map(exercises.map((e) => [e.id, e] as const))
+    const countWarmups = settings?.countWarmupSets ?? false
+    const fallbackBodyweightKg = settings?.bodyweightKg ?? null
+
+    const changed: Workout[] = []
+    for (const w of workouts) {
+      const totals = computeTotals(
+        w.exercises,
+        exerciseById,
+        w.bodyweightKg ?? fallbackBodyweightKg,
+        countWarmups,
+      )
+      if (
+        totals.totalVolumeKg === w.totalVolumeKg &&
+        totals.totalSets === w.totalSets &&
+        totals.totalReps === w.totalReps
+      ) {
+        continue
+      }
+      changed.push({
+        ...w,
+        totalVolumeKg: totals.totalVolumeKg,
+        totalSets: totals.totalSets,
+        totalReps: totals.totalReps,
+      })
+    }
+    if (changed.length > 0) await db.workouts.bulkPut(changed)
+    return changed.length
+  })
 }
 
 /** What cleaning the history would do. Reads only. */

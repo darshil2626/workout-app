@@ -47,6 +47,20 @@ export const IconPlus = ({ className }: Props) => (
   </svg>
 )
 
+/** Two arrows trading places — swapping one exercise for another. */
+export const IconSwap = ({ className }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" />
+  </svg>
+)
+
+/** Two columns of dots — the conventional "drag me" affordance. */
+export const IconGrip = ({ className }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" />
+  </svg>
+)
+
 export const IconCheck = ({ className }: Props) => (
   <svg {...base} className={className}>
     <path d="M4 12.5 9 17.5 20 6.5" />
@@ -109,6 +123,13 @@ export const IconArrowUp = ({ className }: Props) => (
 export const IconArrowDown = ({ className }: Props) => (
   <svg {...base} className={className}>
     <path d="M12 5v14M6 13l6 6 6-6" />
+  </svg>
+)
+
+/** Chevron down: collapses the workout screen back to the tabs. */
+export const IconMinimise = ({ className }: Props) => (
+  <svg {...base} className={className}>
+    <path d="M6 9l6 6 6-6" />
   </svg>
 )
 

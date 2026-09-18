@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useSettings } from '../lib/useSettings'
+import { playChime, vibrate } from '../lib/chime'
 
 const STORAGE_KEY = 'ironlog.restTimer'
 
@@ -37,35 +38,6 @@ function readStored(): StoredTimer | null {
     return parsed
   } catch {
     return null
-  }
-}
-
-/**
- * Plays a short two-tone chime via WebAudio so the app needs no audio asset
- * and works offline. Silently no-ops if the browser blocks playback.
- */
-function playChime(): void {
-  try {
-    const Ctor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctor) return
-    const ctx = new Ctor()
-    const now = ctx.currentTime
-    for (const [i, freq] of [880, 1320].entries()) {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = freq
-      const at = now + i * 0.18
-      gain.gain.setValueAtTime(0, at)
-      gain.gain.linearRampToValueAtTime(0.35, at + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.16)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(at)
-      osc.stop(at + 0.18)
-    }
-    setTimeout(() => void ctx.close(), 700)
-  } catch {
-    // Audio is a nicety; never let it break the timer.
   }
 }
 
@@ -106,9 +78,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
     if (firedRef.current === timer.endsAt) return
     firedRef.current = timer.endsAt
     if (settings.restTimerSound) playChime()
-    if (settings.restTimerVibrate && 'vibrate' in navigator) {
-      navigator.vibrate([180, 90, 180])
-    }
+    if (settings.restTimerVibrate) vibrate()
     // Leave the finished timer on screen briefly so the user registers it.
     const id = window.setTimeout(() => setTimer(null), 2000)
     return () => window.clearTimeout(id)

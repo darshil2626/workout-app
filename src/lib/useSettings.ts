@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DEFAULT_SETTINGS, db } from '../db/db'
 import type { Settings } from '../db/types'
-import { formatDistance, formatVolume, formatWeight } from './units'
+import { formatDistance, formatVolume, formatVolumeCompact, formatWeight } from './units'
 import { formatDuration } from './time'
 
 /**
@@ -29,6 +29,8 @@ export function useFormatters() {
     weightWithUnit: (kg: number | null) =>
       kg === null ? '—' : `${formatWeight(kg, settings.weightUnit)} ${settings.weightUnit}`,
     volume: (kg: number) => formatVolume(kg, settings.weightUnit),
+    /** Abbreviated for stat tiles; `volume` stays exact for tables and tooltips. */
+    volumeCompact: (kg: number) => formatVolumeCompact(kg, settings.weightUnit),
     distance: (m: number | null) => formatDistance(m, settings.distanceUnit),
     distanceWithUnit: (m: number | null) =>
       m === null ? '—' : `${formatDistance(m, settings.distanceUnit)} ${settings.distanceUnit}`,

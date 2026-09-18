@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ActiveWorkoutProvider } from './state/ActiveWorkoutContext'
 import { RestTimerProvider } from './state/RestTimerContext'
+import { SetTimerProvider } from './state/SetTimerContext'
 import { BottomNav } from './components/BottomNav'
 import { RestTimerBar } from './components/RestTimerBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
@@ -56,9 +57,11 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <RestTimerProvider>
-        <ActiveWorkoutProvider>
-          <Shell />
-        </ActiveWorkoutProvider>
+        <SetTimerProvider>
+          <ActiveWorkoutProvider>
+            <Shell />
+          </ActiveWorkoutProvider>
+        </SetTimerProvider>
       </RestTimerProvider>
     </BrowserRouter>
   )

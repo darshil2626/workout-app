@@ -1,5 +1,12 @@
 import { db, newId } from '../db/db'
-import type { Measurement, MeasurementKind, MeasurementType, Settings } from '../db/types'
+import type {
+  LengthUnit,
+  Measurement,
+  MeasurementKind,
+  MeasurementType,
+  Settings,
+  WeightUnit,
+} from '../db/types'
 import { cmToDisplay, displayToCm, displayToKg, kgToDisplay, trimNumber } from './units'
 
 export interface MeasurementSpec {
@@ -31,14 +38,27 @@ export function specFor(type: MeasurementType): MeasurementSpec {
   return MEASUREMENT_SPECS.find((s) => s.type === type) ?? MEASUREMENT_SPECS[0]
 }
 
+/**
+ * Bodyweight is read on a different scale to the one in the gym, so it carries
+ * its own unit and only falls back to the lifting unit when unset.
+ */
+export function measurementWeightUnit(settings: Settings): WeightUnit {
+  return settings.measurementWeightUnit ?? settings.weightUnit
+}
+
+/** Circumferences already have a dedicated setting; this names it for symmetry. */
+export function measurementLengthUnit(settings: Settings): LengthUnit {
+  return settings.lengthUnit
+}
+
 export function unitLabel(kind: MeasurementKind, settings: Settings): string {
   switch (kind) {
     case 'weight':
-      return settings.weightUnit
+      return measurementWeightUnit(settings)
     case 'percent':
       return '%'
     case 'length':
-      return settings.lengthUnit
+      return measurementLengthUnit(settings)
   }
 }
 
@@ -46,22 +66,22 @@ export function unitLabel(kind: MeasurementKind, settings: Settings): string {
 export function toDisplayValue(value: number, kind: MeasurementKind, settings: Settings): number {
   switch (kind) {
     case 'weight':
-      return kgToDisplay(value, settings.weightUnit)
+      return kgToDisplay(value, measurementWeightUnit(settings))
     case 'percent':
       return value
     case 'length':
-      return cmToDisplay(value, settings.lengthUnit)
+      return cmToDisplay(value, measurementLengthUnit(settings))
   }
 }
 
 export function fromDisplayValue(value: number, kind: MeasurementKind, settings: Settings): number {
   switch (kind) {
     case 'weight':
-      return displayToKg(value, settings.weightUnit)
+      return displayToKg(value, measurementWeightUnit(settings))
     case 'percent':
       return value
     case 'length':
-      return displayToCm(value, settings.lengthUnit)
+      return displayToCm(value, measurementLengthUnit(settings))
   }
 }
 

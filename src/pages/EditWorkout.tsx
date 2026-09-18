@@ -105,7 +105,12 @@ export function EditWorkoutPage() {
       .map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) }))
       .filter((le) => le.sets.length > 0)
 
-    const totals = computeTotals(cleaned, byId, stored!.bodyweightKg ?? fmt.settings.bodyweightKg)
+    const totals = computeTotals(
+      cleaned,
+      byId,
+      stored!.bodyweightKg ?? fmt.settings.bodyweightKg,
+      fmt.settings.countWarmupSets,
+    )
     const updated: Workout = {
       ...stored!,
       name: name.trim() || stored!.name,

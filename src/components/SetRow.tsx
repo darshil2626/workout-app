@@ -4,7 +4,8 @@ import { fieldsFor } from '../lib/workout'
 import type { Formatters } from '../lib/useSettings'
 import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
-import { IconCheck } from './Icons'
+import { IconCheck, IconTimer } from './Icons'
+import type { ActiveSetTimer } from '../state/SetTimerContext'
 import { PR_LABEL, type PRKind } from '../lib/records'
 
 /**
@@ -62,9 +63,17 @@ interface Props {
   /** Record kinds this set beats; empty or absent for an ordinary set. */
   prs?: PRKind[]
   fmt: Formatters
+  /** Set only while this row's hold timer is running. */
+  timer?: ActiveSetTimer
   onChange: (patch: Partial<LoggedSet>) => void
   onToggleComplete: () => void
   onOpenMenu: () => void
+  /**
+   * Omitted where timing a hold is meaningless — editing a past session — and
+   * the stopwatch is then not offered at all.
+   */
+  onStartTimer?: () => void
+  onStopTimer?: () => void
 }
 
 export function SetRow({
@@ -74,9 +83,12 @@ export function SetRow({
   previous,
   prs,
   fmt,
+  timer,
   onChange,
   onToggleComplete,
   onOpenMenu,
+  onStartTimer,
+  onStopTimer,
 }: Props) {
   const f = fieldsFor(kind)
   const { weightUnit, distanceUnit } = fmt
@@ -112,6 +124,21 @@ export function SetRow({
   }
 
   /**
+   * Tapping the previous cell repeats last time's numbers. Unlike the check,
+   * this overwrites what is already typed: the tap is explicit, so treating it
+   * as "fill the blanks" would make it do nothing on a half-filled row.
+   */
+  function copyPrevious() {
+    if (!previous || timer) return
+    const patch: Partial<LoggedSet> = {}
+    if (f.weight) patch.weight = previous.weight
+    if (f.reps) patch.reps = previous.reps
+    if (f.duration) patch.durationSec = previous.durationSec
+    if (f.distance) patch.distanceM = previous.distanceM
+    onChange(patch)
+  }
+
+  /**
    * Ticking a set with blank inputs adopts the placeholder values, matching
    * the "repeat last time" behaviour lifters expect from a one-tap check.
    */
@@ -142,7 +169,19 @@ export function SetRow({
         {set.rpe !== null && <span className="rpe-tag">@{set.rpe}</span>}
       </td>
       <td className="col-prev">
-        <div className="prev-cell">{prevLabel}</div>
+        {previous && !timer ? (
+          <button
+            type="button"
+            className="prev-cell prev-copy"
+            onClick={copyPrevious}
+            aria-label={`Copy previous: ${prevLabel}`}
+            title="Tap to repeat these numbers"
+          >
+            {prevLabel}
+          </button>
+        ) : (
+          <div className="prev-cell">{prevLabel}</div>
+        )}
         {prs && prs.length > 0 && (
           // Label as well as colour: the gold pill never carries the meaning alone.
           <span className="badge badge-pr" title={prs.map((k) => PR_LABEL[k]).join(', ')}>
@@ -172,13 +211,40 @@ export function SetRow({
       )}
       {f.duration && (
         <td>
-          <NumberField
-            display={set.durationSec === null ? '' : formatDuration(set.durationSec)}
-            placeholder={durationPlaceholder}
-            onCommit={commitDuration}
-            ariaLabel="Duration"
-            inputMode="text"
-          />
+          {timer ? (
+            /* Tapping again records the hold, so the running clock is itself the
+               stop button — one control, and the count stays where the number
+               will land. */
+            <button
+              className={`set-timer-live${timer.remainingSec === 0 ? ' done' : ''}`}
+              onClick={onStopTimer}
+              aria-label="Stop timer and record this set"
+            >
+              {formatDuration(timer.remainingSec ?? timer.elapsedSec)}
+            </button>
+          ) : (
+            <div className="set-duration-cell">
+              <NumberField
+                display={set.durationSec === null ? '' : formatDuration(set.durationSec)}
+                placeholder={durationPlaceholder}
+                onCommit={commitDuration}
+                ariaLabel="Duration"
+                inputMode="text"
+              />
+              {/* Holds are timed, not remembered: a plank is logged from the
+                  clock rather than typed in afterwards. */}
+              {onStartTimer && (
+                <button
+                  className="set-timer-btn"
+                  onClick={onStartTimer}
+                  aria-label="Time this set"
+                  title="Time this set"
+                >
+                  <IconTimer />
+                </button>
+              )}
+            </div>
+          )}
         </td>
       )}
       {f.reps && (

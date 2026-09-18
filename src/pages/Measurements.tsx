@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
-import type { Measurement, MeasurementType } from '../db/types'
+import type { LengthUnit, Measurement, MeasurementType, WeightUnit } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ChartCard } from '../components/charts/ChartCard'
 import { LineChart } from '../components/charts/LineChart'
-import { useSettings } from '../lib/useSettings'
+import { updateSettings, useSettings } from '../lib/useSettings'
 import {
   formatMeasurement,
   fromDisplayValue,
+  measurementLengthUnit,
+  measurementWeightUnit,
   MEASUREMENT_SPECS,
   specFor,
   unitLabel,
@@ -157,9 +159,39 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
     >
       <div className="list" style={{ gap: 14 }}>
         <div className="field">
-          <label className="field-label" htmlFor="m-value">
-            Value ({spec ? unitLabel(spec.kind, settings) : ''})
-          </label>
+          <div className="row-between" style={{ gap: 10 }}>
+            <label className="field-label" htmlFor="m-value">
+              Value ({spec ? unitLabel(spec.kind, settings) : ''})
+            </label>
+            {/* The typed number is left alone when the unit changes: switching
+                is how you correct a value entered against the wrong scale. */}
+            {spec?.kind === 'weight' && (
+              <div className="segmented segmented-sm">
+                {(['kg', 'lb'] as WeightUnit[]).map((u) => (
+                  <button
+                    key={u}
+                    className={measurementWeightUnit(settings) === u ? 'active' : ''}
+                    onClick={() => void updateSettings({ measurementWeightUnit: u })}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            )}
+            {spec?.kind === 'length' && (
+              <div className="segmented segmented-sm">
+                {(['cm', 'in'] as LengthUnit[]).map((u) => (
+                  <button
+                    key={u}
+                    className={measurementLengthUnit(settings) === u ? 'active' : ''}
+                    onClick={() => void updateSettings({ lengthUnit: u })}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <input
             id="m-value"
             className="input"
@@ -233,10 +265,11 @@ function HistorySheet({
             points={points}
             // Body measurements never go near zero, so frame their own range.
             baseline="auto"
+            // Weigh-ins are irregular; spacing them evenly would flatter a
+            // month of neglect into a steady trend.
+            xAxis="time"
             formatValue={(v) => `${formatMeasurement(v, spec.kind, settings)} ${unit}`}
-            formatDate={(ts) =>
-              new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-            }
+            formatDate={(ts) => new Date(ts).toLocaleDateString()}
           />
         </ChartCard>
 

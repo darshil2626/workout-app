@@ -11,6 +11,7 @@ import { formatDateLabel, formatDurationShort, formatTimeOfDay } from '../lib/ti
 import { IconList, IconMore, IconNote, IconPlay, IconTrash } from '../components/Icons'
 import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { PR_LABEL, prsForWorkout, type PRKind } from '../lib/records'
+import { effortLabel, feelingFor } from '../components/FinishSheet'
 
 export function WorkoutDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -31,9 +32,9 @@ export function WorkoutDetailPage() {
   const prs = useLiveQuery(
     async () =>
       workout && byId.size > 0
-        ? await prsForWorkout(workout, byId, fmt.settings.bodyweightKg)
+        ? await prsForWorkout(workout, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets)
         : new Map<string, PRKind[]>(),
-    [workout?.id, byId.size, fmt.settings.bodyweightKg],
+    [workout?.id, byId.size, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
     new Map<string, PRKind[]>(),
   )
 
@@ -158,7 +159,7 @@ export function WorkoutDetailPage() {
             <div className="stat-label">Duration</div>
           </div>
           <div className="stat">
-            <div className="stat-value mono">{fmt.volume(workout.totalVolumeKg)}</div>
+            <div className="stat-value mono">{fmt.volumeCompact(workout.totalVolumeKg)}</div>
             <div className="stat-label">Volume {fmt.weightUnit}</div>
           </div>
           <div className="stat">
@@ -170,6 +171,26 @@ export function WorkoutDetailPage() {
             <div className="stat-label">Reps</div>
           </div>
         </div>
+
+        {workout.effort !== undefined || workout.feeling !== undefined ? (
+          <div className="card row" style={{ marginTop: 12, gap: 20 }}>
+            {workout.effort !== undefined && (
+              <div className="stack">
+                <div className="field-label">Effort</div>
+                <div>{effortLabel(workout.effort)}</div>
+              </div>
+            )}
+            {workout.feeling !== undefined && (
+              <div className="stack">
+                <div className="field-label">Felt</div>
+                <div>
+                  <span style={{ fontSize: '1.15rem' }}>{feelingFor(workout.feeling)?.emoji}</span>{' '}
+                  {feelingFor(workout.feeling)?.label}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {workout.notes ? (
           <div className="card" style={{ marginTop: 12 }}>

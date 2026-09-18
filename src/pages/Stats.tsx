@@ -31,8 +31,9 @@ export function StatsPage() {
   const weeks = useMemo(() => volumeByWeek(workouts, firstDay, 12), [workouts, firstDay])
   const days = useMemo(() => volumeByDay(workouts, 119), [workouts])
   const muscles = useMemo(
-    () => muscleDistribution(workouts, byId, fmt.settings.bodyweightKg),
-    [workouts, byId, fmt.settings.bodyweightKg],
+    () =>
+      muscleDistribution(workouts, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets),
+    [workouts, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
 
   if (workouts.length === 0) {
@@ -77,29 +78,41 @@ export function StatsPage() {
           </span>
         </div>
 
-        <div className="stat-grid" style={{ marginTop: 14 }}>
-          <div className="stat">
-            <div className="stat-value">{streaks.currentWeeks}</div>
+        {/* Three headline figures, then the smaller counts. Volume is abbreviated
+            because an all-time total runs to seven digits; the exact number stays
+            reachable on hover and in every table view. */}
+        <div className="headline-card">
+          <div className="headline">
+            <div className="headline-value" title={`${fmt.volume(totals.volumeKg)} ${fmt.weightUnit}`}>
+              {fmt.volumeCompact(totals.volumeKg)}
+              <span className="headline-unit">{fmt.weightUnit}</span>
+            </div>
+            <div className="stat-label">Volume lifted</div>
+          </div>
+          <div className="headline">
+            <div className="headline-value">{formatHoursTotal(totals.durationSec)}</div>
+            <div className="stat-label">Time lifting</div>
+          </div>
+          <div className="headline">
+            <div className="headline-value">
+              {streaks.currentWeeks}
+              <span className="headline-unit">wk</span>
+            </div>
             <div className="stat-label">Week streak</div>
           </div>
+        </div>
+
+        <div className="stat-grid" style={{ marginTop: 10 }}>
           <div className="stat">
             <div className="stat-value">{streaks.longestWeeks}</div>
             <div className="stat-label">Best streak</div>
           </div>
           <div className="stat">
-            <div className="stat-value">{fmt.volume(totals.volumeKg)}</div>
-            <div className="stat-label">Total {fmt.weightUnit}</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{formatHoursTotal(totals.durationSec)}</div>
-            <div className="stat-label">Time lifting</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{totals.sets}</div>
+            <div className="stat-value">{totals.sets.toLocaleString()}</div>
             <div className="stat-label">Sets</div>
           </div>
           <div className="stat">
-            <div className="stat-value">{totals.reps}</div>
+            <div className="stat-value">{totals.reps.toLocaleString()}</div>
             <div className="stat-label">Reps</div>
           </div>
         </div>
@@ -175,8 +188,8 @@ export function StatsPage() {
         </ChartCard>
 
         <p className="faint" style={{ marginTop: 14 }}>
-          Warm-up sets are excluded from volume and set counts. Sets are attributed to each
-          exercise's primary muscle group.
+          Warm-up sets are {fmt.settings.countWarmupSets ? 'included in' : 'excluded from'} volume
+          and set counts. Sets are attributed to each exercise's primary muscle group.
         </p>
       </div>
     </>

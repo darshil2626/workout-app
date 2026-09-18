@@ -16,6 +16,12 @@ interface Props {
   subtitle?: ReactNode
   /** Filter controls sit above the plot, scoping only this card's data. */
   controls?: ReactNode
+  /**
+   * Range selection gets its own row below `controls`. Sharing one scrolling
+   * row meant the ranges were pushed off-screen behind the metric chips, so
+   * changing the time span took a scroll before it took a tap.
+   */
+  ranges?: ReactNode
   /** The WCAG-clean twin of the chart; every plotted value must appear here. */
   table: TableData
   empty?: string
@@ -27,7 +33,7 @@ interface Props {
  * The table is not optional: it is how the values stay reachable without
  * relying on colour or hover.
  */
-export function ChartCard({ title, subtitle, controls, table, empty, children }: Props) {
+export function ChartCard({ title, subtitle, controls, ranges, table, empty, children }: Props) {
   const [showTable, setShowTable] = useState(false)
   const isEmpty = table.rows.length === 0
 
@@ -50,6 +56,7 @@ export function ChartCard({ title, subtitle, controls, table, empty, children }:
       </div>
 
       {controls ? <div className="chart-controls">{controls}</div> : null}
+      {ranges ? <div className="chart-ranges">{ranges}</div> : null}
 
       {isEmpty ? (
         <p className="muted chart-empty">{empty ?? 'Not enough data yet.'}</p>

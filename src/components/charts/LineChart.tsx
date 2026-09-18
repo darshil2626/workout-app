@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useElementWidth } from './useElementWidth'
-import { compactNumber, makeScale, niceTicks } from './scales'
+import { compactNumber, makeScale, niceTicks, timeTickFormatter, timeTicks } from './scales'
 
 export interface LinePoint {
   date: number
@@ -21,6 +21,14 @@ interface Props {
    * measured from zero.
    */
   baseline?: 'zero' | 'auto'
+  /**
+   * 'index' spaces points evenly, which suits a series where only the order
+   * matters. 'time' positions each point at its real date and labels the axis
+   * with date ticks scaled to the span — necessary once a range can run to
+   * years, where evenly-spaced points misrepresent a training gap as progress
+   * made at a steady rate.
+   */
+  xAxis?: 'index' | 'time'
 }
 
 const PAD = { top: 14, right: 16, bottom: 26, left: 44 }
@@ -35,6 +43,7 @@ export function LineChart({
   formatDate,
   height = 168,
   baseline = 'zero',
+  xAxis = 'index',
 }: Props) {
   const { ref, width } = useElementWidth<HTMLDivElement>()
   const [active, setActive] = useState<number | null>(null)
@@ -55,10 +64,30 @@ export function LineChart({
   const domainMin = baseline === 'zero' ? 0 : ticks[0]
   const domainMax = ticks[ticks.length - 1]
 
-  const x = makeScale(0, Math.max(1, points.length - 1), PAD.left, PAD.left + plotW)
+  // Callers pass points in time order, but the extent is taken explicitly so a
+  // misordered series still scales correctly rather than inverting the axis.
+  const dates = points.map((p) => p.date)
+  const minDate = points.length > 0 ? Math.min(...dates) : 0
+  const maxDate = points.length > 0 ? Math.max(...dates) : 0
+  const dateSpan = maxDate - minDate
+
+  const x =
+    xAxis === 'time'
+      ? makeScale(minDate, maxDate, PAD.left, PAD.left + plotW)
+      : makeScale(0, Math.max(1, points.length - 1), PAD.left, PAD.left + plotW)
   const y = makeScale(domainMin, domainMax, PAD.top + plotH, PAD.top)
 
-  const coords = points.map((p, i) => ({ px: x(i), py: y(p.value), ...p }))
+  const coords = points.map((p, i) => ({
+    px: x(xAxis === 'time' ? p.date : i),
+    py: y(p.value),
+    ...p,
+  }))
+
+  // Date ticks replace the two end labels once the axis is a real time scale.
+  const dateTicks = xAxis === 'time' && dateSpan > 0 ? timeTicks(minDate, maxDate, 4) : []
+  const formatTick = timeTickFormatter(dateSpan)
+  // Beyond this the markers merge into a band and only add ink.
+  const showPoints = xAxis === 'time' && coords.length <= 60
   const line = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.px.toFixed(1)},${c.py.toFixed(1)}`).join(' ')
   const area =
     baseline === 'zero' && coords.length > 1
@@ -128,6 +157,13 @@ export function LineChart({
           {area && <path d={area} className="chart-area" />}
           {coords.length > 1 && <path d={line} className="chart-line" />}
 
+          {/* One marker per session, so a lone point after a long gap is still
+              visible and clusters read as clusters rather than as a flat line. */}
+          {showPoints &&
+            coords.map((c, i) => (
+              <circle key={i} cx={c.px} cy={c.py} r={2.5} className="chart-point" />
+            ))}
+
           {/* Crosshair for the inspected point. */}
           {shown && (
             <line
@@ -157,13 +193,30 @@ export function LineChart({
             </text>
           )}
 
-          <text x={PAD.left} y={height - 8} className="chart-tick" textAnchor="start">
-            {formatDate(points[0].date)}
-          </text>
-          {points.length > 1 && (
-            <text x={PAD.left + plotW} y={height - 8} className="chart-tick" textAnchor="end">
-              {formatDate(last.date)}
-            </text>
+          {dateTicks.length > 0 ? (
+            dateTicks.map((ts, i) => (
+              <text
+                key={ts}
+                x={x(ts)}
+                y={height - 8}
+                className="chart-tick"
+                // End ticks anchor inward so they never clip the plot edges.
+                textAnchor={i === 0 ? 'start' : i === dateTicks.length - 1 ? 'end' : 'middle'}
+              >
+                {formatTick(ts)}
+              </text>
+            ))
+          ) : (
+            <>
+              <text x={PAD.left} y={height - 8} className="chart-tick" textAnchor="start">
+                {formatDate(points[0].date)}
+              </text>
+              {points.length > 1 && (
+                <text x={PAD.left + plotW} y={height - 8} className="chart-tick" textAnchor="end">
+                  {formatDate(last.date)}
+                </text>
+              )}
+            </>
           )}
         </svg>
       )}

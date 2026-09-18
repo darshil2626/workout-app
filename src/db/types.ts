@@ -119,6 +119,12 @@ export interface Workout {
   totalSets: number
   totalReps: number
   bodyweightKg?: number | null
+  /**
+   * How the whole session went, asked once on finish and always skippable.
+   * Both are 1–5; not indexed, so they needed no schema version bump.
+   */
+  effort?: number
+  feeling?: number
 }
 
 export interface RoutineSetTarget {
@@ -200,6 +206,11 @@ export interface Settings {
   weightUnit: WeightUnit
   distanceUnit: DistanceUnit
   lengthUnit: LengthUnit
+  /**
+   * Unit for weight-based measurements (bodyweight). Null follows weightUnit,
+   * so someone who lifts in kg can still weigh themselves in pounds.
+   */
+  measurementWeightUnit: WeightUnit | null
   defaultRestSeconds: number
   restTimerEnabled: boolean
   restTimerSound: boolean
@@ -213,6 +224,12 @@ export interface Settings {
   firstDayOfWeek: 0 | 1
   /** Increment used by the +/- stepper next to weight inputs, in kg. */
   weightStepKg: number
+  /**
+   * Whether warm-up sets count toward volume, set counts and records. Off by
+   * default: a warm-up is preparation, not a training stimulus. Toggling it
+   * recomputes every stored session's cached totals.
+   */
+  countWarmupSets: boolean
   /**
    * Current bodyweight in kg. Used to score bodyweight and weighted-bodyweight
    * exercises; null means those movements contribute no volume.

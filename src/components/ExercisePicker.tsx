@@ -49,7 +49,7 @@ export function ExercisePicker({
       .filter((e) => muscle === ALL || e.muscleGroup === muscle)
       .filter((e) => q === '' || e.name.toLowerCase().includes(q))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [exercises, query, muscle])
+  }, [exercises, query, muscle, excludeId])
 
   function toggle(id: string) {
     if (single) {

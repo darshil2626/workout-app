@@ -7,9 +7,18 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { ExerciseArt } from '../components/ExerciseArt'
-import { useFormatters } from '../lib/useSettings'
+import { useFormatters, type Formatters } from '../lib/useSettings'
 import { getExerciseHistory } from '../lib/history'
-import { describeSet, estimate1RM, setBadges } from '../lib/workout'
+import { countsTowardVolume, describeSet, setBadges } from '../lib/workout'
+import {
+  loadSetRecords,
+  PR_LABEL,
+  recordsFromHistory,
+  relevantKinds,
+  type ExerciseRecords,
+  type RecordKind,
+  type SetRecord,
+} from '../lib/records'
 import { formatDateLabel } from '../lib/time'
 import { hasActiveWorkout, mergeExercises } from '../lib/exerciseRepair'
 import { IconMore, IconTrash } from '../components/Icons'
@@ -19,11 +28,52 @@ import {
   exerciseProgress,
   metricsFor,
   PROGRESS_METRIC_LABEL,
+  PROGRESS_METRIC_SHORT,
   TIME_RANGES,
   withinRange,
   type ProgressMetric,
   type TimeRangeKey,
 } from '../lib/stats'
+
+/**
+ * One records tile. Returns null when the movement has no value for that kind
+ * yet, so a record the user has never set leaves no empty tile behind.
+ */
+function recordTile(
+  kind: RecordKind,
+  records: ExerciseRecords,
+  fmt: Formatters,
+): { value: string; label: string } | null {
+  switch (kind) {
+    case 'weight':
+      return records.weight > 0
+        ? { value: fmt.weight(records.weight), label: `Heaviest ${fmt.weightUnit}` }
+        : null
+    case 'oneRm':
+      // An estimate, so one decimal — 134.17 kg implies precision it lacks.
+      return records.oneRm > 0
+        ? { value: fmt.weight(Math.round(records.oneRm * 10) / 10), label: 'Est. 1RM' }
+        : null
+    case 'volume':
+      return records.volume > 0
+        ? { value: fmt.volumeCompact(records.volume), label: 'Best set vol.' }
+        : null
+    case 'sessionVolume':
+      return records.sessionVolume > 0
+        ? { value: fmt.volumeCompact(records.sessionVolume), label: 'Best session vol.' }
+        : null
+    case 'reps':
+      return records.reps > 0 ? { value: String(records.reps), label: 'Most reps' } : null
+    case 'duration':
+      return records.duration > 0
+        ? { value: fmt.duration(records.duration), label: 'Longest' }
+        : null
+    case 'distance':
+      return records.distance > 0
+        ? { value: fmt.distance(records.distance), label: `Furthest ${fmt.distanceUnit}` }
+        : null
+  }
+}
 
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -46,30 +96,38 @@ export function ExerciseDetailPage() {
     [mergeTargetId],
   )
 
-  const records = useMemo(() => {
-    let heaviestKg = 0
-    let best1RM = 0
-    let bestSetVolume = 0
-    let bestReps = 0
-    let bestDuration = 0
-    let bestDistance = 0
-    let totalSets = 0
-    for (const { logged } of history) {
-      for (const s of logged.sets) {
-        if (!s.completed) continue
-        totalSets += 1
-        if (s.weight && s.weight > heaviestKg) heaviestKg = s.weight
-        if (s.reps && s.reps > bestReps) bestReps = s.reps
-        if (s.durationSec && s.durationSec > bestDuration) bestDuration = s.durationSec
-        if (s.distanceM && s.distanceM > bestDistance) bestDistance = s.distanceM
-        if (s.weight && s.reps) {
-          best1RM = Math.max(best1RM, estimate1RM(s.weight, s.reps))
-          bestSetVolume = Math.max(bestSetVolume, s.weight * s.reps)
-        }
-      }
-    }
-    return { heaviestKg, best1RM, bestSetVolume, bestReps, bestDuration, bestDistance, totalSets }
-  }, [history])
+  const countWarmups = fmt.settings.countWarmupSets
+
+  // Folded by the same helper the in-workout PR badges use, so the records on
+  // this page and the badges during a session can never disagree.
+  const records = useMemo(
+    () =>
+      exercise
+        ? recordsFromHistory(history, exercise.kind, fmt.settings.bodyweightKg, countWarmups)
+        : null,
+    [history, exercise, fmt.settings.bodyweightKg, countWarmups],
+  )
+
+  const recordKinds = useMemo(
+    () => (exercise ? relevantKinds(exercise.kind) : []),
+    [exercise],
+  )
+
+  const totalSets = useMemo(
+    () =>
+      history.reduce(
+        (n, { logged }) => n + logged.sets.filter((s) => countsTowardVolume(s, countWarmups)).length,
+        0,
+      ),
+    [history, countWarmups],
+  )
+
+  const setRecords = useLiveQuery(
+    async () =>
+      id && exercise ? await loadSetRecords(id, exercise.kind, countWarmups) : ([] as SetRecord[]),
+    [id, exercise?.kind, countWarmups],
+    [] as SetRecord[],
+  )
 
   const availableMetrics = useMemo(
     () => (exercise ? metricsFor(exercise.kind) : []),
@@ -79,9 +137,15 @@ export function ExerciseDetailPage() {
 
   const points = useMemo(() => {
     if (!exercise) return []
-    const all = exerciseProgress(history, exercise, activeMetric, fmt.settings.bodyweightKg)
+    const all = exerciseProgress(
+      history,
+      exercise,
+      activeMetric,
+      fmt.settings.bodyweightKg,
+      countWarmups,
+    )
     return withinRange(all, range)
-  }, [exercise, history, activeMetric, range, fmt.settings.bodyweightKg])
+  }, [exercise, history, activeMetric, range, fmt.settings.bodyweightKg, countWarmups])
 
   /** Formats a plotted value in the units the active metric is measured in. */
   const formatMetric = (v: number): string => {
@@ -177,49 +241,24 @@ export function ExerciseDetailPage() {
         ) : null}
 
         <div className="section-title">Personal records</div>
-        {records.totalSets === 0 ? (
+        {totalSets === 0 || !records ? (
           <p className="muted">Log this exercise once and your records appear here.</p>
         ) : (
           <div className="stat-grid">
-            {records.heaviestKg > 0 && (
-              <div className="stat">
-                <div className="stat-value mono">{fmt.weight(records.heaviestKg)}</div>
-                <div className="stat-label">Heaviest {fmt.weightUnit}</div>
-              </div>
-            )}
-            {records.best1RM > 0 && (
-              <div className="stat">
-                {/* An estimate, so one decimal — 134.17 kg implies precision it lacks. */}
-                <div className="stat-value">{fmt.weight(Math.round(records.best1RM * 10) / 10)}</div>
-                <div className="stat-label">Est. 1RM</div>
-              </div>
-            )}
-            {records.bestSetVolume > 0 && (
-              <div className="stat">
-                <div className="stat-value mono">{fmt.volume(records.bestSetVolume)}</div>
-                <div className="stat-label">Best set vol.</div>
-              </div>
-            )}
-            {records.bestReps > 0 && (
-              <div className="stat">
-                <div className="stat-value mono">{records.bestReps}</div>
-                <div className="stat-label">Most reps</div>
-              </div>
-            )}
-            {records.bestDuration > 0 && (
-              <div className="stat">
-                <div className="stat-value mono">{fmt.duration(records.bestDuration)}</div>
-                <div className="stat-label">Longest</div>
-              </div>
-            )}
-            {records.bestDistance > 0 && (
-              <div className="stat">
-                <div className="stat-value mono">{fmt.distance(records.bestDistance)}</div>
-                <div className="stat-label">Furthest {fmt.distanceUnit}</div>
-              </div>
-            )}
+            {/* Only the records this movement can actually set: a pull-up has no
+                heaviest weight, so an empty tile there would read as a gap. */}
+            {recordKinds.map((kind) => {
+              const tile = recordTile(kind, records, fmt)
+              if (!tile) return null
+              return (
+                <div className="stat" key={kind} title={PR_LABEL[kind]}>
+                  <div className="stat-value mono">{tile.value}</div>
+                  <div className="stat-label">{tile.label}</div>
+                </div>
+              )
+            })}
             <div className="stat">
-              <div className="stat-value mono">{records.totalSets}</div>
+              <div className="stat-value mono">{totalSets.toLocaleString()}</div>
               <div className="stat-label">Total sets</div>
             </div>
           </div>
@@ -230,31 +269,29 @@ export function ExerciseDetailPage() {
             <div className="section-title">Progress</div>
             <ChartCard
               title={PROGRESS_METRIC_LABEL[activeMetric]}
-              subtitle="One point per session, warm-ups excluded"
+              subtitle={`One point per session, warm-ups ${countWarmups ? 'included' : 'excluded'}`}
               controls={
-                <>
-                  {availableMetrics.length > 1 &&
-                    availableMetrics.map((m) => (
+                availableMetrics.length > 1
+                  ? availableMetrics.map((m) => (
                       <button
                         key={m}
                         className={`chip${activeMetric === m ? ' active' : ''}`}
                         onClick={() => setMetric(m)}
                       >
-                        {PROGRESS_METRIC_LABEL[m]}
+                        {PROGRESS_METRIC_SHORT[m]}
                       </button>
-                    ))}
-                  <span style={{ flex: 1, minWidth: 4 }} />
-                  {TIME_RANGES.map((r) => (
-                    <button
-                      key={r.key}
-                      className={`chip${range === r.key ? ' active' : ''}`}
-                      onClick={() => setRange(r.key)}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </>
+                    ))
+                  : null
               }
+              ranges={TIME_RANGES.map((r) => (
+                <button
+                  key={r.key}
+                  className={`chip${range === r.key ? ' active' : ''}`}
+                  onClick={() => setRange(r.key)}
+                >
+                  {r.label}
+                </button>
+              ))}
               table={{
                 columns: [
                   { header: 'Date' },
@@ -268,12 +305,41 @@ export function ExerciseDetailPage() {
             >
               <LineChart
                 points={points}
+                xAxis="time"
                 formatValue={formatMetric}
-                formatDate={(ts) =>
-                  new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-                }
+                formatDate={(ts) => new Date(ts).toLocaleDateString()}
               />
             </ChartCard>
+          </>
+        )}
+
+        {setRecords.length > 0 && (
+          <>
+            <div className="section-title">Set records</div>
+            <p className="faint" style={{ marginBottom: 8 }}>
+              Heaviest weight lifted at each rep count. These are not personal records and earn no
+              badge — together they describe a strength curve that a single 1RM estimate flattens.
+            </p>
+            <div className="card set-records">
+              <table className="chart-table">
+                <thead>
+                  <tr>
+                    <th>Reps</th>
+                    <th className="num">{fmt.weightUnit}</th>
+                    <th className="num">Achieved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {setRecords.map((r) => (
+                    <tr key={r.reps}>
+                      <td>{r.reps}</td>
+                      <td className="num">{fmt.weight(r.weightKg)}</td>
+                      <td className="num">{formatDateLabel(r.achievedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
 

@@ -98,10 +98,23 @@ export async function mergeExercises(fromId: string, intoId: string): Promise<nu
     const exerciseById = new Map(exercises.map((e) => [e.id, e] as const))
 
     const affected = await db.workouts.where('exerciseIds').equals(fromId).toArray()
+    // Callers check for a live session before opening the flow, but a workout
+    // can start between that check and this write. Re-checking inside the
+    // transaction closes the gap: rewriting a session that is also held in
+    // memory would be undone by its next autosave, leaving its sets pointing
+    // at an exercise this function is about to delete.
+    if (affected.some((w) => w.status === 'active')) {
+      throw new Error('That exercise is in the workout in progress. Finish or discard it first.')
+    }
     const updated: Workout[] = affected.map((w) => {
       const logged = w.exercises.map((le) => (le.exerciseId === fromId ? { ...le, exerciseId: intoId } : le))
       // Kinds can differ between source and target, and totals are kind-sensitive.
-      const totals = computeTotals(logged, exerciseById, w.bodyweightKg ?? settings?.bodyweightKg ?? null)
+      const totals = computeTotals(
+        logged,
+        exerciseById,
+        w.bodyweightKg ?? settings?.bodyweightKg ?? null,
+        settings?.countWarmupSets ?? false,
+      )
       return {
         ...w,
         exercises: logged,

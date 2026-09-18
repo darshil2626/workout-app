@@ -1,5 +1,5 @@
 import { db } from '../../db/db'
-import { partitionImport } from '../dedupe'
+import { partitionImport, recomputeAllWorkoutTotals } from '../dedupe'
 import type { ParsedImport } from './shared'
 
 export interface CsvImportSummary {
@@ -19,7 +19,7 @@ export interface CsvImportSummary {
  * skipped, so re-importing a longer export only adds what's new.
  */
 export async function applyCsvImport(parsed: ParsedImport): Promise<CsvImportSummary> {
-  return db.transaction('rw', [db.exercises, db.workouts], async () => {
+  const summary = await db.transaction('rw', [db.exercises, db.workouts], async () => {
     // Inside the transaction so the check and the insert can't race a second tab.
     const { fresh, duplicates } = await partitionImport(parsed.workouts)
 
@@ -33,4 +33,9 @@ export async function applyCsvImport(parsed: ParsedImport): Promise<CsvImportSum
 
     return { workouts: fresh.length, skipped: duplicates.length, exercises: exercises.length }
   })
+
+  // The parsers total each session under the default rules; this re-totals them
+  // under the user's own, so imported history matches what they already have.
+  if (summary.workouts > 0) await recomputeAllWorkoutTotals()
+  return summary
 }

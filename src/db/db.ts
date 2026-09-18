@@ -7,6 +7,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weightUnit: 'kg',
   distanceUnit: 'km',
   lengthUnit: 'cm',
+  measurementWeightUnit: null,
   defaultRestSeconds: 90,
   restTimerEnabled: true,
   restTimerSound: true,
@@ -16,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   availablePlatesKg: [25, 20, 15, 10, 5, 2.5, 1.25],
   firstDayOfWeek: 1,
   weightStepKg: 2.5,
+  countWarmupSets: false,
   bodyweightKg: null,
 }
 

@@ -50,6 +50,19 @@ export function StatsPage() {
               Finish a workout and your training history, streaks and muscle balance appear here.
             </p>
           </div>
+
+          {/* Measurements track independently of logged workouts, so a brand-new
+              user still needs a way to reach them from an otherwise-empty page. */}
+          <button
+            className="card card-tappable"
+            style={{ textAlign: 'left' }}
+            onClick={() => navigate('/measurements')}
+          >
+            <span style={{ fontWeight: 650 }}>Measurements</span>
+            <p className="faint" style={{ marginTop: 4 }}>
+              Track bodyweight and circumferences over time, even before your first workout.
+            </p>
+          </button>
         </div>
       </>
     )
@@ -60,14 +73,7 @@ export function StatsPage() {
 
   return (
     <>
-      <Header
-        title="Stats"
-        right={
-          <button className="header-action" onClick={() => navigate('/measurements')}>
-            Measure
-          </button>
-        }
-      />
+      <Header title="Stats" />
 
       <div className="page">
         {/* The one number the screen leads with: proportional figures, not tabular. */}
@@ -116,6 +122,18 @@ export function StatsPage() {
             <div className="stat-label">Reps</div>
           </div>
         </div>
+
+        <div className="section-title">Body</div>
+        <button
+          className="card card-tappable"
+          style={{ textAlign: 'left' }}
+          onClick={() => navigate('/measurements')}
+        >
+          <span style={{ fontWeight: 650 }}>Measurements</span>
+          <p className="faint" style={{ marginTop: 4 }}>
+            Bodyweight and circumferences — log an entry or see the trend.
+          </p>
+        </button>
 
         <div className="section-title">Training</div>
 

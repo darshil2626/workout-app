@@ -18,7 +18,10 @@ export function RestTimerBar() {
       <div className="rest-bar-body">
         <div className="stack">
           <span className="rest-label">{done ? 'Rest complete' : 'Rest'}</span>
-          <span className="rest-time" style={{ color: done ? 'var(--success)' : undefined }}>
+          {/* Ember while counting down — this bar only exists while something
+              is live right now, which is exactly what --accent means — and
+              green once rest is over, matching every other "done" state. */}
+          <span className="rest-time" style={{ color: done ? 'var(--success)' : 'var(--accent)' }}>
             {formatDuration(remaining)}
           </span>
         </div>

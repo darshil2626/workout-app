@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weightStepKg: 2.5,
   countWarmupSets: false,
   bodyweightKg: null,
+  weeklyGoalWorkouts: 4,
 }
 
 class IronLogDB extends Dexie {

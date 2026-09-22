@@ -344,7 +344,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <Header title="Settings" />
+      <Header title="Settings" back />
       <div className="page">
         {message && (
           <div className="card" style={{ borderColor: 'var(--success)', marginBottom: 12 }}>
@@ -569,6 +569,38 @@ export function SettingsPage() {
               Used to score pull-ups, dips and other bodyweight movements. Leave blank and they
               count zero volume.
             </span>
+          </div>
+          <div className="divider" />
+          <div className="row-between">
+            <div className="stack grow">
+              <span>Weekly goal</span>
+              <span className="faint">Workouts per week the home screen's goal ring targets</span>
+            </div>
+            <div className="row" style={{ gap: 4 }}>
+              <button
+                className="icon-btn"
+                aria-label="Decrease weekly goal"
+                disabled={settings.weeklyGoalWorkouts <= 1}
+                onClick={() =>
+                  void updateSettings({ weeklyGoalWorkouts: Math.max(1, settings.weeklyGoalWorkouts - 1) })
+                }
+              >
+                −
+              </button>
+              <span className="mono" style={{ fontWeight: 650, minWidth: 18, textAlign: 'center' }}>
+                {settings.weeklyGoalWorkouts}
+              </span>
+              <button
+                className="icon-btn"
+                aria-label="Increase weekly goal"
+                disabled={settings.weeklyGoalWorkouts >= 14}
+                onClick={() =>
+                  void updateSettings({ weeklyGoalWorkouts: Math.min(14, settings.weeklyGoalWorkouts + 1) })
+                }
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
 

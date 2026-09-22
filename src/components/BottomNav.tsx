@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { IconChart, IconDumbbell, IconHistory, IconList, IconSettings } from './Icons'
+import { IconChart, IconDumbbell, IconHistory } from './Icons'
 
+// Home sits dead centre as the app's anchor; the exercise library and
+// settings moved to header icons on the home screen instead of tabs.
 const TABS = [
-  { to: '/', label: 'Workout', Icon: IconDumbbell },
   { to: '/history', label: 'History', Icon: IconHistory },
+  { to: '/', label: 'Home', Icon: IconDumbbell },
   { to: '/stats', label: 'Stats', Icon: IconChart },
-  { to: '/exercises', label: 'Exercises', Icon: IconList },
-  { to: '/settings', label: 'Settings', Icon: IconSettings },
 ]
 
 export function BottomNav() {
@@ -17,7 +17,9 @@ export function BottomNav() {
           key={to}
           to={to}
           end={to === '/'}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          className={({ isActive }) =>
+            `nav-item${to === '/' ? ' nav-item-home' : ''}${isActive ? ' active' : ''}`
+          }
         >
           <Icon />
           <span>{label}</span>

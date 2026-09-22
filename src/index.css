@@ -1,43 +1,73 @@
 :root {
-  /* Surfaces climb from bg → raised as elements come forward. */
-  --bg: #0b0d12;
-  --surface: #14171f;
-  --surface-2: #1b1f29;
-  --raised: #232833;
-  --border: #2c313d;
-  --border-strong: #3a4150;
+  /* Surfaces climb from bg → raised as elements come forward. The ladder is the
+     old one rotated off blue-grey toward red/yellow at matched lightness, so the
+     shell reads as charcoal under an ember accent instead of as cold slate. */
+  --bg: #0f0d0b;
+  --surface: #191714;
+  --surface-2: #221f1b;
+  --raised: #2b2721;
+  --border: #35302a;
+  --border-strong: #463f36;
 
-  --text: #eef1f6;
-  --text-dim: #98a1b2;
-  --text-faint: #6b7484;
+  /* Three tiers, holding their old contrast against --surface: 15.7 / 6.8 / 3.8.
+     Warming them without moving those ratios is the whole point of the rotation. */
+  --text: #f5f1ea;
+  --text-dim: #ab9e90;
+  --text-faint: #7d7267;
 
-  --accent: #4f8cff;
-  --accent-dim: #2f4f8f;
+  /* Two hues carry meaning and nothing else. Ember is "act": anything that
+     starts, continues, or is live right now. Gold is "won": PRs, milestones,
+     streaks. Warm hues reliably raise self-reported urgency and effort in gym
+     contexts, and orange carries a learned "effort zone" association — we lean
+     on that for salience and reward, not for any claim about performance. */
+  --accent: #ff6a2b;
+  /* Muted ember for disabled and soft states. 2.5:1 on --surface: enough to
+     read as a deliberate edge, never enough to pass for a live control. */
+  --accent-dim: #8a4324;
+  --gold: #ffc43d;
+  /* Green stays reserved for "set completed" and is never repurposed. */
   --success: #2fbf71;
-  --warn: #e8a33d;
+  /* Warn had to move. The old #e8a33d sat six degrees off the new gold, which
+     would have made a warmup badge read as a PR. Pulled round toward mustard
+     and dropped a fifth in value so "note" and "reward" never trade places. */
+  --warn: #bfa63a;
   --danger: #f2555a;
-  --pr: #f2c14e;
+  /* An alias, not a duplicate: every existing .badge-pr / .finish-prs rule
+     follows the new gold without a rename. */
+  --pr: var(--gold);
 
   /* Chart chrome. Gridlines sit one step off the card surface so they recede;
-     the sequential ramp below is the validated blue scale for this surface
+     the sequential ramp below is the warm re-cut of the validated scale
      (monotone lightness, adjacent gaps >= 0.06, light end clears 2:1).
-     The ramp deliberately stops short of white: a near-white top bin blew out
-     against the dark card and read as a hole rather than as the heaviest day.
-     Approx L*: rest 11, then 36 / 51 / 64 / 78 — even steps the eye can rank,
-     with the first bin 2.2:1 against a rest cell so "trained" is unmistakable. */
-  --chart-series: #4f8cff;
-  --chart-series-hi: #8ec5f5;
-  --chart-grid: #232833;
-  --chart-axis: #3a4150;
-  --heat-0: #191d26;
-  --heat-1: #25558f;
-  --heat-2: #3579d1;
-  --heat-3: #57a0e8;
-  --heat-4: #8ec5f5;
+     It deliberately stops short of white and of pale yellow: a near-white top
+     bin blew out against the dark card and read as a hole rather than as the
+     heaviest day, and a pale-yellow one would be mistaken for --gold.
+     Approx L*: rest 10, then 34 / 48 / 61 / 76 — even steps the eye can rank,
+     with the first lit bin 2.1:1 against a rest cell so "trained" is
+     unmistakable. Rest stays a shade lighter than --surface for the same reason
+     the top bin stops short: a rest day must read as absent, not as a hole
+     punched in the card. */
+  --chart-series: #ff6a2b;
+  --chart-series-hi: #ffa855;
+  --chart-grid: #2b2721;
+  --chart-axis: #463f36;
+  --heat-0: #201b17;
+  --heat-1: #8d3315;
+  --heat-2: #c44e11;
+  --heat-3: #f16e20;
+  --heat-4: #ffa855;
 
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 18px;
+
+  /* Height of the sticky app header, which sub-bars stick beneath: History's
+     month labels and the exercise filter row. Two values because a header
+     carrying a 36px icon button is taller than one with only a title —
+     52px min-height + 1px border, against 36 + 2x10 padding + 1. Change these
+     with .header-row or the sub-bars will part company with the header. */
+  --header-h: 53px;
+  --header-h-action: 57px;
 
   --nav-h: 60px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -45,6 +75,17 @@
 
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* One curve for every state change: leaves fast, settles slow. Durations stay
+     inside 120–180ms, long enough to be felt and short enough that a fast
+     tapper never waits on one. */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur: 150ms;
+
+  /* Cards are lifted, not outlined: a tight contact shadow, a wider ambient one,
+     and a 1px inner top highlight standing in for a lit top edge. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.22),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
 
   color-scheme: dark;
 }
@@ -77,23 +118,28 @@ body {
   flex-direction: column;
 }
 
+/* Headings carry the confidence; body text stays quiet. Tighter tracking at the
+   top of the scale keeps a long exercise name from reading as loose. */
 h1,
 h2,
 h3,
 h4 {
   margin: 0;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.022em;
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
+  line-height: 1.2;
 }
 h2 {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
+  line-height: 1.25;
 }
 h3 {
-  font-size: 1rem;
+  font-size: 1.02rem;
+  letter-spacing: -0.012em;
 }
 
 p {
@@ -227,7 +273,7 @@ select {
   bottom: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
@@ -235,6 +281,7 @@ select {
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -245,6 +292,7 @@ select {
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  transition: color var(--dur) var(--ease);
 }
 
 .nav-item.active {
@@ -256,21 +304,63 @@ select {
   height: 22px;
 }
 
+/* Three tabs, and the middle one is where the app starts, so it is not a peer:
+   a larger glyph and an ember wash mark it as the anchor. Kept flat on purpose
+   — a raised FAB here would collide with the rest timer and the active-workout
+   banner, both of which dock directly above this bar. */
+.nav-item-home svg {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+}
+
+.nav-item-home.active::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  width: 54px;
+  height: 32px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
 /* ── Cards & lists ──────────────────────────────────────────────────────── */
 
+/* Lifted rather than outlined: the flat border left every card sitting in the
+   page plane, so nothing on a screen ever looked like it came forward. */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
+  box-shadow: var(--shadow-card);
 }
 
 .card + .card {
   margin-top: 10px;
 }
 
+/* A button shrink-wraps its content, so a card that happens to be one would be
+   narrower than the cards around it. Inside .list the flex column already
+   stretches them; standing alone — the Measurements row on Stats — it would
+   not. Cards are full-bleed blocks wherever they appear. */
+button.card {
+  width: 100%;
+}
+
+/* -webkit-tap-highlight-color is off globally, so the press has to be felt in
+   geometry: the card gives under the thumb and springs back. */
+.card-tappable {
+  transition: transform 130ms var(--ease), background-color var(--dur) var(--ease);
+}
+
 .card-tappable:active {
   background: var(--surface-2);
+  transform: scale(0.98);
 }
 
 .list {
@@ -355,6 +445,55 @@ select {
   color: var(--text);
 }
 
+/* History groups sessions by month so a long log stays orientable, and the
+   month label needs to travel with you or that grouping is pointless once you
+   scroll — you'd lose track of what month you're looking at. Sits flush under
+   the app header (53px is that header's own floor: 52px row height plus its
+   1px border, on a page with no back/action button to stretch it taller) and
+   shares its blurred backdrop so the list never shows through the seam. */
+.month-title {
+  position: sticky;
+  top: calc(var(--safe-top) + var(--header-h));
+  z-index: 15;
+  margin: 0;
+  padding: 18px 0 8px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.month-title:first-child {
+  padding-top: 4px;
+}
+
+/* The history page's totals describe the list below rather than joining it,
+   so they drop the card chrome and read as a plain header row instead of a
+   fourth entry competing with actual sessions for attention. */
+.list-summary {
+  margin-bottom: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.list-summary .stat {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 4px 8px;
+}
+
+.list-summary .stat + .stat {
+  border-left: 1px solid var(--border);
+}
+
+/* What people actually scan a history card for, so it gets full text colour
+   and outranks the mono stats row above it rather than trailing it as the
+   quietest line on the card. */
+.card-exercises {
+  color: var(--text);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
 /* ── Buttons ────────────────────────────────────────────────────────────── */
 
 .btn {
@@ -370,11 +509,12 @@ select {
   font-weight: 600;
   font-size: 0.95rem;
   border: 1px solid var(--border-strong);
-  transition: transform 0.06s ease;
+  transition: transform 130ms var(--ease), background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .btn:active {
-  transform: scale(0.985);
+  transform: scale(0.975);
 }
 
 .btn:disabled {
@@ -382,10 +522,12 @@ select {
   cursor: default;
 }
 
+/* Near-black on ember, never white: white on #ff6a2b lands at 2.9:1, while --bg
+   on it clears 6.8:1. Same reasoning as .btn-success's dark green below. */
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--bg);
 }
 
 .btn-success {
@@ -426,6 +568,45 @@ select {
 .btn-lg {
   min-height: 54px;
   font-size: 1.05rem;
+}
+
+/* ── Focus ──────────────────────────────────────────────────────────────── */
+
+/* Only .chart-svg and .input had any focus treatment, which left keyboard and
+   switch-control users with nothing on every other control. One ember ring,
+   offset clear of the control so it survives a filled background. Scoped to
+   :focus-visible so a thumb tap never strands a ring on the screen. No radius
+   is set here on purpose: the outline follows each control's own corners. */
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.header-action:focus-visible,
+.nav-item:focus-visible,
+.chip:focus-visible,
+.segmented button:focus-visible,
+.switch:focus-visible,
+.input:focus-visible,
+.set-input:focus-visible,
+.set-badge:focus-visible,
+.set-timer-btn:focus-visible,
+.check-btn:focus-visible,
+.chart-toggle:focus-visible,
+.sheet-list-item:focus-visible,
+.picker-item:focus-visible,
+.prev-cell.prev-copy:focus-visible,
+.ex-grip:focus-visible,
+.ex-foot-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The search field's input is bare, so the highlight belongs on the wrapper
+   that is what actually looks like the control. */
+.search-wrap:focus-within {
+  border-color: var(--accent-dim);
+}
+
+.search-wrap input:focus-visible {
+  outline: none;
 }
 
 /* ── Form controls ──────────────────────────────────────────────────────── */
@@ -512,6 +693,8 @@ textarea.input {
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
 
 .chip.active {
@@ -545,6 +728,10 @@ textarea.input {
   height: 20px;
   border-radius: 50%;
   background: #fff;
+  /* The knob is white in both states, and white on ember is only 2.9:1 — not
+     enough of a boundary on its own. A dark hairline draws the edge instead, so
+     the knob stays the familiar white without dissolving into the on state. */
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
   transition: transform 0.16s ease;
 }
 
@@ -568,6 +755,7 @@ textarea.input {
   font-size: 0.85rem;
   font-weight: 650;
   color: var(--text-dim);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .segmented button.active {
@@ -603,6 +791,7 @@ textarea.input {
   border-radius: var(--radius);
   padding: 12px 10px;
   text-align: center;
+  box-shadow: var(--shadow-card);
 }
 
 /* Proportional figures: tabular widths make a value like 121 look loose.
@@ -628,6 +817,7 @@ textarea.input {
   border-radius: var(--radius);
   margin-top: 14px;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 
 .headline {
@@ -640,10 +830,13 @@ textarea.input {
   border-left: 1px solid var(--border);
 }
 
+/* Tabular here even though .stat-value above is not: these three figures update
+   live during a workout, and a proportional 1 makes the whole row twitch. */
 .headline-value {
-  font-size: clamp(1.15rem, 5.4vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.2rem, 5.6vw, 1.58rem);
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.028em;
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -667,11 +860,15 @@ textarea.input {
   padding: 4px 2px 0;
 }
 
+/* The single biggest number on any screen. Heavier and tighter than the type
+   scale below it so it anchors the page rather than merely being large, and
+   tabular so a ticking counter does not shift its own label. */
 .hero-value {
-  font-size: 3rem;
-  font-weight: 700;
+  font-size: 3.05rem;
+  font-weight: 780;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.038em;
+  font-variant-numeric: tabular-nums;
 }
 
 .hero-label {
@@ -698,7 +895,7 @@ textarea.input {
 }
 
 .ex-block + .ex-block {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 /* Lifted clear of its neighbours while it follows the finger. */
@@ -713,7 +910,9 @@ textarea.input {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px 10px;
+  padding: 12px 14px 9px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
 
 /* Negative margins claim a comfortable drag target without widening the row. */
@@ -739,15 +938,17 @@ textarea.input {
 .ex-name {
   flex: 1;
   min-width: 0;
-  font-weight: 650;
+  font-weight: 700;
   color: var(--accent);
-  font-size: 1rem;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
 }
 
 .ex-sub {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-faint);
-  font-weight: 500;
+  font-weight: 600;
+  margin-top: 1px;
 }
 
 .superset-badge {
@@ -775,14 +976,26 @@ textarea.input {
   text-align: center;
 }
 
+/* Every cell here is a figure and the columns are narrow, so a proportional 1
+   visibly shifts the number in the row below it. */
 .set-table td {
-  padding: 3px 4px;
+  padding: 5px 4px;
   text-align: center;
   vertical-align: middle;
+  font-variant-numeric: tabular-nums;
 }
 
+.set-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Settled, not just tinted: the tint alone was easy to miss at a glance, so
+   the numbers themselves step down a tier too. Still --text-dim, not
+   --text-faint — a completed set stays a real, legible record. */
 .set-table tr.done td {
   background: color-mix(in srgb, var(--success) 12%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--success) 20%, var(--border));
+  color: var(--text-dim);
 }
 
 .col-set {
@@ -800,6 +1013,7 @@ textarea.input {
 /* Carries a surface and border because it is a button: it opens the set menu
    (RPE, set type, plate maths, delete), and as bare text nobody found it. */
 .set-badge {
+  position: relative;
   width: 30px;
   height: 30px;
   margin: 0 auto;
@@ -812,6 +1026,19 @@ textarea.input {
   color: var(--text-dim);
   background: var(--surface-2);
   border: 1px solid var(--border);
+}
+
+/* The visible badge stays 30px so the narrow .col-set column never widens —
+   the pseudo-element pads the actual hit area out to a thumb's worth without
+   touching layout. Only real buttons get it; the static, read-only badge
+   below has nothing to tap. */
+button.set-badge::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 /* Static badges in read-only lists keep the type colour without the affordance. */
@@ -909,25 +1136,57 @@ textarea.input {
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  padding: 4px 3px;
 }
 
-/* Tapping last time's numbers repeats them. Kept looking like text so the set
-   table stays calm; the dashed underline is the only hint it is pressable. */
+/* Same fix as .set-badge: a dashed underline read as decoration, not a
+   control, so nobody found it (item 2 / item 6 in CurrentProblems). A surface
+   and border make it read as a button like every other tappable cell in the
+   row. Padding is tight enough that the 74px previous column still leaves the
+   weight/reps inputs their room at 390px. */
 .prev-cell.prev-copy {
   display: block;
   width: 100%;
-  padding: 3px 0;
-  border: 0;
-  background: none;
+  padding: 4px 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-dim);
   font: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
-  border-bottom: 1px dashed color-mix(in srgb, var(--text-faint) 45%, transparent);
 }
 
 .prev-cell.prev-copy:active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* The one moment gold marks something other than a badge: a session that set
+   a PR gets a beat of its own on the way out, per the peak-end rule. Pure
+   entrance animation, no delay — Skip and Save are clickable the instant the
+   sheet opens, same as a session with no PRs. The global reduced-motion
+   switch (`* { animation-duration: 0.01ms !important }`) already covers this
+   keyframe, so it is disabled rather than duplicated here. */
+.finish-celebrate {
+  text-align: center;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.88rem;
+  animation: finish-celebrate-in 380ms var(--ease) both;
+}
+
+@keyframes finish-celebrate-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
 }
 
 /* Headline figures above the effort/feeling scales on finishing. */
@@ -988,6 +1247,7 @@ tr.done .set-input {
 }
 
 .set-timer-btn {
+  position: relative;
   flex: 0 0 auto;
   width: 30px;
   height: 34px;
@@ -998,6 +1258,18 @@ tr.done .set-input {
   border: 1px solid var(--border);
   color: var(--text-dim);
   font-size: 0.95rem;
+}
+
+/* Widened top/bottom only — the duration input sits flush against this
+   button's left edge, and padding the hit area sideways would start
+   stealing taps meant for the number. */
+.set-timer-btn::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 100%;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 /* The running clock fills the cell it will write into, in the accent colour so
@@ -1024,6 +1296,7 @@ tr.done .set-input {
 }
 
 .check-btn {
+  position: relative;
   width: 34px;
   height: 34px;
   margin: 0 auto;
@@ -1033,6 +1306,17 @@ tr.done .set-input {
   background: var(--raised);
   color: var(--text-faint);
   border: 1px solid var(--border-strong);
+}
+
+/* .col-check is already 44px, but the visible button sits smaller inside it
+   for a lighter look — pad the hit area back out to match the column. */
+.check-btn::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 .check-btn svg {
@@ -1047,7 +1331,7 @@ tr.done .set-input {
 }
 
 .ex-foot {
-  padding: 8px 14px 14px;
+  padding: 6px 14px 12px;
   display: flex;
   gap: 8px;
 }
@@ -1084,7 +1368,10 @@ tr.done .set-input {
   bottom: calc(var(--nav-h) + var(--safe-bottom));
   z-index: 28;
   background: var(--surface-2);
-  border-top: 1px solid var(--border);
+  /* Ember, not the neutral border: this bar is only ever on screen while
+     something is "live right now", which is exactly what --accent means. */
+  border-top: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow: var(--shadow-card);
 }
 
 /* On screens that hide the tab bar the timer sits flush with the edge. */
@@ -1094,7 +1381,7 @@ tr.done .set-input {
 }
 
 .rest-bar-progress {
-  height: 3px;
+  height: 4px;
   background: var(--accent);
   transition: width 0.25s linear;
 }
@@ -1133,7 +1420,8 @@ tr.done .set-input {
   bottom: calc(var(--nav-h) + var(--safe-bottom));
   z-index: 27;
   background: var(--accent);
-  color: #fff;
+  /* Same pair as .btn-primary: near-black on ember, not white. */
+  color: var(--bg);
 }
 
 .active-banner-body {
@@ -1202,6 +1490,9 @@ tr.done .set-input {
   flex-direction: column;
   padding-bottom: var(--safe-bottom);
   animation: slide-up 0.18s ease;
+  /* Cast upward: the sheet has to look like it is in front of the page it
+     covers, not merely drawn on top of it. */
+  box-shadow: 0 -10px 34px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
 .sheet-head {
@@ -1274,11 +1565,49 @@ tr.done .set-input {
 
 /* ── Exercise picker ────────────────────────────────────────────────────── */
 
+/* Search and the muscle filter are how you find one of ~200 rows, so they
+   have to stay reachable through the whole scroll rather than disappearing
+   with the first screenful. 57px is the app header's own floor on a page
+   with a back chevron: 56px row height (the back button's 36px plus its
+   10px top/bottom padding) plus its 1px border. Sits flush beneath it,
+   sharing the same blurred backdrop so neither layer fights the other. */
+.exercise-filter-bar {
+  position: sticky;
+  top: calc(var(--safe-top) + var(--header-h-action));
+  z-index: 15;
+  margin: 0 -16px;
+  padding: 10px 16px 10px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* A tag, not a caption: bigger and boxed so the alphabetical index reads as a
+   landmark to jump between rather than another muted line among 200 rows. */
+.index-title {
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  margin: 18px 0 8px;
+}
+
+.index-title:first-child {
+  margin-top: 10px;
+}
+
+/* Roomy enough to be a comfortable one-handed tap target across a long list. */
 .picker-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 4px;
+  padding: 13px 6px;
   width: 100%;
   text-align: left;
   border-bottom: 1px solid var(--border);
@@ -1292,9 +1621,11 @@ tr.done .set-input {
   font-weight: 550;
 }
 
+/* Dim rather than faint: muscle group and equipment are information worth
+   reading at a glance, not filler under the name. */
 .picker-meta {
-  font-size: 0.76rem;
-  color: var(--text-faint);
+  font-size: 0.78rem;
+  color: var(--text-dim);
 }
 
 .picker-check {
@@ -1310,7 +1641,7 @@ tr.done .set-input {
 .picker-check.on {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--bg);
 }
 
 .picker-check svg {
@@ -1352,6 +1683,17 @@ tr.done .set-input {
 .badge-pr {
   background: color-mix(in srgb, var(--pr) 20%, transparent);
   color: var(--pr);
+  /* A hairline edge on top of the tint so a PR still reads gold at a glance
+     next to an RPE badge, rather than blurring into it. */
+  border: 1px solid color-mix(in srgb, var(--pr) 45%, transparent);
+}
+
+/* The dateline atop a finished session's record: a touch heavier than
+   `.muted` so the page it belongs to reads as worth a second look. */
+.workout-dateline {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .fab-row {
@@ -1367,6 +1709,7 @@ tr.done .set-input {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 12px 10px;
+  box-shadow: var(--shadow-card);
 }
 
 .chart-card + .chart-card {
@@ -1725,4 +2068,272 @@ tr.done .set-input {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+
+/* One switch for the whole file. Nothing above animates to convey meaning — the
+   movement is there for feel — so when the OS asks for stillness there is
+   nothing worth preserving. The sheet still appears, the spinner still marks a
+   wait, neither of them moves. This covers @keyframes fade / slide-up / spin
+   and every transition in the file, including any added after it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Home ───────────────────────────────────────────────────────────────── */
+
+/* Home-screen rules live here, after the reduced-motion switch above so every
+   animation below is already covered by it — the switch uses `*` and
+   `!important`, so nothing here needs its own reduce rule.
+
+   The vocabulary above does most of the work: these are the few things a
+   dashboard needs that a list of cards did not. */
+
+/* Blocks that follow a paragraph or a button rather than another card, where
+   `.card + .card`'s 10px does not apply and the block would sit flush. */
+.home-block {
+  margin-top: 14px;
+}
+
+/* Each titled block is its own <section>, which makes its heading a
+   :first-child — and `.section-title:first-child` drops the 22px that gives
+   the page its rhythm. Carry that gap on the section instead, so the heading
+   keeps its air wherever the block happens to land. */
+.home-sect {
+  margin-top: 22px;
+}
+
+.home-sect > .section-title:first-child {
+  margin-top: 0;
+}
+
+/* The wins block is the one part of the page that arrives after first paint —
+   scanning for records is a trip through history — so it fades in rather than
+   appearing as a jolt under the thumb. Reuses the existing `fade` keyframe,
+   and the reduced-motion switch above already flattens it. */
+.home-appear {
+  animation: fade 320ms var(--ease) both;
+}
+
+/* The routine name has to be allowed to shrink: a flex child defaults to
+   min-width:auto, so `.truncate` inside a button otherwise pushes the button
+   wider than the screen instead of ellipsising. */
+.home-start > span {
+  min-width: 0;
+}
+
+/* Attached to the button above it, not floating between blocks. */
+.home-start-sub {
+  margin-top: 7px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.home-secondary {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* A guess about the user's routine, so it whispers. Centred under the primary
+   action to read as a caption on it rather than as a separate claim. */
+.home-habit {
+  margin-top: 12px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+/* ── Weekly goal ring ───────────────────────────────────────────────────── */
+
+.home-goal {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.goal-ring {
+  flex-shrink: 0;
+}
+
+.goal-ring-track {
+  fill: none;
+  stroke: var(--surface-2);
+}
+
+/* Ember while the week is still something to act on; gold the moment it is
+   won. The two hues never overlap: one is the task, the other is the trophy. */
+.goal-ring-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  /* --ring-c is the circumference, set inline where it is computed. Animating
+     from a full offset draws the arc on once, in the direction it fills. */
+  animation: home-ring-fill 620ms var(--ease) both;
+}
+
+.goal-ring-arc.hit {
+  stroke: var(--gold);
+}
+
+@keyframes home-ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-c);
+  }
+}
+
+.goal-ring-value {
+  fill: var(--text);
+  font-size: 1.5rem;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "of 4 this week" is the ring's label, so it sits at label weight while the
+   numeral inside the ring carries the emphasis. */
+.goal-of {
+  font-weight: 650;
+}
+
+/* The supporting line has to carry the state, because the arc cannot: a ring
+   at 1-of-8 and one at 3-of-4 are both "partly ember" at a glance. At risk
+   leans on --warn rather than --danger — the week is still recoverable, and
+   red for "you haven't trained yet" reads as a telling-off rather than a
+   nudge, which is the one thing this line must never do. */
+.goal-note {
+  color: var(--text-dim);
+}
+
+.goal-note.at-risk {
+  color: var(--warn);
+}
+
+.goal-note.hit {
+  color: var(--gold);
+}
+
+.home-streak {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+/* ── Volume momentum ────────────────────────────────────────────────────── */
+
+.home-delta {
+  font-size: 1.35rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.home-delta.up {
+  color: var(--success);
+}
+
+/* Dim, never --danger. A lighter block is a deload, a holiday or a bad week at
+   work; the app records it, it does not judge it. */
+.home-delta.down,
+.home-delta.flat {
+  color: var(--text-dim);
+}
+
+/* ── Recovery ───────────────────────────────────────────────────────────── */
+
+/* "Yesterday" is twice the width of "7 days", so the column is sized for the
+   longest label rather than letting the bars jump between rows. */
+.home-rest {
+  min-width: 62px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* ── Recent wins ────────────────────────────────────────────────────────── */
+
+.home-win {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 7px 0;
+}
+
+.home-win + .home-win {
+  border-top: 1px solid var(--border);
+}
+
+.home-win-medal {
+  font-size: 1.05rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.home-win-when {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The near-miss line. Separated from the wins above it only when there are
+   wins — on its own it is the whole card and needs no rule. */
+.home-milestone {
+  padding-top: 10px;
+}
+
+.home-milestone.bordered {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+/* Thinner than a chart bar: this is a hint at a distance, not a measurement. */
+.home-milestone-track {
+  height: 6px;
+  margin-top: 8px;
+}
+
+/* Gold, because a milestone is something won rather than something to act on. */
+.home-milestone-fill {
+  background: var(--gold);
+}
+
+/* ── Routines section ───────────────────────────────────────────────────── */
+
+/* "Choose another" scrolls here, and the header is sticky: without this the
+   section title lands underneath it and the list looks like it starts at the
+   second routine. */
+.home-routines-anchor {
+  scroll-margin-top: calc(var(--safe-top) + 64px);
+}
+
+/* The section title keeps its own top margin here and loses its bottom one, so
+   the actions beside it stay on the title's baseline. */
+.home-section-row {
+  margin: 22px 0 8px;
+}
+
+.home-section-row .section-title {
+  margin: 0;
+}
+
+.home-section-actions {
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+/* Folders are organisation, not action: ember is reserved for things that
+   start a workout, so this action reads as secondary text. */
+.home-section-muted {
+  color: var(--text-dim);
+  font-weight: 500;
 }

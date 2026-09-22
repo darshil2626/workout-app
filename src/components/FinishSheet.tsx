@@ -72,6 +72,16 @@ export function FinishSheet({ open, summary, onClose, onSave }: Props) {
         </>
       }
     >
+      {/* Peak-end: a session is remembered by how it finished, so a PR gets a
+          moment of its own above the figures rather than just a pill inside
+          them. Purely decorative — nothing here delays Skip or Save, and the
+          global prefers-reduced-motion switch already flattens its entrance. */}
+      {summary.prCount > 0 && (
+        <div className="finish-celebrate" aria-hidden="true">
+          New record{summary.prCount === 1 ? '' : 's'} set
+        </div>
+      )}
+
       <div className="finish-summary">
         <span>{summary.duration}</span>
         <span>{summary.volume}</span>

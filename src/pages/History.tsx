@@ -53,7 +53,9 @@ export function HistoryPage() {
           </div>
         ) : (
           <>
-            <div className="stat-grid">
+            {/* Totals for the whole history, sitting above the list as its header
+                rather than as a fourth card fighting the sessions for attention. */}
+            <div className="stat-grid list-summary">
               <div className="stat">
                 <div className="stat-value mono">{workouts.length}</div>
                 <div className="stat-label">Workouts</div>
@@ -72,7 +74,9 @@ export function HistoryPage() {
 
             {months.map((month) => (
               <div key={month.key}>
-                <div className="section-title">{month.label}</div>
+                {/* Sticky so a long history never loses track of which month it's
+                    scrolled into. */}
+                <div className="section-title month-title">{month.label}</div>
                 <div className="list">
                   {month.list.map((w) => (
                     <button
@@ -85,13 +89,17 @@ export function HistoryPage() {
                         <span style={{ fontWeight: 650 }} className="truncate">
                           {w.name}
                         </span>
-                        <span className="row" style={{ gap: 6 }}>
+                        <span className="row" style={{ gap: 6, flexShrink: 0 }}>
                           {w.feeling !== undefined && (
                             <span title={`Felt ${feelingFor(w.feeling)?.label.toLowerCase()}`}>
                               {feelingFor(w.feeling)?.emoji}
                             </span>
                           )}
-                          <span className="faint">{formatDateLabel(w.startedAt)}</span>
+                          {/* Date and time of day share a line — a session only needs
+                              one line to say when it happened. */}
+                          <span className="faint">
+                            {formatDateLabel(w.startedAt)} · {formatTimeOfDay(w.startedAt)}
+                          </span>
                         </span>
                       </div>
                       <div className="row" style={{ gap: 14, marginTop: 6 }}>
@@ -101,7 +109,9 @@ export function HistoryPage() {
                         </span>
                         <span className="muted mono">{w.totalSets} sets</span>
                       </div>
-                      <div className="faint" style={{ marginTop: 6, lineHeight: 1.4 }}>
+                      {/* The thing people actually scan a history card for, so it
+                          outranks the stats row above it rather than trailing it. */}
+                      <div className="card-exercises" style={{ marginTop: 6 }}>
                         {w.exercises.length === 0
                           ? 'No exercises logged'
                           : w.exercises
@@ -110,9 +120,6 @@ export function HistoryPage() {
                                   `${le.sets.length} × ${byId.get(le.exerciseId)?.name ?? 'Unknown'}`,
                               )
                               .join(', ')}
-                      </div>
-                      <div className="faint" style={{ marginTop: 4 }}>
-                        {formatTimeOfDay(w.startedAt)}
                       </div>
                     </button>
                   ))}

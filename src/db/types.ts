@@ -240,4 +240,6 @@ export interface Settings {
    * exercises; null means those movements contribute no volume.
    */
   bodyweightKg: number | null
+  /** Workouts per week the home goal ring is measured against. */
+  weeklyGoalWorkouts: number
 }

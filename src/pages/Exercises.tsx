@@ -45,6 +45,7 @@ export function ExercisesPage() {
     <>
       <Header
         title="Exercises"
+        back
         right={
           <button className="header-action" onClick={() => setCreating(true)}>
             <IconPlus />
@@ -53,26 +54,31 @@ export function ExercisesPage() {
       />
 
       <div className="page">
-        <div className="search-wrap">
-          <IconSearch />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${exercises.length} exercises`}
-            autoComplete="off"
-          />
-        </div>
+        {/* Search and the muscle filter stay reachable through a ~200-row list,
+            so they stick just under the header instead of scrolling away with
+            the first screenful of results. */}
+        <div className="exercise-filter-bar">
+          <div className="search-wrap">
+            <IconSearch />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search ${exercises.length} exercises`}
+              autoComplete="off"
+            />
+          </div>
 
-        <div className="chips" style={{ marginTop: 10 }}>
-          {muscles.map((m) => (
-            <button
-              key={m}
-              className={`chip${muscle === m ? ' active' : ''}`}
-              onClick={() => setMuscle(m)}
-            >
-              {m}
-            </button>
-          ))}
+          <div className="chips" style={{ marginTop: 10 }}>
+            {muscles.map((m) => (
+              <button
+                key={m}
+                className={`chip${muscle === m ? ' active' : ''}`}
+                onClick={() => setMuscle(m)}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
 
         {filtered.length === 0 ? (
@@ -86,7 +92,9 @@ export function ExercisesPage() {
         ) : (
           grouped.map(([letter, list]) => (
             <div key={letter}>
-              <div className="section-title">{letter}</div>
+              {/* A tag rather than a plain caption, so the alphabetical index
+                  reads as a landmark and not just another muted line. */}
+              <div className="index-title">{letter}</div>
               <div className="card" style={{ padding: '4px 14px' }}>
                 {list.map((e) => (
                   <button

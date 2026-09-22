@@ -149,11 +149,11 @@ export function WorkoutDetailPage() {
       />
 
       <div className="page">
-        <p className="muted">
+        <p className="workout-dateline">
           {formatDateLabel(workout.startedAt)} at {formatTimeOfDay(workout.startedAt)}
         </p>
 
-        <div className="stat-grid" style={{ marginTop: 12 }}>
+        <div className="stat-grid" style={{ marginTop: 14 }}>
           <div className="stat">
             <div className="stat-value mono">{formatDurationShort(elapsedSeconds(workout))}</div>
             <div className="stat-label">Duration</div>
@@ -173,7 +173,7 @@ export function WorkoutDetailPage() {
         </div>
 
         {workout.effort !== undefined || workout.feeling !== undefined ? (
-          <div className="card row" style={{ marginTop: 12, gap: 20 }}>
+          <div className="card row" style={{ marginTop: 14, gap: 24 }}>
             {workout.effort !== undefined && (
               <div className="stack">
                 <div className="field-label">Effort</div>
@@ -193,7 +193,7 @@ export function WorkoutDetailPage() {
         ) : null}
 
         {workout.notes ? (
-          <div className="card" style={{ marginTop: 12 }}>
+          <div className="card" style={{ marginTop: 14 }}>
             <div className="field-label" style={{ marginBottom: 4 }}>
               Notes
             </div>
@@ -242,7 +242,7 @@ export function WorkoutDetailPage() {
 
                 <div style={{ padding: '0 14px 12px' }}>
                   {le.sets.map((s, i) => (
-                    <div className="row" key={s.id} style={{ padding: '5px 0', gap: 12 }}>
+                    <div className="row" key={s.id} style={{ padding: '6px 0', gap: 12 }}>
                       <span className={`set-badge ${s.setType}`} style={{ margin: 0 }}>
                         {badges[i]}
                       </span>

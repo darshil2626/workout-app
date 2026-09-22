@@ -139,10 +139,16 @@ export const IconFolder = ({ className }: Props) => (
   </svg>
 )
 
+/** A toothed cog: one closed notched path for the outer edge, plus a centre bore. Reads clearly at 22px, unlike a spoked sun. */
+/**
+ * A six-tooth cog with flat tooth tops. Fewer, deeper teeth than a literal
+ * gear: at the 22px the nav and header render it, eight shallow teeth blur
+ * into a flower, which is how the previous radial-spoke version read.
+ */
 export const IconSettings = ({ className }: Props) => (
   <svg {...base} className={className}>
-    <circle cx="12" cy="12" r="3" />
-    <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+    <path d="M21.35 9.84L21.35 14.16L17.98 14.29L16.97 16.03L18.55 19.02L14.81 21.18L13 18.32L11 18.32L9.19 21.18L5.45 19.02L7.03 16.03L6.02 14.29L2.65 14.16L2.65 9.84L6.02 9.71L7.03 7.97L5.45 4.98L9.19 2.82L11 5.68L13 5.68L14.81 2.82L18.55 4.98L16.97 7.97L17.98 9.71Z" />
+    <circle cx="12" cy="12" r="2.8" />
   </svg>
 )
 

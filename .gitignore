@@ -6,6 +6,7 @@ dev-dist/
 npm-debug.log*
 .vite/
 *.tsbuildinfo
+CurrentProblems.md
 
 # Per-machine Claude Code permissions, not project configuration.
 .claude/settings.local.json

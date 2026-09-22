@@ -95,6 +95,8 @@ export function ExerciseFormSheet({ open, exercise, onClose, onSaved }: Props) {
       equipment,
       kind,
       isCustom: exercise?.isCustom ?? true,
+      // Editing a built-in exercise opts it out of future re-seeding.
+      userEdited: exercise && !exercise.isCustom ? true : exercise?.userEdited,
       notes: notes.trim() || undefined,
       archived: exercise?.archived,
       createdAt: exercise?.createdAt ?? Date.now(),

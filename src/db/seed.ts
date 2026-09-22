@@ -9,6 +9,14 @@ import type { Equipment, Exercise, ExerciseKind, MuscleGroup } from './types'
  */
 type Row = [string, MuscleGroup, Equipment, ExerciseKind?, MuscleGroup[]?]
 
+/**
+ * Bump when a row below is *corrected* — a wrong muscle group, a renamed
+ * movement, the wrong kind. Installed copies only re-apply the built-in rows
+ * when this number moves, so a fix reaches a phone that seeded an older build.
+ * Adding a new row needs no bump: missing rows are inserted on every launch.
+ */
+export const SEED_VERSION = 1
+
 const ROWS: Row[] = [
   // ── Chest ─────────────────────────────────────────────────────────────
   ['Bench Press (Barbell)', 'Chest', 'Barbell', 'weight_reps', ['Triceps', 'Shoulders']],

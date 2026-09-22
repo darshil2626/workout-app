@@ -1151,6 +1151,33 @@ tr.done .set-input {
   bottom: calc(var(--nav-h) + var(--safe-bottom) + 52px);
 }
 
+/* ── Update prompt ──────────────────────────────────────────────────────── */
+
+.update-toast {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  /* Clears the tab bar, the rest timer and the workout banner at once. */
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 112px);
+  z-index: 40;
+  max-width: 616px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-weight: 600;
+}
+
+/* Screens that hide the tab bar only have the rest timer to clear. */
+.app.fullscreen .update-toast {
+  bottom: calc(var(--safe-bottom) + 64px);
+}
+
 /* ── Sheet / modal ──────────────────────────────────────────────────────── */
 
 .sheet-backdrop {

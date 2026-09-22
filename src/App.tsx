@@ -5,6 +5,7 @@ import { SetTimerProvider } from './state/SetTimerContext'
 import { BottomNav } from './components/BottomNav'
 import { RestTimerBar } from './components/RestTimerBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { HomePage } from './pages/Home'
 import { ActiveWorkoutPage } from './pages/ActiveWorkout'
 import { RoutineEditPage } from './pages/RoutineEdit'
@@ -49,6 +50,7 @@ function Shell() {
       {!fullscreen && <ActiveWorkoutBanner />}
       <RestTimerBar />
       {!fullscreen && <BottomNav />}
+      <UpdatePrompt />
     </div>
   )
 }

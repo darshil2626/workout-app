@@ -11,13 +11,27 @@ const base = process.env.BASE_PATH ?? '/'
 // and it is skipped elsewhere because it costs noticeably more CPU.
 const onWindowsMount = process.cwd().startsWith('/mnt/')
 
+// Stamped into the About card so it is possible to tell, on a phone, exactly
+// which deploy is installed. Actions sets GITHUB_SHA; local builds say so.
+const buildId = [
+  new Date().toISOString().slice(0, 16).replace('T', ' '),
+  process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : 'local',
+].join(' · ')
+
 export default defineConfig({
   base,
+  define: { __BUILD_ID__: JSON.stringify(buildId) },
   server: onWindowsMount ? { watch: { usePolling: true, interval: 300 } } : undefined,
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' keeps the new worker waiting instead of reloading the page
+      // out from under whoever is mid-set. UpdatePrompt offers the reload, and
+      // a worker nobody accepts still activates once the app is fully closed.
+      registerType: 'prompt',
+      // Registration happens through the React hook in UpdatePrompt, so the
+      // plugin must not also inject its own script tag.
+      injectRegister: null,
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'IronLog — Gym Tracker',
@@ -48,10 +62,16 @@ export default defineConfig({
         globIgnores: ['**/exercise-art/**'],
         runtimeCaching: [
           {
+            // Stale-while-revalidate rather than cache-first: the drawings live
+            // at stable paths, so cache-first would pin a redrawn frame to the
+            // old art forever. This still paints from cache instantly and works
+            // offline; it just picks up a redraw on the next view.
             urlPattern: /\/exercise-art\/.*\.svg$/,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'exercise-art',
+              // No max age on purpose: an expired entry is evicted, which would
+              // leave an exercise imageless offline.
               expiration: { maxEntries: 600 },
             },
           },

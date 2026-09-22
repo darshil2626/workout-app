@@ -57,6 +57,11 @@ export interface Exercise {
   kind: ExerciseKind
   /** User-authored exercises are editable and deletable; seeded ones are not. */
   isCustom: boolean
+  /**
+   * Set when the user edits a built-in exercise. Re-seeding skips these rows so
+   * a corrected built-in definition never overwrites someone's own wording.
+   */
+  userEdited?: boolean
   /** Persistent note shown every time the exercise is logged. */
   notes?: string
   /** Hidden from pickers but kept so historical workouts stay readable. */

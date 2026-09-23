@@ -6,24 +6,26 @@ import type { Routine } from '../db/types'
 import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
-import { IconPlay, IconPlus, IconSearch, IconSettings, IconTrash } from '../components/Icons'
+import { IconList, IconPlay, IconPlus, IconSettings, IconTrash } from '../components/Icons'
 import { useFormatters } from '../lib/useSettings'
-import { computeStreaks, overallTotals, volumeByWeek } from '../lib/stats'
+import { computeStreaks, overallTotals } from '../lib/stats'
 import {
   habitWindow,
+  homeStatus,
   muscleRecovery,
   nextMilestone,
+  strengthTrend,
   suggestNextRoutine,
-  volumeMomentum,
   weekProgress,
+  type StrengthLift,
 } from '../lib/home'
 import { FirstRun } from '../components/home/FirstRun'
 import { GoalRing } from '../components/home/GoalRing'
-import { MomentumCard } from '../components/home/MomentumCard'
 import { PrimaryAction } from '../components/home/PrimaryAction'
 import { RecentWins, collectWins, type Win } from '../components/home/RecentWins'
 import { RecoveryCard } from '../components/home/RecoveryCard'
 import { RoutinesSection } from '../components/home/RoutinesSection'
+import { StrengthTrend } from '../components/home/StrengthTrend'
 
 /**
  * How many finished sessions are scanned for personal records.
@@ -86,14 +88,6 @@ export function HomePage() {
     () => computeStreaks(workoutList, firstDayOfWeek),
     [workoutList, firstDayOfWeek],
   )
-  const momentum = useMemo(
-    () => volumeMomentum(workoutList, firstDayOfWeek),
-    [workoutList, firstDayOfWeek],
-  )
-  const weeks = useMemo(
-    () => volumeByWeek(workoutList, firstDayOfWeek, 6),
-    [workoutList, firstDayOfWeek],
-  )
   const recovery = useMemo(
     () => muscleRecovery(workoutList, exerciseById, countWarmupSets),
     [workoutList, exerciseById, countWarmupSets],
@@ -102,6 +96,11 @@ export function HomePage() {
   const milestone = useMemo(() => nextMilestone(totals), [totals])
   const habit = useMemo(() => habitWindow(workoutList), [workoutList])
   const suggestion = useMemo(() => suggestNextRoutine(routineList), [routineList])
+  const hasHistory = workoutList.length > 0
+  // Not memoised, deliberately: it is a date lookup and four comparisons, and
+  // recomputing it every render is what keeps the weekday correct on a PWA
+  // that has been sitting on the home screen since yesterday.
+  const status = homeStatus(goal, recovery, hasHistory, workout !== null)
 
   const recent = useMemo(
     () =>
@@ -147,6 +146,39 @@ export function HomePage() {
   }, [loaded, recentKey, exerciseById, bodyweightKg, countWarmupSets])
 
   /**
+   * The same trick as `recentKey`, for the whole history rather than three
+   * sessions: the totals only move when a session is finished, edited or
+   * deleted, which are exactly the moments the trend changes. Depending on
+   * `workoutList` itself would restart a scan of history every time any live
+   * query re-ran, and the running session's autosave fires one every few
+   * hundred milliseconds.
+   */
+  const trendKey = `${totals.workouts}:${totals.sets}:${totals.reps}:${Math.round(totals.volumeKg)}`
+
+  // `null` until the scan finishes, so the block stays absent rather than
+  // rendering an empty card and then filling it.
+  const [lifts, setLifts] = useState<StrengthLift[] | null>(null)
+
+  useEffect(() => {
+    // Same guard as the wins scan: an exercise missing from a half-loaded
+    // library is skipped, so computing against one would silently find nothing.
+    if (!loaded || workoutList.length === 0) {
+      setLifts([])
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const found = await strengthTrend(workoutList, exerciseById, bodyweightKg, countWarmupSets)
+      if (!cancelled) setLifts(found)
+    })()
+    return () => {
+      cancelled = true
+    }
+    // `workoutList` is covered by `trendKey`, above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, trendKey, exerciseById, bodyweightKg, countWarmupSets])
+
+  /**
    * Only one session can be active. Starting another would silently orphan the
    * first, so the user is asked to deal with it explicitly.
    */
@@ -183,31 +215,38 @@ export function HomePage() {
     routinesRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
   }
 
-  const hasHistory = workoutList.length > 0
   const firstRun = loaded && !hasHistory && routineList.length === 0 && folderList.length === 0 && !workout
 
   // Each block earns its place or is absent. A goal of zero has no arc to draw,
-  // a user with no volume has no trend, and one lonely muscle bar is noise.
+  // a handful of sessions is not yet a strength trend, and one lonely muscle
+  // row is noise rather than a balance picture.
   const showGoal = hasHistory && goal.goal > 0
-  // Keyed on recent volume, not on the delta: with nothing in the last six
-  // weeks there are six empty columns to draw and no trend to read, whereas
-  // recent volume with no prior volume is exactly the case that renders
-  // without a percentage.
-  const showMomentum = hasHistory && momentum.recentKg > 0
+  // `strengthTrend` already refuses anything it cannot say something about —
+  // too few sessions, or no exercise whose load is measurable — so an empty
+  // result is the signal to stay away rather than draw a flat card.
+  const showTrend = lifts !== null && lifts.length > 0
   const showRecovery = recovery.length >= MIN_RECOVERY_ROWS
   const showWins = wins !== null && (wins.length > 0 || (hasHistory && milestone !== null))
 
   return (
     <>
       <Header
-        title={greeting()}
+        title={
+          <span className="home-status">
+            {status.day}
+            {status.fact && <span className="home-status-fact"> · {status.fact}</span>}
+          </span>
+        }
         left={
           <button
             className="icon-btn"
-            aria-label="Find an exercise"
+            aria-label="Exercise library"
             onClick={() => navigate('/exercises')}
           >
-            <IconSearch />
+            {/* A magnifier promised search; this button opens the library. The
+                Exercises page keeps its own search field, and IconSearch with
+                it. */}
+            <IconList />
           </button>
         }
         right={
@@ -239,7 +278,7 @@ export function HomePage() {
             />
 
             {showGoal && <GoalRing progress={goal} streaks={streaks} />}
-            {showMomentum && <MomentumCard momentum={momentum} weeks={weeks} fmt={fmt} />}
+            {showTrend && <StrengthTrend lifts={lifts ?? []} fmt={fmt} />}
             {showRecovery && <RecoveryCard items={recovery} />}
             {showWins && <RecentWins wins={wins ?? []} milestone={milestone} fmt={fmt} />}
 
@@ -349,13 +388,4 @@ export function HomePage() {
       />
     </>
   )
-}
-
-/** Matches the boundaries `defaultWorkoutName` uses, so the page and the
- *  session it starts agree about what time of day it is. */
-function greeting(now = new Date()): string {
-  const hour = now.getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
 }

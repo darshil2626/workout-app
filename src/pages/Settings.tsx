@@ -7,9 +7,10 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
 import { formatDuration } from '../lib/time'
 import { displayToKg, formatWeight, parseNumber } from '../lib/units'
-import { downloadBackup, restoreBackup, wipeAllData, type ImportSummary } from '../lib/backup'
+import { downloadBackup, parseBackup, restoreBackup, wipeAllData, type ImportSummary } from '../lib/backup'
 import { BAR_PRESETS_KG, PLATE_PRESETS } from '../lib/plates'
 import { measurementWeightUnit } from '../lib/measurements'
+import { suggestedWeeklyGoal } from '../lib/home'
 import { useRestTimer } from '../state/RestTimerContext'
 import { detectFormat } from '../lib/importers/detect'
 import { parseStrongCsv, sniffStrongDisclosedUnits } from '../lib/importers/strong'
@@ -140,6 +141,16 @@ export function SettingsPage() {
   const exerciseCount = useLiveQuery(() => db.exercises.count(), [], 0)
   const routineCount = useLiveQuery(() => db.routines.count(), [], 0)
 
+  // Only the session timestamps are needed, but Dexie has no projection, so
+  // this pulls the rows. It is the same read the Stats page already does, and
+  // it only runs while Settings is open.
+  const doneWorkouts = useLiveQuery(
+    () => db.workouts.where('status').equals('done').toArray(),
+    [],
+    [] as Workout[],
+  )
+  const suggestedGoal = suggestedWeeklyGoal(doneWorkouts, settings.firstDayOfWeek)
+
   async function onFilePicked(file: File | undefined) {
     if (!file) return
     setError(null)
@@ -155,7 +166,16 @@ export function SettingsPage() {
     if (fileRef.current) fileRef.current.value = ''
 
     const format = detectFormat(text)
-    if (format === 'ironlog') {
+    if (format === 'backup') {
+      // Validate before asking. Importing replaces everything on the device, so
+      // being prompted to confirm that for a file that is then rejected is a
+      // scare with nothing behind it.
+      try {
+        parseBackup(text)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'That backup could not be read.')
+        return
+      }
       setPendingImport(text)
     } else if (format === 'strong') {
       const disclosed = sniffStrongDisclosedUnits(text)
@@ -574,7 +594,11 @@ export function SettingsPage() {
           <div className="row-between">
             <div className="stack grow">
               <span>Weekly goal</span>
-              <span className="faint">Workouts per week the home screen's goal ring targets</span>
+              <span className="faint">
+                {suggestedGoal === null
+                  ? 'Workouts per week the home screen aims at. Train for a few weeks and this will suggest a number from your own history.'
+                  : `Workouts per week the home screen aims at. You've averaged ${suggestedGoal} a week over the last couple of months.`}
+              </span>
             </div>
             <div className="row" style={{ gap: 4 }}>
               <button
@@ -602,6 +626,17 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
+          {/* Offered, never applied on its own. A goal the app quietly rewrote
+              is not a goal, so adopting the suggestion stays a deliberate tap. */}
+          {suggestedGoal !== null && suggestedGoal !== settings.weeklyGoalWorkouts && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginTop: 10 }}
+              onClick={() => void updateSettings({ weeklyGoalWorkouts: suggestedGoal })}
+            >
+              Use {suggestedGoal} a week
+            </button>
+          )}
         </div>
 
         <div className="section-title">Your data</div>

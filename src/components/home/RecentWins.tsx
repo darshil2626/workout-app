@@ -119,18 +119,26 @@ export function RecentWins({ wins, milestone, fmt }: Props) {
     <section className="home-sect home-appear">
       <div className="section-title">{wins.length > 0 ? 'Recent wins' : 'Next milestone'}</div>
       <div className="card">
+        {/* Two lines, not three. The name and the number are the row — they go
+            side by side so the value lands in a column the eye can run down —
+            and the label and the date are the footnote that explains it. The
+            old stacked layout spent a third line on a date four characters
+            long, which is where all the whitespace came from. */}
         {wins.map((win) => (
           <div className="home-win" key={win.key}>
             <span className="home-win-medal" aria-hidden="true">
               🏅
             </span>
-            <div className="stack grow">
-              <span className="truncate">{win.exerciseName}</span>
-              <span className="faint truncate">
-                {capitalise(PR_LABEL[win.kind])} · {describeWin(win, fmt)}
-              </span>
+            <div className="grow">
+              <div className="home-win-top">
+                <span className="truncate">{win.exerciseName}</span>
+                <span className="home-win-value mono">{describeWin(win, fmt)}</span>
+              </div>
+              <div className="home-win-meta">
+                <span className="truncate">{capitalise(PR_LABEL[win.kind])}</span>
+                <span className="home-win-when">{formatRelative(win.at)}</span>
+              </div>
             </div>
-            <span className="faint home-win-when">{formatRelative(win.at)}</span>
           </div>
         ))}
 

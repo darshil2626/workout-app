@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Exercise } from '../db/types'
@@ -11,16 +11,33 @@ const ALL = 'All'
 
 export function ExercisesPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [muscle, setMuscle] = useState(ALL)
   const [creating, setCreating] = useState(false)
 
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  // `undefined` while Dexie hasn't answered yet, distinct from a genuinely
+  // empty library — the deep-link effect below needs that distinction so it
+  // doesn't apply `?muscle=` against a muscle list that hasn't loaded.
+  const exercisesRaw = useLiveQuery(() => db.exercises.toArray())
+  const exercises = exercisesRaw ?? []
 
   const muscles = useMemo(() => {
     const set = new Set(exercises.filter((e) => !e.archived).map((e) => e.muscleGroup))
     return [ALL, ...[...set].sort()]
   }, [exercises])
+
+  // Stats deep-links here with `?muscle=Back`. Applied once, after the real
+  // muscle list is known, so an unknown or missing value falls back to "All"
+  // rather than showing an empty list, and so it never fights a muscle the
+  // user picks by hand afterwards.
+  const appliedMuscleParam = useRef(false)
+  useEffect(() => {
+    if (appliedMuscleParam.current || exercisesRaw === undefined) return
+    appliedMuscleParam.current = true
+    const wanted = searchParams.get('muscle')
+    if (wanted && muscles.includes(wanted)) setMuscle(wanted)
+  }, [exercisesRaw, muscles, searchParams])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

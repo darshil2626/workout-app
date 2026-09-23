@@ -805,6 +805,27 @@ textarea.input {
   text-overflow: ellipsis;
 }
 
+/* Each headline tile is now also a shortcut to the chart it summarises. The
+   press needs the same felt geometry as the rest of the app, but nothing
+   louder — these are read as figures first, and a border or fill here would
+   make them compete with the numbers for attention. */
+.headline:active {
+  transform: scale(0.97);
+  transition: transform 130ms var(--ease);
+}
+
+/* The bodyweight trend inside the Measurements card: a glance-sized preview,
+   not something meant for the point-by-point inspection the full page's
+   LineChart supports, so it drops the plot's usual top margin to sit flush
+   under the latest reading. */
+.measurement-preview {
+  margin-top: 2px;
+}
+
+.measurement-preview .chart-plot {
+  margin-top: 0;
+}
+
 /* ── Headline figures ───────────────────────────────────────────────────── */
 
 /* One card, three figures, hairline separators: reads as a single summary
@@ -1716,6 +1737,17 @@ tr.done .set-input {
   margin-top: 10px;
 }
 
+/* Stats wraps a couple of chart cards in a plain div so a headline tile has
+   something to scroll to (`ref` can't land on a section inside ChartCard).
+   The wrapper carries no look of its own, but it does break the adjacent-
+   sibling rule above, so the same gap is restated for every pairing that can
+   now occur between a wrapped and an unwrapped card. */
+.chart-anchor + .chart-card,
+.chart-card + .chart-anchor,
+.chart-anchor + .chart-anchor {
+  margin-top: 10px;
+}
+
 .chart-head {
   display: flex;
   align-items: flex-start;
@@ -1969,6 +2001,36 @@ tr.done .set-input {
   font-weight: 500;
 }
 
+/* Stats renders one BarList — muscle balance — as a row of links rather than a
+   plain chart, reusing BarList's own markup and classes (it isn't ours to
+   edit) with a `<button>` standing in for the `<div>`. Same felt press as
+   every other tappable card, so a new interaction pattern doesn't need a new
+   affordance vocabulary. */
+.bar-row.tappable {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 2px;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 130ms var(--ease), background-color var(--dur) var(--ease);
+}
+
+.bar-row.tappable:active {
+  background: var(--surface-2);
+  transform: scale(0.98);
+}
+
+/* Ember, not the bar's own hue: this is the one part of the row that "acts". */
+.bar-chevron {
+  color: var(--accent);
+  margin-left: 5px;
+  font-weight: 700;
+}
+
 /* Set records can run to twenty-odd rep counts, so the table scrolls in place
    rather than pushing the session history off the screen. */
 .set-records {
@@ -2132,6 +2194,20 @@ tr.done .set-input {
   min-width: 0;
 }
 
+/* The header line. Smaller and lighter than a page title, because it is a
+   status rather than a name — and it has to share a 390px bar with two icon
+   buttons, so the weekday leads and the fact after the separator is the part
+   that ellipsises away first. `.header-title` already clips it. */
+.home-status {
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.home-status-fact {
+  color: var(--text-dim);
+  font-weight: 550;
+}
+
 /* Attached to the button above it, not floating between blocks. */
 .home-start-sub {
   margin-top: 7px;
@@ -2230,35 +2306,137 @@ tr.done .set-input {
   margin-top: 2px;
 }
 
-/* ── Volume momentum ────────────────────────────────────────────────────── */
+/* ── Strength trend ─────────────────────────────────────────────────────── */
 
-.home-delta {
-  font-size: 1.35rem;
-  font-weight: 760;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+/* Name and delta on the left, the line in the middle, the current estimate on
+   the right — the sparkline keeps a fixed column so three lifts of different
+   name lengths still align into one readable chart stack. */
+.home-trend {
+  display: grid;
+  grid-template-columns: 1fr 64px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
 }
 
-.home-delta.up {
-  color: var(--success);
+.home-trend + .home-trend {
+  border-top: 1px solid var(--border);
 }
 
-/* Dim, never --danger. A lighter block is a deload, a holiday or a bad week at
-   work; the app records it, it does not judge it. */
-.home-delta.down,
-.home-delta.flat {
+.home-trend-delta {
+  font-size: 0.8rem;
+  font-weight: 650;
+  /* Dim, never --danger: a fall is a deload or a bad fortnight, not a failure.
+     See the note in StrengthTrend.tsx. */
   color: var(--text-dim);
+}
+
+/* Gold, because a 1RM that has gone up is something won rather than something
+   to act on — the same rule that colours records and milestones. Ember would
+   read as a button and green belongs to a completed set. */
+.home-trend-delta.up {
+  color: var(--gold);
+}
+
+.home-spark {
+  display: block;
+  width: 100%;
+  height: 26px;
+  /* The stroke is drawn in unit space and rendered at a fixed width, so its
+     outer half sits a hair outside the box at a peak. */
+  overflow: visible;
+}
+
+.home-spark polyline {
+  fill: none;
+  stroke: var(--chart-series);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.home-trend-now {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.home-trend-unit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+/* One line saying what the numbers above it are. The block it replaced showed
+   a chart nobody could name the units of, which is the whole reason it went. */
+.home-trend-foot {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 0.75rem;
 }
 
 /* ── Recovery ───────────────────────────────────────────────────────────── */
 
-/* "Yesterday" is twice the width of "7 days", so the column is sized for the
-   longest label rather than letting the bars jump between rows. */
-.home-rest {
-  min-width: 62px;
+/* Muscle, state, then the count that justifies the state. "Yesterday" is twice
+   the width of "7 days", so the last column is sized for the longest label
+   rather than letting the chips jump between rows. */
+.home-rest-row {
+  display: grid;
+  grid-template-columns: 1fr auto 66px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+
+.home-rest-row + .home-rest-row {
+  border-top: 1px solid var(--border);
+}
+
+/* Smaller than `.chip`, which is sized for a thumb in a filter row. Nothing
+   here is tappable, so it only has to be legible. */
+.home-rest-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* Faint: just trained, and nothing is being asked of you. */
+.home-rest-chip.recovering {
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+/* Available, but not the headline. Every rested muscle is trainable, so if
+   this shouted too it would compete with the one that actually needs doing. */
+.home-rest-chip.ready {
   color: var(--text-dim);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+/* Ember, the app's "act" hue, and the loudest chip in the list.
+   The three states have to read as a gradient of urgency, and the most
+   neglected muscle is the answer to "what should I train today?" — so it gets
+   the strongest colour. Ember was on `ready` first, which put the brightest
+   chip on the least urgent state and made the list argue with itself. */
+.home-rest-chip.overdue {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.home-rest-days {
+  font-size: 0.78rem;
   font-weight: 600;
+  color: var(--text-dim);
+  text-align: right;
 }
 
 /* ── Recent wins ────────────────────────────────────────────────────────── */
@@ -2267,7 +2445,7 @@ tr.done .set-input {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 7px 0;
+  padding: 8px 0;
 }
 
 .home-win + .home-win {
@@ -2278,6 +2456,35 @@ tr.done .set-input {
   font-size: 1.05rem;
   line-height: 1;
   flex-shrink: 0;
+}
+
+/* Headline: what you did and what it was worth, on one line, with the value
+   pushed right so three rows read as a column of numbers. */
+.home-win-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-win-value {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+/* Footnote: which record it was, and when. Both are small, so they share the
+   line the old layout gave to the date alone. */
+.home-win-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 1px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
 }
 
 .home-win-when {

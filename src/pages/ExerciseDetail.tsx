@@ -6,7 +6,7 @@ import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
 import { ExercisePicker } from '../components/ExercisePicker'
-import { ExerciseArt } from '../components/ExerciseArt'
+import { MuscleTargets } from '../components/MuscleTargets'
 import { useFormatters, type Formatters } from '../lib/useSettings'
 import { getExerciseHistory } from '../lib/history'
 import { countsTowardVolume, describeSet, setBadges } from '../lib/workout'
@@ -230,7 +230,12 @@ export function ExerciseDetailPage() {
           {exercise.isCustom ? ' · Custom' : ''}
         </p>
 
-        <ExerciseArt exerciseId={exercise.id} />
+        {/* Animated illustration retired in favor of the muscle readout below.
+            Archived, not deleted: components/ExerciseArt.tsx, db/exerciseArt.ts,
+            public/exercise-art/ and scripts/match-exercise-illustrations.mjs are
+            all still intact and unreferenced. To bring it back, restore the
+            `ExerciseArt` import above and swap it in for `MuscleTargets` here. */}
+        <MuscleTargets exercise={exercise} />
 
         {exercise.notes ? (
           <div className="card" style={{ marginTop: 12 }}>

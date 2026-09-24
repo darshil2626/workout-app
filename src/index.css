@@ -703,6 +703,20 @@ textarea.input {
   color: var(--accent);
 }
 
+/* A readout, not a filter row: chips wrap onto multiple lines instead of
+   scrolling, since there's nothing to scroll toward. */
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.muscle-target-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .switch {
   position: relative;
   width: 46px;

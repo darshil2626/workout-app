@@ -7,8 +7,12 @@ import { fileURLToPath } from 'node:url'
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 
-const BG = [11, 13, 18, 255]
-const FG = [79, 140, 255, 255]
+// These mirror --bg and --accent in src/index.css. Nothing enforces that, so
+// they have to be changed by hand when the palette moves — they were missed
+// when the app went from blue to ember, which left a blue icon sitting on a
+// home screen in front of an orange app.
+const BG = [15, 13, 11, 255] // #0f0d0b
+const FG = [255, 106, 43, 255] // #ff6a2b
 
 /** Dumbbell geometry expressed in a 512×512 space, scaled per output size. */
 const SHAPES = [

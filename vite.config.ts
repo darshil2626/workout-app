@@ -36,9 +36,13 @@ export default defineConfig({
       manifest: {
         name: 'IronLog — Gym Tracker',
         short_name: 'IronLog',
-        description: 'Offline-first workout logger: routines, sets, rest timer, history.',
-        theme_color: '#0b0d12',
-        background_color: '#0b0d12',
+        description:
+          'Offline-first strength log: routines, set-by-set logging, rest timer, personal records, muscle recovery and progress charts.',
+        // Both must track --bg in src/index.css. They colour the splash screen
+        // and the phone's status bar, which is the one place a stale value
+        // shows as a flash of the wrong black before the app paints.
+        theme_color: '#0f0d0b',
+        background_color: '#0f0d0b',
         display: 'standalone',
         orientation: 'portrait',
         start_url: base,

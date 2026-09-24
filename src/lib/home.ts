@@ -164,10 +164,26 @@ export interface MuscleRecovery {
 }
 
 /**
+ * Beyond this many days, a muscle is treated as "not a current focus" rather
+ * than "neglected" and dropped from the list, instead of climbing to an
+ * ever-larger overdue count. Without a ceiling, a muscle the user has simply
+ * stopped training — a dropped lift, a program change, an injury — sits at
+ * the top of "Ready to train" forever, eventually reading "312 days" and
+ * crowding out muscles actually worth nudging about. A rule of thumb, not
+ * physiology, same spirit as `REST_READY_DAYS`/`REST_OVERDUE_DAYS`.
+ */
+export const RECOVERY_STALE_DAYS = 20
+
+/**
  * Rest state per muscle, most-rested first, so the home screen can nudge
- * toward what's been neglected. Mirrors `muscleDistribution`'s primary-only
- * attribution rule (see its comment in stats.ts) so the two screens agree on
- * which muscle a given set belongs to.
+ * toward what's been neglected.
+ *
+ * Unlike `muscleDistribution`'s primary-only attribution (see its comment in
+ * stats.ts), this counts secondary muscles too: a set genuinely does stress
+ * its secondary muscles, and "was this muscle touched at all" doesn't invent
+ * false precision the way splitting volume fractionally across muscles would.
+ * Skipping secondaries here is what made forearms read as neglected despite
+ * being gripped through every curl, row and pull-up.
  */
 export function muscleRecovery(
   workouts: Workout[],
@@ -183,7 +199,7 @@ export function muscleRecovery(
     for (const le of w.exercises) {
       const exercise = exerciseById.get(le.exerciseId)
       if (!exercise) continue
-      const muscle = exercise.muscleGroup
+      const muscles = new Set<MuscleGroup>([exercise.muscleGroup, ...(exercise.secondaryMuscles ?? [])])
       let setsInExercise = 0
       for (const s of le.sets) {
         if (!countsTowardVolume(s, countWarmups)) continue
@@ -191,12 +207,14 @@ export function muscleRecovery(
       }
       if (setsInExercise === 0) continue
 
-      const prevLast = lastTrained.get(muscle)
-      if (prevLast === undefined || w.startedAt > prevLast) {
-        lastTrained.set(muscle, w.startedAt)
-      }
-      if (w.startedAt >= weekAgo) {
-        recentSets.set(muscle, (recentSets.get(muscle) ?? 0) + setsInExercise)
+      for (const muscle of muscles) {
+        const prevLast = lastTrained.get(muscle)
+        if (prevLast === undefined || w.startedAt > prevLast) {
+          lastTrained.set(muscle, w.startedAt)
+        }
+        if (w.startedAt >= weekAgo) {
+          recentSets.set(muscle, (recentSets.get(muscle) ?? 0) + setsInExercise)
+        }
       }
     }
   }
@@ -204,6 +222,7 @@ export function muscleRecovery(
   const result: MuscleRecovery[] = []
   for (const [muscle, lastAt] of lastTrained) {
     const daysSince = Math.floor((now - lastAt) / DAY_MS)
+    if (daysSince > RECOVERY_STALE_DAYS) continue
     result.push({ muscle, daysSince, sets: recentSets.get(muscle) ?? 0 })
   }
   return result.sort((a, b) => b.daysSince - a.daysSince)

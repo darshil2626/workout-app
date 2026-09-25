@@ -41,6 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // this app shipped with until now — an install on a light-mode device will
   // see that the moment this build lands, before ever opening Settings.
   theme: 'system',
+  analyticsEnabled: true,
 }
 
 class IronLogDB extends Dexie {

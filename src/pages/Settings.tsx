@@ -31,6 +31,7 @@ import {
   type ExerciseFix,
 } from '../lib/exerciseRepair'
 import type { ParsedImport } from '../lib/importers/shared'
+import { track } from '../lib/analytics'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const STEP_PRESETS_KG = [0.5, 1, 1.25, 2.5, 5]
@@ -244,6 +245,7 @@ export function SettingsPage() {
         `Restored ${summary.workouts} workouts, ${summary.routines} routines, ${summary.exercises} exercises and ${summary.measurements} measurements.`,
       )
       setError(null)
+      track('backup_imported')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Import failed.')
     } finally {
@@ -264,6 +266,7 @@ export function SettingsPage() {
         `Added ${summary.workouts} workouts and ${summary.exercises} new exercises from ${sourceLabel}.${skipText}${warnText}`,
       )
       setError(null)
+      track('csv_import_used', { source: parsed.source })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Import failed.')
     } finally {
@@ -288,6 +291,7 @@ export function SettingsPage() {
     try {
       setMessage(describeRepair(await repairHistory()))
       setError(null)
+      track('history_cleanup_run')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not clean up your history.')
     }
@@ -318,6 +322,7 @@ export function SettingsPage() {
       if (r.reclassified > 0) parts.push(`gave ${r.reclassified} exercise(s) a muscle group`)
       setMessage(parts.length > 0 ? `Exercises matched: ${parts.join(', ')}.` : 'Nothing needed matching.')
       setError(null)
+      track('exercise_match_run')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not match your exercises.')
     }
@@ -386,7 +391,10 @@ export function SettingsPage() {
                 <button
                   key={t}
                   className={settings.theme === t ? 'active' : ''}
-                  onClick={() => void updateSettings({ theme: t })}
+                  onClick={() => {
+                    void updateSettings({ theme: t })
+                    track('theme_changed', { theme: t })
+                  }}
                 >
                   {t === 'system' ? 'System' : t === 'light' ? 'Light' : 'Dark'}
                 </button>
@@ -676,11 +684,17 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="faint" style={{ marginBottom: 12 }}>
-            Everything lives on this device only. Export regularly — clearing your browser data or
-            deleting the app will erase it.
+            Your workouts, routines and exercises live on this device only. Export regularly —
+            clearing your browser data or deleting the app will erase them.
           </p>
           <div className="list">
-            <button className="btn btn-ghost btn-block" onClick={() => void downloadBackup()}>
+            <button
+              className="btn btn-ghost btn-block"
+              onClick={() => {
+                void downloadBackup()
+                track('backup_exported')
+              }}
+            >
               Export backup (.json)
             </button>
             <button className="btn btn-ghost btn-block" onClick={() => fileRef.current?.click()}>
@@ -710,6 +724,26 @@ export function SettingsPage() {
             duplicates and empty sets left behind by older imports; Match imported exercises folds
             differently-named imports into the built-in library.
           </p>
+        </div>
+
+        <div className="section-title">Privacy</div>
+        <div className="card">
+          <div className="row-between">
+            <div className="stack grow">
+              <span>Share anonymous usage data</span>
+              <span className="faint">
+                Which screens and features get used, and whether the app gets reopened — never your
+                workouts, routines, weights or measurements. Helps me improve IronLog while it's early.
+              </span>
+            </div>
+            <button
+              className={`switch${settings.analyticsEnabled ? ' on' : ''}`}
+              role="switch"
+              aria-checked={settings.analyticsEnabled}
+              aria-label="Share anonymous usage data"
+              onClick={() => void updateSettings({ analyticsEnabled: !settings.analyticsEnabled })}
+            />
+          </div>
         </div>
 
         <div className="section-title">About</div>

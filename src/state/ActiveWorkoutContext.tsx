@@ -11,6 +11,7 @@ import {
 import { db, newId } from '../db/db'
 import type { LoggedExercise, LoggedSet, Routine, Workout } from '../db/types'
 import { computeTotals, emptySet, isSetLogged, setFromTarget } from '../lib/workout'
+import { bucketDurationMinutes, bucketSetCount, track } from '../lib/analytics'
 
 /** How the session felt overall; both halves are optional, and skipping is fine. */
 export interface SessionRating {
@@ -133,6 +134,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
     await db.workouts.put(w)
     dirtyRef.current = false
     setWorkout(w)
+    track('workout_started', { from_routine: false })
     return w.id
   }, [])
 
@@ -162,6 +164,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
     await db.workouts.put(w)
     dirtyRef.current = false
     setWorkout(w)
+    track('workout_started', { from_routine: true })
     return w.id
   }, [])
 
@@ -333,6 +336,12 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
     }
     dirtyRef.current = false
     setWorkout(null)
+    const durationMin = (finished.finishedAt! - finished.startedAt - finished.pausedSec * 1000) / 60000
+    track('workout_completed', {
+      from_routine: finished.routineId !== undefined,
+      duration_bucket: bucketDurationMinutes(Math.max(0, durationMin)),
+      set_count_bucket: bucketSetCount(totals.totalSets),
+    })
     return finished.id
   }, [workout])
 

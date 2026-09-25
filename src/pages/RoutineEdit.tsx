@@ -11,6 +11,7 @@ import { useFormatters } from '../lib/useSettings'
 import { fieldsFor, SET_TYPE_LABEL, setBadges } from '../lib/workout'
 import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
+import { track } from '../lib/analytics'
 import {
   IconArrowDown,
   IconArrowUp,
@@ -81,6 +82,7 @@ export function RoutineEditPage() {
       lastPerformedAt: existing?.lastPerformedAt ?? null,
     }
     await db.routines.put(record)
+    if (isNew) track('routine_created', { exercise_count: items.length })
     navigate('/', { replace: true })
   }
 

@@ -33,6 +33,7 @@ jobs:
       - run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
 
       - uses: actions/configure-pages@v5
 

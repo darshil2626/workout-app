@@ -245,4 +245,10 @@ export interface Settings {
   weeklyGoalWorkouts: number
   /** 'system' follows the OS's light/dark preference and stays live if it changes. */
   theme: Theme
+  /**
+   * Anonymous usage analytics (PostHog). On by default while the app is
+   * pre-launch and traction/retention numbers matter; never sends workout
+   * content, only which features get used.
+   */
+  analyticsEnabled: boolean
 }

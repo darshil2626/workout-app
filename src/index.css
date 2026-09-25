@@ -57,9 +57,51 @@
   --heat-3: #f16e20;
   --heat-4: #ffa855;
 
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-lg: 18px;
+  /* Radius by role (Stripe-style): controls stay tight so a button or chip
+     reads as a precise target, cards get enough curve to feel like a
+     surface, sheets get the most so a full-bleed panel doesn't feel like a
+     hard box. --radius / --radius-sm / --radius-lg are kept as aliases so
+     every existing call site keeps its old name under the new, clearer
+     meaning; only the handful of call sites that had the wrong role
+     (.btn, .search-wrap) were moved to the token that actually matches them. */
+  --radius-control: 4px;
+  --radius-card: 8px;
+  --radius-sheet: 16px;
+  --radius: var(--radius-card);
+  --radius-sm: var(--radius-control);
+  --radius-lg: var(--radius-sheet);
+
+  /* Type scale. The 35 hand-tuned font-size values the audit found are
+     collapsed into these fixed steps; every rule below references one of
+     them instead of a bespoke rem value. Small steps stay tight (chart
+     ticks, badges, nav labels); the top of the scale is used once each, for
+     the figures the app is actually about. */
+  --text-3xs: 0.5rem; /* 8px  — calendar weekday initials */
+  --text-2xs: 0.6875rem; /* 11px — chart ticks/end-labels, badges, nav labels */
+  --text-xs: 0.75rem; /* 12px — section titles, small labels */
+  --text-sm: 0.8125rem; /* 13px — secondary body text, chips */
+  --text-base: 0.875rem; /* 14px — default small body text */
+  --text-md: 0.9375rem; /* 15px — buttons, header actions */
+  --text-lg: 1rem; /* 16px — form inputs, sub-headings */
+  --text-xl: 1.125rem; /* 18px — grip glyph, flexed tile figures */
+  --text-2xl: 1.25rem; /* 20px — h2, header title, emoji chips */
+  --text-3xl: 1.5rem; /* 24px — h1, ring value, headline figure */
+  --text-4xl: 1.875rem; /* 30px — plate calculator target */
+  --text-5xl: 2.25rem; /* 36px — empty-state icon */
+  --text-6xl: 3rem; /* 48px — the hero figure */
+
+  /* 8pt spacing scale, 4px half-steps where the grid needs finer control.
+     Margins, paddings and gaps across the file snap to the nearest step.
+     Sub-4px values (1–3px) are hairline/optical nudges, not rhythm, and stay
+     literal on purpose. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
 
   /* Height of the sticky app header, which sub-bars stick beneath: History's
      month labels and the exercise filter row. Two values because a header
@@ -189,15 +231,15 @@ h4 {
 }
 
 h1 {
-  font-size: 1.6rem;
+  font-size: var(--text-3xl);
   line-height: 1.2;
 }
 h2 {
-  font-size: 1.2rem;
+  font-size: var(--text-2xl);
   line-height: 1.25;
 }
 h3 {
-  font-size: 1.02rem;
+  font-size: var(--text-lg);
   letter-spacing: -0.012em;
 }
 
@@ -233,7 +275,7 @@ select {
 input,
 textarea,
 select {
-  font-size: max(16px, 1rem);
+  font-size: max(16px, var(--text-lg));
 }
 
 /* ── Layout shell ───────────────────────────────────────────────────────── */
@@ -247,13 +289,13 @@ select {
 .app-main {
   flex: 1;
   /* Room for the bottom nav plus whatever banners float above it. */
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3));
 }
 
 .page {
   max-width: 640px;
   margin: 0 auto;
-  padding: 12px 16px 24px;
+  padding: var(--space-3) var(--space-4) var(--space-5);
   width: 100%;
 }
 
@@ -276,17 +318,17 @@ select {
 .header-row {
   max-width: 640px;
   margin: 0 auto;
-  padding: 10px 16px;
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 52px;
 }
 
 .header-title {
   flex: 1;
   min-width: 0;
-  font-size: 1.2rem;
+  font-size: var(--text-2xl);
   font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -296,8 +338,8 @@ select {
 .header-action {
   color: var(--accent);
   font-weight: 600;
-  font-size: 0.95rem;
-  padding: 6px 4px;
+  font-size: var(--text-md);
+  padding: var(--space-2) var(--space-1);
   white-space: nowrap;
 }
 
@@ -348,7 +390,7 @@ select {
   gap: 3px;
   height: var(--nav-h);
   color: var(--text-faint);
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.02em;
   transition: color var(--dur) var(--ease), opacity var(--dur-press) var(--ease);
@@ -383,12 +425,12 @@ select {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: var(--space-4);
   box-shadow: var(--shadow-card);
 }
 
 .card + .card {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 /* A button shrink-wraps its content, so a card that happens to be one would be
@@ -413,26 +455,26 @@ button.card {
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .row-between {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -448,47 +490,47 @@ button.card {
 }
 
 .section-title {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
-  margin: 22px 0 8px;
+  margin: var(--space-5) 0 var(--space-2);
 }
 
 .section-title:first-child {
-  margin-top: 6px;
+  margin-top: var(--space-2);
 }
 
 .muted {
   color: var(--text-dim);
-  font-size: 0.875rem;
+  font-size: var(--text-base);
 }
 
 .faint {
   color: var(--text-faint);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 .mono {
   font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .empty {
   text-align: center;
-  padding: 44px 20px;
+  padding: var(--space-8) var(--space-5);
   color: var(--text-dim);
 }
 
 .empty-icon {
-  font-size: 2.4rem;
-  margin-bottom: 10px;
+  font-size: var(--text-5xl);
+  margin-bottom: var(--space-3);
   opacity: 0.7;
 }
 
 .empty h3 {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
   color: var(--text);
 }
 
@@ -503,21 +545,21 @@ button.card {
   top: calc(var(--safe-top) + var(--header-h));
   z-index: 15;
   margin: 0;
-  padding: 18px 0 8px;
+  padding: var(--space-4) 0 var(--space-2);
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(10px);
 }
 
 .month-title:first-child {
-  padding-top: 4px;
+  padding-top: var(--space-1);
 }
 
 /* The history page's totals describe the list below rather than joining it,
    so they drop the card chrome and read as a plain header row instead of a
    fourth entry competing with actual sessions for attention. */
 .list-summary {
-  margin-bottom: 6px;
-  padding-bottom: 10px;
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
 
@@ -525,7 +567,7 @@ button.card {
   background: transparent;
   border: none;
   box-shadow: none;
-  padding: 4px 4px 8px;
+  padding: var(--space-1) var(--space-1) var(--space-2);
 }
 
 .list-summary .stat + .stat {
@@ -537,7 +579,7 @@ button.card {
    quietest line on the card. */
 .card-exercises {
   color: var(--text);
-  font-size: 0.86rem;
+  font-size: var(--text-base);
   line-height: 1.4;
 }
 
@@ -547,14 +589,14 @@ button.card {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 46px;
-  padding: 0 18px;
-  border-radius: var(--radius);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
   background: var(--raised);
   color: var(--text);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   border: 1px solid var(--border-strong);
   transition: transform var(--dur-press) var(--ease), background-color var(--dur) var(--ease),
     border-color var(--dur) var(--ease), color var(--dur) var(--ease);
@@ -607,14 +649,14 @@ button.card {
 
 .btn-sm {
   min-height: 36px;
-  padding: 0 12px;
-  font-size: 0.85rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-base);
   border-radius: var(--radius-sm);
 }
 
 .btn-lg {
   min-height: 54px;
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
 }
 
 /* ── Focus ──────────────────────────────────────────────────────────────── */
@@ -661,11 +703,11 @@ button.card {
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .field-label {
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 650;
   color: var(--text-dim);
   letter-spacing: 0.02em;
@@ -676,7 +718,7 @@ button.card {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 11px 12px;
+  padding: var(--space-3) var(--space-3);
   color: var(--text);
 }
 
@@ -700,9 +742,9 @@ textarea.input {
   align-items: center;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0 12px;
-  gap: 8px;
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-3);
+  gap: var(--space-2);
 }
 
 .search-wrap svg {
@@ -714,15 +756,15 @@ textarea.input {
 
 .search-wrap input {
   flex: 1;
-  padding: 12px 0;
+  padding: var(--space-3) 0;
   min-width: 0;
 }
 
 .chips {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   overflow-x: auto;
-  padding: 2px 0 4px;
+  padding: 2px 0 var(--space-1);
   scrollbar-width: none;
 }
 
@@ -732,12 +774,12 @@ textarea.input {
 
 .chip {
   flex-shrink: 0;
-  padding: 7px 13px;
+  padding: var(--space-2) var(--space-3);
   border-radius: 999px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
   transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease),
@@ -759,13 +801,13 @@ textarea.input {
 .chips-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .muscle-target-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .switch {
@@ -815,9 +857,9 @@ textarea.input {
 
 .segmented button {
   flex: 1;
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  font-size: var(--text-base);
   font-weight: 650;
   color: var(--text-dim);
   transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
@@ -838,8 +880,8 @@ textarea.input {
 .segmented.segmented-sm button {
   flex: 0 0 auto;
   min-width: 34px;
-  padding: 4px 9px;
-  font-size: 0.78rem;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
 }
 
 /* ── Stats ──────────────────────────────────────────────────────────────── */
@@ -847,14 +889,14 @@ textarea.input {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .stat {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 10px;
+  padding: var(--space-3) var(--space-3);
   text-align: center;
   box-shadow: var(--shadow-card);
 }
@@ -863,7 +905,7 @@ textarea.input {
    Live-updating counters add `.mono` where anti-jitter matters more.
    The size flexes down rather than letting a long total spill out of the tile. */
 .stat-value {
-  font-size: clamp(0.95rem, 4.2vw, 1.12rem);
+  font-size: clamp(var(--text-md), 4.2vw, var(--text-xl));
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -901,13 +943,13 @@ textarea.input {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-top: 14px;
+  margin-top: var(--space-4);
   overflow: hidden;
   box-shadow: var(--shadow-card);
 }
 
 .headline {
-  padding: 13px 8px;
+  padding: var(--space-3) var(--space-2);
   text-align: center;
   min-width: 0;
 }
@@ -919,9 +961,9 @@ textarea.input {
 /* Tabular here even though .stat-value above is not: these three figures update
    live during a workout, and a proportional 1 makes the whole row twitch. */
 .headline-value {
-  font-size: clamp(1.2rem, 5.6vw, 1.58rem);
+  font-size: clamp(var(--text-xl), 5.6vw, var(--text-3xl));
   font-weight: 760;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.028em;
   line-height: 1.15;
   white-space: nowrap;
@@ -942,28 +984,28 @@ textarea.input {
 .hero {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 4px 2px 0;
+  gap: var(--space-3);
+  padding: var(--space-1) 2px 0;
 }
 
 /* The single biggest number on any screen. Heavier and tighter than the type
    scale below it so it anchors the page rather than merely being large, and
    tabular so a ticking counter does not shift its own label. */
 .hero-value {
-  font-size: 3.05rem;
+  font-size: var(--text-6xl);
   font-weight: 780;
   line-height: 1;
   letter-spacing: -0.038em;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .hero-label {
   color: var(--text-dim);
-  font-size: 0.95rem;
+  font-size: var(--text-md);
 }
 
 .stat-label {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -981,7 +1023,7 @@ textarea.input {
 }
 
 .ex-block + .ex-block {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 /* Lifted clear of its neighbours while it follows the finger. */
@@ -995,10 +1037,10 @@ textarea.input {
 .ex-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px 9px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-2);
   border-bottom: 1px solid var(--border);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 /* Negative margins claim a comfortable drag target without widening the row. */
@@ -1007,12 +1049,13 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: -8px -4px -8px -6px;
-  padding: 8px 4px;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-1)) calc(-1 * var(--space-2))
+    calc(-1 * var(--space-2));
+  padding: var(--space-2) var(--space-1);
   border: 0;
   background: none;
   color: var(--text-faint);
-  font-size: 1.1rem;
+  font-size: var(--text-xl);
   cursor: grab;
 }
 
@@ -1026,23 +1069,23 @@ textarea.input {
   min-width: 0;
   font-weight: 700;
   color: var(--accent);
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   letter-spacing: -0.01em;
 }
 
 .ex-sub {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--text-faint);
   font-weight: 600;
   margin-top: 1px;
 }
 
 .superset-badge {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   font-weight: 800;
   letter-spacing: 0.05em;
-  padding: 3px 7px;
-  border-radius: 5px;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--warn) 20%, transparent);
   color: var(--warn);
 }
@@ -1053,22 +1096,22 @@ textarea.input {
 }
 
 .set-table th {
-  font-size: 0.66rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-faint);
-  padding: 4px 4px 6px;
+  padding: var(--space-1) var(--space-1) var(--space-2);
   text-align: center;
 }
 
 /* Every cell here is a figure and the columns are narrow, so a proportional 1
    visibly shifts the number in the row below it. */
 .set-table td {
-  padding: 5px 4px;
+  padding: var(--space-1) var(--space-1);
   text-align: center;
   vertical-align: middle;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .set-table tbody tr:not(:last-child) td {
@@ -1103,12 +1146,12 @@ textarea.input {
   width: 30px;
   height: 30px;
   margin: 0 auto;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   display: grid;
   place-items: center;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--text-dim);
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -1150,10 +1193,10 @@ button.set-badge::before {
 
 .rpe-tag {
   display: block;
-  font-size: 0.6rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   color: var(--text-faint);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   line-height: 1;
   margin-top: 1px;
 }
@@ -1167,54 +1210,55 @@ button.set-badge::before {
 }
 
 .plate-target-value {
-  font-size: 1.8rem;
+  font-size: var(--text-4xl);
   font-weight: 700;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .plate-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .plate-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .plate-chip {
   min-width: 46px;
   height: 34px;
-  padding: 0 8px;
-  border-radius: 6px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--accent);
   font-weight: 700;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .plate-warning {
-  margin-top: 14px;
-  padding: 10px 12px;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-3);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warn) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
   color: var(--text-dim);
-  font-size: 0.84rem;
+  font-size: var(--text-sm);
 }
 
 .rpe-row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   overflow-x: auto;
-  padding: 4px 0 8px;
+  padding: var(--space-1) 0 var(--space-2);
   scrollbar-width: none;
 }
 
@@ -1223,11 +1267,11 @@ button.set-badge::before {
 }
 
 .prev-cell {
-  font-size: 0.74rem;
+  font-size: var(--text-xs);
   color: var(--text-faint);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   line-height: 1.2;
-  padding: 4px 3px;
+  padding: var(--space-1) 3px;
 }
 
 /* Same fix as .set-badge: a dashed underline read as decoration, not a
@@ -1238,7 +1282,7 @@ button.set-badge::before {
 .prev-cell.prev-copy {
   display: block;
   width: 100%;
-  padding: 4px 3px;
+  padding: var(--space-1) 3px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -1262,14 +1306,14 @@ button.set-badge::before {
    keyframe, so it is disabled rather than duplicated here. */
 .finish-celebrate {
   text-align: center;
-  padding: 9px 12px;
-  margin-bottom: 10px;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--gold) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--gold) 38%, transparent);
   color: var(--gold);
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: var(--text-base);
   animation: finish-celebrate-in 380ms var(--ease) both;
 }
 
@@ -1285,10 +1329,10 @@ button.set-badge::before {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px 14px;
-  font-size: 1.05rem;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-lg);
   font-weight: 650;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .finish-prs {
@@ -1297,9 +1341,9 @@ button.set-badge::before {
 
 /* Emoji ignore currentColor, so the active state has to read from the pill. */
 .chip-emoji {
-  font-size: 1.25rem;
+  font-size: var(--text-2xl);
   line-height: 1;
-  padding: 6px 11px;
+  padding: var(--space-2) var(--space-3);
 }
 
 .set-input {
@@ -1309,9 +1353,9 @@ button.set-badge::before {
   background: var(--surface-2);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  padding: 9px 2px;
+  padding: var(--space-2) 2px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .set-input:focus {
@@ -1333,7 +1377,7 @@ tr.done .set-input {
 .set-duration-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -1348,7 +1392,7 @@ tr.done .set-input {
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 0.95rem;
+  font-size: var(--text-md);
 }
 
 /* Widened top/bottom only — the duration input sits flush against this
@@ -1368,14 +1412,14 @@ tr.done .set-input {
 .set-timer-live {
   width: 100%;
   min-width: 0;
-  padding: 9px 2px;
+  padding: var(--space-2) 2px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--accent);
   font-family: var(--mono);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* A finished countdown flips to the success colour: the hold is done, and the
@@ -1391,7 +1435,7 @@ tr.done .set-input {
   width: 34px;
   height: 34px;
   margin: 0 auto;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   display: grid;
   place-items: center;
   background: var(--raised);
@@ -1427,16 +1471,16 @@ tr.done .set-input {
 }
 
 .ex-foot {
-  padding: 6px 14px 12px;
+  padding: var(--space-2) var(--space-4) var(--space-3);
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* Square, so it reads as a secondary action next to "Add set" rather than
    competing with it for width. */
 .ex-foot-remove {
   flex: 0 0 auto;
-  padding-inline: 12px;
+  padding-inline: var(--space-3);
 }
 
 .ex-foot-remove:disabled {
@@ -1448,10 +1492,10 @@ tr.done .set-input {
   background: color-mix(in srgb, var(--warn) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--warn) 22%, transparent);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  margin: 0 14px 10px;
-  width: calc(100% - 28px);
-  font-size: 0.85rem;
+  padding: var(--space-2) var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
+  width: calc(100% - (var(--space-4) * 2));
+  font-size: var(--text-base);
   color: var(--text);
 }
 
@@ -1485,22 +1529,22 @@ tr.done .set-input {
 .rest-bar-body {
   max-width: 640px;
   margin: 0 auto;
-  padding: 8px 14px;
+  padding: var(--space-2) var(--space-4);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .rest-time {
   font-family: var(--mono);
-  font-size: 1.35rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   min-width: 74px;
 }
 
 .rest-label {
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1523,10 +1567,10 @@ tr.done .set-input {
 .active-banner-body {
   max-width: 640px;
   margin: 0 auto;
-  padding: 10px 16px;
+  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   font-weight: 650;
 }
 
@@ -1548,8 +1592,8 @@ tr.done .set-input {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--raised);
@@ -1696,35 +1740,35 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .sheet-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4);
   border-bottom: 1px solid var(--border);
 }
 
 .sheet-title {
   flex: 1;
   font-weight: 650;
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
 }
 
 .sheet-body {
   overflow-y: auto;
-  padding: 14px 16px;
+  padding: var(--space-4) var(--space-4);
   -webkit-overflow-scrolling: touch;
 }
 
 .sheet-foot {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border);
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .sheet-list-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 4px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-1);
   border-bottom: 1px solid var(--border);
   width: 100%;
   text-align: left;
@@ -1778,8 +1822,8 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   position: sticky;
   top: calc(var(--safe-top) + var(--header-h-action));
   z-index: 15;
-  margin: 0 -16px;
-  padding: 10px 16px 10px;
+  margin: 0 calc(-1 * var(--space-4));
+  padding: var(--space-3) var(--space-4) var(--space-3);
   background: color-mix(in srgb, var(--bg) 92%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
@@ -1789,7 +1833,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    landmark to jump between rather than another muted line among 200 rows. */
 .index-title {
   display: inline-flex;
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
@@ -1797,20 +1841,20 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  margin: 18px 0 8px;
+  padding: var(--space-1) var(--space-3);
+  margin: var(--space-4) 0 var(--space-2);
 }
 
 .index-title:first-child {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 /* Roomy enough to be a comfortable one-handed tap target across a long list. */
 .picker-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 6px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
   width: 100%;
   text-align: left;
   border-bottom: 1px solid var(--border);
@@ -1827,7 +1871,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* Dim rather than faint: muscle group and equipment are information worth
    reading at a glance, not filler under the name. */
 .picker-meta {
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   color: var(--text-dim);
 }
 
@@ -1855,12 +1899,12 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .avatar {
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--raised);
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   color: var(--text-dim);
   flex-shrink: 0;
 }
@@ -1870,14 +1914,14 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .divider {
   height: 1px;
   background: var(--border);
-  margin: 14px 0;
+  margin: var(--space-4) 0;
 }
 
 .badge {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
-  padding: 3px 7px;
-  border-radius: 5px;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-control);
   background: var(--raised);
   color: var(--text-dim);
   letter-spacing: 0.03em;
@@ -1895,14 +1939,14 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    `.muted` so the page it belongs to reads as worth a second look. */
 .workout-dateline {
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
 .fab-row {
   position: sticky;
   bottom: 12px;
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 /* ── Charts ─────────────────────────────────────────────────────────────── */
@@ -1911,12 +1955,12 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 12px 10px;
+  padding: var(--space-4) var(--space-3) var(--space-3);
   box-shadow: var(--shadow-card);
 }
 
 .chart-card + .chart-card {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 /* Stats wraps a couple of chart cards in a plain div so a headline tile has
@@ -1927,30 +1971,30 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .chart-anchor + .chart-card,
 .chart-card + .chart-anchor,
 .chart-anchor + .chart-anchor {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 .chart-head {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-3);
   padding: 0 2px;
 }
 
 .chart-title {
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   font-weight: 650;
 }
 
 .chart-toggle {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-dim);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 9px;
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-2);
   flex-shrink: 0;
   transition: background-color var(--dur-press) var(--ease);
 }
@@ -1966,8 +2010,8 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .chart-controls {
   display: flex;
-  gap: 8px;
-  margin: 10px 0 2px;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 2px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1980,24 +2024,24 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    and every one should be a single tap away. */
 .chart-ranges {
   display: flex;
-  gap: 6px;
-  margin: 8px 0 2px;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 2px;
 }
 
 .chart-ranges .chip {
   flex: 1 1 0;
   text-align: center;
-  padding-inline: 4px;
+  padding-inline: var(--space-1);
 }
 
 .chart-empty {
-  padding: 22px 4px;
+  padding: var(--space-5) var(--space-1);
   text-align: center;
 }
 
 .chart-plot {
   position: relative;
-  margin-top: 6px;
+  margin-top: var(--space-2);
 }
 
 .chart-svg {
@@ -2008,7 +2052,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .chart-svg:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
 }
 
 /* Hairline, solid, one step off the surface — never dashed. */
@@ -2065,16 +2109,17 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .chart-tick {
   fill: var(--text-faint);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-family: var(--font);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .chart-endlabel {
   fill: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 650;
   font-family: var(--font);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .chart-tooltip {
@@ -2083,7 +2128,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   background: var(--raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  padding: 5px 9px;
+  padding: var(--space-1) var(--space-2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2094,18 +2139,18 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .chart-tooltip-value {
   font-weight: 700;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .chart-tooltip-date {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   color: var(--text-faint);
 }
 
 .chart-table-wrap {
   overflow-x: auto;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   max-height: 260px;
   overflow-y: auto;
 }
@@ -2113,12 +2158,12 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .chart-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
 }
 
 .chart-table th,
 .chart-table td {
-  padding: 7px 8px;
+  padding: var(--space-2) var(--space-2);
   text-align: left;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
@@ -2126,7 +2171,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .chart-table th {
   color: var(--text-faint);
-  font-size: 0.68rem;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   position: sticky;
@@ -2136,7 +2181,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .chart-table .num {
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* ── Bar list (nominal categories) ──────────────────────────────────────── */
@@ -2146,38 +2191,38 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   flex-direction: column;
   /* 2px of surface separates neighbouring bars — no strokes. */
   gap: 2px;
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 .bar-row {
   display: grid;
   grid-template-columns: 84px 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   padding: 3px 2px;
 }
 
 .bar-label {
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   color: var(--text-dim);
 }
 
 .bar-track {
   height: 12px;
   background: var(--surface-2);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
-/* Square at the baseline, 4px rounded at the data end. */
+/* Square at the baseline, rounded at the data end. */
 .bar-fill {
   height: 100%;
   background: var(--chart-series);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }
 
 .bar-value {
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 650;
   min-width: 34px;
   text-align: right;
@@ -2199,7 +2244,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   display: grid;
   grid-template-columns: 84px 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   padding: 3px 2px;
   width: 100%;
   cursor: pointer;
@@ -2214,7 +2259,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* Ember, not the bar's own hue: this is the one part of the row that "acts". */
 .bar-chevron {
   color: var(--accent);
-  margin-left: 5px;
+  margin-left: var(--space-1);
   font-weight: 700;
 }
 
@@ -2223,13 +2268,13 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .set-records {
   max-height: 260px;
   overflow-y: auto;
-  padding-block: 4px;
+  padding-block: var(--space-1);
 }
 
 /* ── Calendar heatmap ───────────────────────────────────────────────────── */
 
 .heatmap-wrap {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 .heatmap-scroll {
@@ -2266,7 +2311,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .heatmap-day {
   width: 11px;
   height: 15px;
-  font-size: 8px;
+  font-size: var(--text-3xs);
   color: var(--text-faint);
   display: grid;
   place-items: center;
@@ -2278,7 +2323,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .heatmap-cell {
   width: 15px;
   height: 15px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   flex-shrink: 0;
   padding: 0;
   border: 1px solid rgb(255 255 255 / 4%);
@@ -2293,8 +2338,8 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 10px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
   min-height: 20px;
 }
 
@@ -2310,7 +2355,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
-  margin: 40px auto;
+  margin: var(--space-7) auto;
 }
 
 @keyframes spin {
@@ -2359,7 +2404,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* Blocks that follow a paragraph or a button rather than another card, where
    `.card + .card`'s 10px does not apply and the block would sit flush. */
 .home-block {
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 /* Each titled block is its own <section>, which makes its heading a
@@ -2367,7 +2412,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    the page its rhythm. Carry that gap on the section instead, so the heading
    keeps its air wherever the block happens to land. */
 .home-sect {
-  margin-top: 22px;
+  margin-top: var(--space-5);
 }
 
 .home-sect > .section-title:first-child {
@@ -2394,7 +2439,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    buttons, so the weekday leads and the fact after the separator is the part
    that ellipsises away first. `.header-title` already clips it. */
 .home-status {
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   font-weight: 650;
 }
 
@@ -2405,25 +2450,25 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 /* Attached to the button above it, not floating between blocks. */
 .home-start-sub {
-  margin-top: 7px;
+  margin-top: var(--space-2);
   text-align: center;
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: var(--text-base);
 }
 
 .home-secondary {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 /* A guess about the user's routine, so it whispers. Centred under the primary
    action to read as a caption on it rather than as a separate claim. */
 .home-habit {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   text-align: center;
   color: var(--text-faint);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
 }
 
 /* ── Weekly goal ring ───────────────────────────────────────────────────── */
@@ -2431,7 +2476,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .home-goal {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .goal-ring {
@@ -2466,15 +2511,16 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .goal-ring-value {
   fill: var(--text);
-  font-size: 1.5rem;
+  font-size: var(--text-3xl);
   font-weight: 760;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* "of 4 this week" is the ring's label, so it sits at label weight while the
    numeral inside the ring carries the emphasis. */
 .goal-of {
   font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* The supporting line has to carry the state, because the arc cannot: a ring
@@ -2495,7 +2541,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .home-streak {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 650;
   color: var(--gold);
   margin-top: 2px;
@@ -2510,8 +2556,8 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   display: grid;
   grid-template-columns: 1fr 64px auto;
   align-items: center;
-  gap: 12px;
-  padding: 9px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
 }
 
 .home-trend + .home-trend {
@@ -2519,8 +2565,9 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .home-trend-delta {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
   /* Dim, never --danger: a fall is a deload or a bad fortnight, not a failure.
      See the note in StrengthTrend.tsx. */
   color: var(--text-dim);
@@ -2551,13 +2598,13 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .home-trend-now {
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   font-weight: 700;
   white-space: nowrap;
 }
 
 .home-trend-unit {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text-faint);
 }
@@ -2565,11 +2612,11 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* One line saying what the numbers above it are. The block it replaced showed
    a chart nobody could name the units of, which is the whole reason it went. */
 .home-trend-foot {
-  margin-top: 10px;
-  padding-top: 9px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border);
   color: var(--text-faint);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 /* ── Recovery ───────────────────────────────────────────────────────────── */
@@ -2580,8 +2627,8 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 7px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
 }
 
 .home-rest-row + .home-rest-row {
@@ -2589,10 +2636,11 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .home-rest-days {
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-align: right;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* Faint → full → ember in four steps as a muscle's day count climbs toward
@@ -2618,8 +2666,8 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .home-win {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
 }
 
 .home-win + .home-win {
@@ -2627,7 +2675,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .home-win-medal {
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   line-height: 1;
   flex-shrink: 0;
 }
@@ -2638,12 +2686,12 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .home-win-value {
   flex-shrink: 0;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   font-weight: 700;
   color: var(--gold);
   white-space: nowrap;
@@ -2655,10 +2703,10 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-3);
   margin-top: 1px;
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
 }
 
 .home-win-when {
@@ -2669,18 +2717,18 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* The near-miss line. Separated from the wins above it only when there are
    wins — on its own it is the whole card and needs no rule. */
 .home-milestone {
-  padding-top: 10px;
+  padding-top: var(--space-3);
 }
 
 .home-milestone.bordered {
   border-top: 1px solid var(--border);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 /* Thinner than a chart bar: this is a hint at a distance, not a measurement. */
 .home-milestone-track {
   height: 6px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 /* Gold, because a milestone is something won rather than something to act on. */
@@ -2700,7 +2748,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* The section title keeps its own top margin here and loses its bottom one, so
    the actions beside it stay on the title's baseline. */
 .home-section-row {
-  margin: 22px 0 8px;
+  margin: var(--space-5) 0 var(--space-2);
 }
 
 .home-section-row .section-title {
@@ -2708,7 +2756,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .home-section-actions {
-  gap: 14px;
+  gap: var(--space-4);
   flex-shrink: 0;
 }
 

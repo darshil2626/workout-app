@@ -1063,6 +1063,31 @@ textarea.input {
   border-color: var(--accent);
 }
 
+/* Superset grouping: consecutive blocks sharing a group sit almost flush,
+   share a warm accent bar down the left edge and a faint tint, and join
+   corners at the seam between them — so A1/B1 (etc.) read as one bracketed
+   unit rather than two independent cards. Extra-specific selectors so these
+   reliably win over the plain .ex-block rules above regardless of source
+   order. */
+.ex-block.ex-block--superset {
+  border-left: 3px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 5%, var(--surface));
+}
+
+.ex-block.ex-block--superset + .ex-block.ex-block--superset {
+  margin-top: 2px;
+}
+
+.ex-block.ex-block--superset:not(.ex-block--superset-start) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.ex-block.ex-block--superset:not(.ex-block--superset-end) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .ex-head {
   display: flex;
   align-items: center;
@@ -1430,6 +1455,43 @@ button.set-badge::before {
 }
 
 tr.done .set-input {
+  background: transparent;
+}
+
+/* Compact +/- nudge flanking weight/reps/distance inputs — "same as last
+   time, +1" without opening the keyboard. Sized like .set-timer-btn rather
+   than a full 44px tap target: these are dense table-row controls, and a
+   small tap target here is fine, not a regression (they sit next to the
+   swipe-to-delete gesture region, and stop pointerdown propagation below so a
+   tap or hold on one is never misread as the start of a row swipe or a
+   long-press). */
+.set-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.set-step-btn {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.set-step-btn:active {
+  background: var(--raised);
+}
+
+tr.done .set-step-btn {
   background: transparent;
 }
 

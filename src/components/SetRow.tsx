@@ -146,6 +146,37 @@ export function SetRow({
   const durationPlaceholder = previous?.durationSec != null ? formatDuration(previous.durationSec) : '0:00'
   const distancePlaceholder = previous?.distanceM != null ? formatDistance(previous.distanceM, distanceUnit) : '0'
 
+  // Steps operate directly in storage units (kg / metres) rather than
+  // display units — weightStepKg is already a physical kg increment (see
+  // Settings' "Weight increment"), and going via the formatted placeholder
+  // text for the others would just round-trip losslessly for no benefit.
+  const weightStep = fmt.settings.weightStepKg
+  const repsStep = 1
+  const distanceStep = displayToMetres(0.1, distanceUnit)
+
+  /** Blank inputs step off last time's number, matching the placeholder shown. */
+  function stepWeight(delta: number) {
+    const base = set.weight ?? previous?.weight ?? 0
+    onChange({ weight: round3(Math.max(0, base + delta)) })
+  }
+
+  function stepReps(delta: number) {
+    const base = set.reps ?? previous?.reps ?? 0
+    onChange({ reps: Math.max(0, Math.round(base + delta)) })
+  }
+
+  function stepDistance(delta: number) {
+    const base = set.distanceM ?? previous?.distanceM ?? 0
+    onChange({ distanceM: round3(Math.max(0, base + delta)) })
+  }
+
+  // Stepper buttons sit inside a swipe/long-press-enabled row; stopping
+  // pointerdown here keeps a tap or a held press on one of them from ever
+  // being read as the start of a row swipe or triggering the long-press menu.
+  function stopForStepper(e: { stopPropagation: () => void }) {
+    e.stopPropagation()
+  }
+
   function commitWeight(text: string) {
     const n = parseNumber(text)
     onChange({ weight: n === null ? null : round3(displayToKg(n, weightUnit)) })
@@ -256,22 +287,62 @@ export function SetRow({
       </td>
       {f.distance && (
         <td>
-          <NumberField
-            display={formatDistance(set.distanceM, distanceUnit)}
-            placeholder={distancePlaceholder}
-            onCommit={commitDistance}
-            ariaLabel="Distance"
-          />
+          <div className="set-stepper">
+            <button
+              type="button"
+              className="set-step-btn"
+              onPointerDown={stopForStepper}
+              onClick={() => stepDistance(-distanceStep)}
+              aria-label={`Decrease distance by 0.1 ${distanceUnit}`}
+            >
+              −
+            </button>
+            <NumberField
+              display={formatDistance(set.distanceM, distanceUnit)}
+              placeholder={distancePlaceholder}
+              onCommit={commitDistance}
+              ariaLabel="Distance"
+            />
+            <button
+              type="button"
+              className="set-step-btn"
+              onPointerDown={stopForStepper}
+              onClick={() => stepDistance(distanceStep)}
+              aria-label={`Increase distance by 0.1 ${distanceUnit}`}
+            >
+              +
+            </button>
+          </div>
         </td>
       )}
       {f.weight && (
         <td>
-          <NumberField
-            display={formatWeight(set.weight, weightUnit)}
-            placeholder={weightPlaceholder}
-            onCommit={commitWeight}
-            ariaLabel="Weight"
-          />
+          <div className="set-stepper">
+            <button
+              type="button"
+              className="set-step-btn"
+              onPointerDown={stopForStepper}
+              onClick={() => stepWeight(-weightStep)}
+              aria-label={`Decrease weight by ${formatWeight(weightStep, weightUnit)} ${weightUnit}`}
+            >
+              −
+            </button>
+            <NumberField
+              display={formatWeight(set.weight, weightUnit)}
+              placeholder={weightPlaceholder}
+              onCommit={commitWeight}
+              ariaLabel="Weight"
+            />
+            <button
+              type="button"
+              className="set-step-btn"
+              onPointerDown={stopForStepper}
+              onClick={() => stepWeight(weightStep)}
+              aria-label={`Increase weight by ${formatWeight(weightStep, weightUnit)} ${weightUnit}`}
+            >
+              +
+            </button>
+          </div>
         </td>
       )}
       {f.duration && (
@@ -314,13 +385,33 @@ export function SetRow({
       )}
       {f.reps && (
         <td>
-          <NumberField
-            display={set.reps === null ? '' : String(set.reps)}
-            placeholder={repsPlaceholder}
-            onCommit={commitReps}
-            ariaLabel="Reps"
-            inputMode="numeric"
-          />
+          <div className="set-stepper">
+            <button
+              type="button"
+              className="set-step-btn"
+              onPointerDown={stopForStepper}
+              onClick={() => stepReps(-repsStep)}
+              aria-label="Decrease reps by 1"
+            >
+              −
+            </button>
+            <NumberField
+              display={set.reps === null ? '' : String(set.reps)}
+              placeholder={repsPlaceholder}
+              onCommit={commitReps}
+              ariaLabel="Reps"
+              inputMode="numeric"
+            />
+            <button
+              type="button"
+              className="set-step-btn"
+              onPointerDown={stopForStepper}
+              onClick={() => stepReps(repsStep)}
+              aria-label="Increase reps by 1"
+            >
+              +
+            </button>
+          </div>
         </td>
       )}
       <td className="col-check">

@@ -168,10 +168,15 @@ export function ActiveWorkoutPage() {
     const seconds = setTimer.stop()
     if (!activeId || seconds === null) return
 
-    const owner = workout?.exercises.find((le) => le.sets.some((s) => s.id === activeId))
+    const exercises = workout?.exercises ?? []
+    const owner = exercises.find((le) => le.sets.some((s) => s.id === activeId))
     if (!owner) return
     updateSet(owner.id, activeId, { durationSec: seconds, completed: true })
-    if (fmt.settings.restTimerEnabled && fmt.settings.autoStartRestTimer) {
+    if (
+      fmt.settings.restTimerEnabled &&
+      fmt.settings.autoStartRestTimer &&
+      startsRestOnCompletion(owner, exercises)
+    ) {
       restTimer.start(owner.restSeconds ?? fmt.settings.defaultRestSeconds)
     }
   }, [setTimer, workout?.exercises, updateSet, restTimer, fmt.settings])
@@ -266,12 +271,24 @@ export function ActiveWorkoutPage() {
   }
 
   const elapsed = elapsedSeconds(workout, now)
+  // Captured locally so the nested (hoisted) function declarations below can
+  // reference it — TS can't carry the `if (!workout) return` narrowing above
+  // into a function declaration's body, since it treats those as reachable
+  // from anywhere in this scope.
+  const workoutExercises = workout.exercises
 
   function handleToggleComplete(le: LoggedExercise, set: LoggedSet) {
     const nowComplete = !set.completed
     updateSet(le.id, set.id, { completed: nowComplete })
     // Rest starts on completion only; un-ticking a set should not start a timer.
-    if (nowComplete && fmt.settings.restTimerEnabled && fmt.settings.autoStartRestTimer) {
+    // Within a superset, rest is taken once per round — after the last
+    // exercise in the group — not after every exercise in it.
+    if (
+      nowComplete &&
+      fmt.settings.restTimerEnabled &&
+      fmt.settings.autoStartRestTimer &&
+      startsRestOnCompletion(le, workoutExercises)
+    ) {
       restTimer.start(le.restSeconds ?? fmt.settings.defaultRestSeconds)
     }
   }
@@ -377,7 +394,7 @@ export function ActiveWorkoutPage() {
         )}
 
         <div style={{ marginTop: 16 }}>
-          {workout.exercises.map((le) => {
+          {workout.exercises.map((le, exIndex) => {
             const exercise = byId.get(le.exerciseId)
             const kind = exercise?.kind ?? 'weight_reps'
             const f = fieldsFor(kind)
@@ -401,9 +418,26 @@ export function ActiveWorkoutPage() {
                 : new Map<string, PRKind[]>()
 
             const offset = sortable.offsetFor(le.id)
+            // Visually brackets consecutive blocks sharing a superset group so
+            // A1/B1 etc. read as one unit — see the CSS for the shared accent
+            // bar and joined corners at the seam between members.
+            const prevSameGroup =
+              le.supersetGroup !== null &&
+              exIndex > 0 &&
+              workout.exercises[exIndex - 1].supersetGroup === le.supersetGroup
+            const nextSameGroup =
+              le.supersetGroup !== null &&
+              exIndex < workout.exercises.length - 1 &&
+              workout.exercises[exIndex + 1].supersetGroup === le.supersetGroup
+            const supersetClass =
+              le.supersetGroup !== null
+                ? ` ex-block--superset${prevSameGroup ? '' : ' ex-block--superset-start'}${
+                    nextSameGroup ? '' : ' ex-block--superset-end'
+                  }`
+                : ''
             return (
               <section
-                className={`ex-block${sortable.draggingId === le.id ? ' dragging' : ''}`}
+                className={`ex-block${supersetClass}${sortable.draggingId === le.id ? ' dragging' : ''}`}
                 key={le.id}
                 ref={sortable.registerRef(le.id)}
                 style={
@@ -492,7 +526,12 @@ export function ActiveWorkoutPage() {
                 </table>
 
                 <div className="ex-foot">
-                  <button className="btn btn-ghost btn-sm grow" onClick={() => addSet(le.id)}>
+                  <button
+                    className="btn btn-ghost btn-sm grow"
+                    // Matched by index, the same way the Previous column is:
+                    // the set about to be appended will sit at le.sets.length.
+                    onClick={() => addSet(le.id, prev?.sets[le.sets.length])}
+                  >
                     <IconPlus />
                     Add set
                   </button>
@@ -820,6 +859,22 @@ export function ActiveWorkoutPage() {
       />
     </>
   )
+}
+
+/**
+ * A standalone exercise always starts rest on completion. One that's part of
+ * a superset only starts it when it's the LAST member of the group in the
+ * session's running order — Strong/Hevy-style supersets rest once per round,
+ * after the whole group, not after each exercise in it. Group members are
+ * built (and expected to stay) contiguous — see "Superset with exercise
+ * above" below — so the last one in array order is the last one in the round.
+ */
+function startsRestOnCompletion(le: LoggedExercise, exercises: LoggedExercise[]): boolean {
+  if (le.supersetGroup === null) return true
+  for (let i = exercises.length - 1; i >= 0; i--) {
+    if (exercises[i].supersetGroup === le.supersetGroup) return exercises[i].id === le.id
+  }
+  return true
 }
 
 /** RPE in half steps from "could do 4 more" up to a genuine limit set. */

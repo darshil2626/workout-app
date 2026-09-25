@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { db, newId } from '../db/db'
 import type { LoggedExercise, LoggedSet, Routine, Workout } from '../db/types'
-import { computeTotals, emptySet, isSetLogged, setFromTarget } from '../lib/workout'
+import { computeTotals, emptySet, hasLoggedValue, isSetLogged, setFromTarget } from '../lib/workout'
 import { bucketDurationMinutes, bucketSetCount, track } from '../lib/analytics'
 
 /** How the session felt overall; both halves are optional, and skipping is fine. */
@@ -32,7 +32,13 @@ interface ActiveWorkoutValue {
   moveExercise: (loggedExerciseId: string, direction: -1 | 1) => void
   /** Rewrites the whole running order; ids not listed keep their position. */
   reorderExercises: (orderedIds: string[]) => void
-  addSet: (loggedExerciseId: string) => void
+  /**
+   * `fallback` supplies weight/reps/duration/distance to seed the new set with
+   * when there's nothing to carry forward within this session yet (i.e. the
+   * exercise's existing sets are all still blank) — the same-index set from
+   * the last time this exercise was logged, per the caller.
+   */
+  addSet: (loggedExerciseId: string, fallback?: Partial<LoggedSet>) => void
   removeSet: (loggedExerciseId: string, setId: string) => void
   /** Re-inserts a previously removed set — the undo half of a swipe-delete. */
   insertSet: (loggedExerciseId: string, index: number, set: LoggedSet) => void
@@ -250,16 +256,22 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
   )
 
   const addSet = useCallback(
-    (loggedExerciseId: string) => {
+    (loggedExerciseId: string, fallback?: Partial<LoggedSet>) => {
       mutateExercise(loggedExerciseId, (le) => {
         // Carry the previous set's load forward: the common case is repeating it.
         const last = [...le.sets].reverse().find((s) => s.setType !== 'warmup') ?? le.sets.at(-1)
         const next = emptySet()
-        if (last) {
-          next.weight = last.weight
-          next.reps = last.reps
-          next.durationSec = last.durationSec
-          next.distanceM = last.distanceM
+        // Only a genuinely-filled-in set is worth carrying forward — an all-blank
+        // "last" set (a freshly added exercise's lone starter set) would just
+        // carry nulls forward, so fall back to last session's same-numbered set
+        // instead. Either way this only ever touches the brand-new blank set
+        // being appended here, never a set the user already typed into.
+        const source = last && hasLoggedValue(last) ? last : fallback
+        if (source) {
+          next.weight = source.weight ?? null
+          next.reps = source.reps ?? null
+          next.durationSec = source.durationSec ?? null
+          next.distanceM = source.distanceM ?? null
         }
         return { ...le, sets: [...le.sets, next] }
       })

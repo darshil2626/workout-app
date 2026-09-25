@@ -68,6 +68,24 @@ export function formatTimeOfDay(ts: number): string {
   return new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
+/**
+ * Elapsed time since a first event, as a "training age": "18d", "5mo",
+ * "2y 3mo". Coarsens as it grows, the same way `formatRelative` does, so a
+ * three-year history reads as "3y 1mo" rather than "1127d".
+ */
+export function formatAge(days: number): string {
+  const d = Math.max(0, Math.floor(days))
+  if (d < 30) return `${d}d`
+  if (d < 365) return `${Math.round(d / 30)}mo`
+  let years = Math.floor(d / 365)
+  let months = Math.round((d % 365) / 30)
+  if (months === 12) {
+    years += 1
+    months = 0
+  }
+  return months > 0 ? `${years}y ${months}mo` : `${years}y`
+}
+
 /** "3d ago", "2w ago", "5mo ago" — used for "last performed" hints. */
 export function formatRelative(ts: number, now = Date.now()): string {
   const diff = Math.max(0, now - ts)

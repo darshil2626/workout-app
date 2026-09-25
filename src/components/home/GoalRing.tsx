@@ -70,15 +70,6 @@ export function GoalRing({ progress, streaks }: Props) {
         <span className={`goal-note${state === 'atRisk' ? ' at-risk' : hit ? ' hit' : ''}`}>
           {supportingCopy(progress, streaks)}
         </span>
-        {streaks.currentWeeks > 0 && (
-          <span className="home-streak">
-            <span aria-hidden="true">🔥</span> {streaks.currentWeeks} week
-            {streaks.currentWeeks === 1 ? '' : 's'} ·{' '}
-            {streaks.longestWeeks > streaks.currentWeeks
-              ? `best ${streaks.longestWeeks}`
-              : 'your best yet'}
-          </span>
-        )}
       </div>
     </section>
   )

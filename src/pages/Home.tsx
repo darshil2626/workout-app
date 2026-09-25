@@ -9,7 +9,7 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
 import { IconList, IconPlay, IconPlus, IconSettings, IconTrash } from '../components/Icons'
 import { useFormatters } from '../lib/useSettings'
-import { computeStreaks, overallTotals } from '../lib/stats'
+import { computeStreaks, overallTotals, volumeByDay } from '../lib/stats'
 import {
   habitWindow,
   homeStatus,
@@ -20,6 +20,7 @@ import {
   weekProgress,
   type StrengthLift,
 } from '../lib/home'
+import { ConsistencyCalendar } from '../components/home/ConsistencyCalendar'
 import { FirstRun } from '../components/home/FirstRun'
 import { GoalRing } from '../components/home/GoalRing'
 import { PrimaryAction } from '../components/home/PrimaryAction'
@@ -41,6 +42,15 @@ const MAX_WINS = 4
 
 /** Fewer than two muscles is not a balance picture, just a single stray bar. */
 const MIN_RECOVERY_ROWS = 2
+
+/**
+ * Width of the home screen's consistency calendar, in days. Shorter than
+ * Stats' 17-week activity heatmap on purpose: this is a glance-and-go widget,
+ * not the place to review months of history — that's what the Stats page is
+ * for. Ten weeks is enough to see the current run and a couple of rest days
+ * around it without needing to scroll.
+ */
+const HOME_CALENDAR_DAYS = 70
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -90,6 +100,10 @@ export function HomePage() {
   const streaks = useMemo(
     () => computeStreaks(workoutList, firstDayOfWeek),
     [workoutList, firstDayOfWeek],
+  )
+  const calendarDays = useMemo(
+    () => volumeByDay(workoutList, HOME_CALENDAR_DAYS),
+    [workoutList],
   )
   const recovery = useMemo(
     () => muscleRecovery(workoutList, exerciseById, countWarmupSets),
@@ -239,6 +253,10 @@ export function HomePage() {
   // a handful of sessions is not yet a strength trend, and one lonely muscle
   // row is noise rather than a balance picture.
   const showGoal = hasHistory && goal.goal > 0
+  // Independent of the weekly-goal card: a streak means something even for
+  // someone who hasn't set a target, and the old text version showed the
+  // streak inside `GoalRing` only, which hid it entirely with no goal set.
+  const showConsistency = hasHistory
   // `strengthTrend` already refuses anything it cannot say something about —
   // too few sessions, or no exercise whose load is measurable — so an empty
   // result is the signal to stay away rather than draw a flat card.
@@ -296,6 +314,14 @@ export function HomePage() {
             />
 
             {showGoal && <GoalRing progress={goal} streaks={streaks} />}
+            {showConsistency && (
+              <ConsistencyCalendar
+                days={calendarDays}
+                streaks={streaks}
+                firstDayOfWeek={firstDayOfWeek}
+                fmt={fmt}
+              />
+            )}
             {showTrend && <StrengthTrend lifts={lifts ?? []} fmt={fmt} />}
             {showRecovery && <RecoveryCard items={recovery} />}
             {showWins && <RecentWins wins={wins ?? []} milestone={milestone} fmt={fmt} />}

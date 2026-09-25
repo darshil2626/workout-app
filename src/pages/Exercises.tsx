@@ -3,15 +3,19 @@ import { useSearchParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
-import type { Exercise } from '../db/types'
+import type { Exercise, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
+import { Sparkline } from '../components/home/Sparkline'
 import { IconPlus, IconSearch } from '../components/Icons'
+import { exerciseSparklines } from '../lib/stats'
+import { useFormatters } from '../lib/useSettings'
 
 const ALL = 'All'
 
 export function ExercisesPage() {
   const navigate = useNavigate()
+  const fmt = useFormatters()
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [muscle, setMuscle] = useState(ALL)
@@ -22,6 +26,26 @@ export function ExercisesPage() {
   // doesn't apply `?muscle=` against a muscle list that hasn't loaded.
   const exercisesRaw = useLiveQuery(() => db.exercises.toArray())
   const exercises = exercisesRaw ?? []
+
+  // One bulk load, not one query per row: `exerciseSparklines` groups these
+  // in memory, so a ~150-row library costs a single Dexie read here rather
+  // than a `getExerciseHistory` call per exercise.
+  const workouts = useLiveQuery(
+    () => db.workouts.where('status').equals('done').toArray(),
+    [],
+    [] as Workout[],
+  )
+  const exerciseById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
+  const sparklines = useMemo(
+    () =>
+      exerciseSparklines(
+        workouts,
+        exerciseById,
+        fmt.settings.bodyweightKg,
+        fmt.settings.countWarmupSets,
+      ),
+    [workouts, exerciseById, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
+  )
 
   const muscles = useMemo(() => {
     const set = new Set(exercises.filter((e) => !e.archived).map((e) => e.muscleGroup))
@@ -116,21 +140,32 @@ export function ExercisesPage() {
                   reads as a landmark and not just another muted line. */}
               <div className="index-title">{letter}</div>
               <div className="card" style={{ padding: '4px 14px' }}>
-                {list.map((e) => (
-                  <button
-                    key={e.id}
-                    className="picker-item"
-                    onClick={() => navigate(`/exercises/${e.id}`)}
-                  >
-                    <div className="stack grow">
-                      <span className="picker-name truncate">{e.name}</span>
-                      <span className="picker-meta">
-                        {e.muscleGroup} · {e.equipment}
-                      </span>
-                    </div>
-                    {e.isCustom && <span className="badge">Custom</span>}
-                  </button>
-                ))}
+                {list.map((e) => {
+                  const series = sparklines.get(e.id)
+                  return (
+                    <button
+                      key={e.id}
+                      className="picker-item"
+                      onClick={() => navigate(`/exercises/${e.id}`)}
+                    >
+                      <div className="stack grow">
+                        <span className="picker-name truncate">{e.name}</span>
+                        <span className="picker-meta">
+                          {e.muscleGroup} · {e.equipment}
+                        </span>
+                      </div>
+                      {/* Skipped entirely for an exercise with no history, or too
+                          little of it to describe a trend — an empty chart shape
+                          would be noise, not signal. */}
+                      {series && (
+                        <span className="picker-spark" aria-hidden="true">
+                          <Sparkline values={series} />
+                        </span>
+                      )}
+                      {e.isCustom && <span className="badge">Custom</span>}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           ))

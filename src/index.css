@@ -2133,6 +2133,19 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   color: var(--text-dim);
 }
 
+/* Fixed width so a name column of varying length never pushes the line
+   around — same fixed-column trick as `.home-trend`. */
+.picker-spark {
+  display: block;
+  width: 44px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.picker-spark .home-spark {
+  height: 100%;
+}
+
 .picker-check {
   width: 24px;
   height: 24px;
@@ -2328,6 +2341,20 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .chart-empty {
   padding: var(--space-5) var(--space-1);
   text-align: center;
+}
+
+/* A dimmed, non-interactive preview of the chart's filled shape, shown above
+   the empty-state sentence instead of leaving a blank area. Faded rather than
+   hidden, so a brand-new user can tell what kind of thing will appear here. */
+.chart-empty-preview {
+  opacity: 0.38;
+  filter: saturate(0.6);
+  pointer-events: none;
+  margin-bottom: var(--space-3);
+}
+
+.chart-empty .btn {
+  margin-top: var(--space-3);
 }
 
 .chart-plot {
@@ -2829,13 +2856,6 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .goal-note.hit {
   color: var(--gold);
-}
-
-.home-streak {
-  font-size: var(--text-sm);
-  font-weight: 650;
-  color: var(--gold);
-  margin-top: 2px;
 }
 
 /* ── Strength trend ─────────────────────────────────────────────────────── */

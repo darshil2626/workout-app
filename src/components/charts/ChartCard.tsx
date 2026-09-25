@@ -27,6 +27,20 @@ interface Props {
   /** The WCAG-clean twin of the chart; every plotted value must appear here. */
   table: TableData
   empty?: string
+  /**
+   * A richer empty state for a brand-new user: a dimmed preview of what the
+   * filled chart looks like, plus one sentence, plus an optional call to
+   * action — rather than the plain `empty` sentence alone. When both are
+   * given, this takes over.
+   */
+  emptyState?: { preview: ReactNode; message: string; cta?: ReactNode }
+  /**
+   * Overrides the automatic "no rows" emptiness check. Some tables always
+   * have one row per period (e.g. one per week, whether or not that week had
+   * any training) so `table.rows.length === 0` never fires even when every
+   * value in the window is zero — this lets the caller say so explicitly.
+   */
+  forceEmpty?: boolean
   children: ReactNode
 }
 
@@ -35,9 +49,20 @@ interface Props {
  * The table is not optional: it is how the values stay reachable without
  * relying on colour or hover.
  */
-export function ChartCard({ title, subtitle, action, controls, ranges, table, empty, children }: Props) {
+export function ChartCard({
+  title,
+  subtitle,
+  action,
+  controls,
+  ranges,
+  table,
+  empty,
+  emptyState,
+  forceEmpty,
+  children,
+}: Props) {
   const [showTable, setShowTable] = useState(false)
-  const isEmpty = table.rows.length === 0
+  const isEmpty = table.rows.length === 0 || Boolean(forceEmpty)
 
   return (
     <section className="chart-card">
@@ -62,7 +87,15 @@ export function ChartCard({ title, subtitle, action, controls, ranges, table, em
       {ranges ? <div className="chart-ranges">{ranges}</div> : null}
 
       {isEmpty ? (
-        <p className="muted chart-empty">{empty ?? 'Not enough data yet.'}</p>
+        emptyState ? (
+          <div className="chart-empty">
+            <div className="chart-empty-preview" aria-hidden="true">{emptyState.preview}</div>
+            <p className="muted">{emptyState.message}</p>
+            {emptyState.cta}
+          </div>
+        ) : (
+          <p className="muted chart-empty">{empty ?? 'Not enough data yet.'}</p>
+        )
       ) : showTable ? (
         <div className="chart-table-wrap">
           <table className="chart-table">

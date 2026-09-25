@@ -6,11 +6,12 @@ import type { Exercise, Measurement, MeasurementType, Workout } from '../db/type
 import { Header } from '../components/Header'
 import { ChartCard } from '../components/charts/ChartCard'
 import { ColumnChart } from '../components/charts/ColumnChart'
-import { Heatmap } from '../components/charts/Heatmap'
+import { Heatmap, syntheticHeatCells } from '../components/charts/Heatmap'
 import { LineChart } from '../components/charts/LineChart'
 import { useFormatters } from '../lib/useSettings'
 import {
   computeStreaks,
+  firstWorkoutAt,
   muscleDistribution,
   overallTotals,
   volumeByDay,
@@ -18,8 +19,13 @@ import {
   type WeekPoint,
 } from '../lib/stats'
 import { formatMeasurement, MEASUREMENT_SPECS, specFor, unitLabel } from '../lib/measurements'
-import { formatHoursTotal } from '../lib/time'
+import { formatAge, formatHoursTotal } from '../lib/time'
 import { IconChart } from '../components/Icons'
+
+/** A gentle, unmistakably fake upward line — the shape of "getting stronger
+ * over time" without pretending to be a real user's history. Shared by every
+ * empty-state chart preview on this page that isn't a calendar. */
+const SYNTHETIC_TREND = [10, 13, 12, 16, 18, 17, 21, 24, 23, 27, 30, 29]
 
 type WeekMetric = 'volume' | 'perSession' | 'sets'
 
@@ -104,6 +110,12 @@ export function StatsPage() {
   const firstDay = fmt.settings.firstDayOfWeek
   const totals = useMemo(() => overallTotals(workouts), [workouts])
   const streaks = useMemo(() => computeStreaks(workouts, firstDay), [workouts, firstDay])
+  // Plain "how long you've been at this", not a streak: it only ever grows,
+  // so it carries none of the pressure a broken streak does.
+  const trainingAgeDays = useMemo(() => {
+    const first = firstWorkoutAt(workouts)
+    return first === null ? null : Math.floor((Date.now() - first) / (24 * 60 * 60 * 1000))
+  }, [workouts])
   const weeks = useMemo(() => volumeByWeek(workouts, firstDay, 12), [workouts, firstDay])
   const days = useMemo(() => volumeByDay(workouts, 119), [workouts])
   const muscles = useMemo(
@@ -146,9 +158,22 @@ export function StatsPage() {
             <span style={{ fontWeight: 650 }}>Measurements</span>
             {viewAll}
           </div>
-          <p className="faint" style={{ marginTop: 4 }}>
-            Bodyweight and circumferences — log an entry or see the trend.
-          </p>
+          <div className="chart-empty" style={{ paddingTop: 4 }}>
+            <div className="chart-empty-preview" aria-hidden="true">
+              <LineChart
+                points={SYNTHETIC_TREND.map((v, i) => ({ date: i, value: v }))}
+                baseline="auto"
+                xAxis="index"
+                height={64}
+                formatValue={() => ''}
+                formatDate={() => ''}
+              />
+            </div>
+            <p className="muted">Bodyweight and circumferences — log an entry to see the trend.</p>
+            <button className="btn btn-accent-soft btn-sm" onClick={() => navigate('/measurements')}>
+              Log an entry
+            </button>
+          </div>
         </div>
       )
     }
@@ -283,6 +308,12 @@ export function StatsPage() {
             <div className="stat-value">{totals.reps.toLocaleString()}</div>
             <div className="stat-label">Reps</div>
           </div>
+          {trainingAgeDays !== null && (
+            <div className="stat">
+              <div className="stat-value">{formatAge(trainingAgeDays)}</div>
+              <div className="stat-label">Training age</div>
+            </div>
+          )}
         </div>
 
         <div className="section-title">Body</div>
@@ -304,6 +335,16 @@ export function StatsPage() {
                   d.workouts,
                   fmt.volume(d.volumeKg),
                 ]),
+            }}
+            emptyState={{
+              preview: (
+                <Heatmap
+                  cells={syntheticHeatCells(days.length)}
+                  firstDayOfWeek={firstDay}
+                  formatValue={() => ''}
+                />
+              ),
+              message: 'No training in this window yet — log a workout and it starts filling in.',
             }}
           >
             <Heatmap
@@ -344,6 +385,23 @@ export function StatsPage() {
                   fmt.volume(w.volumeKg),
                   w.workouts > 0 ? fmt.volume(w.volumeKg / w.workouts) : '—',
                 ]),
+            }}
+            // The table always has one row per week in the window, whether or
+            // not that week had any training, so `table.rows.length === 0`
+            // never fires on its own here — without this the chart otherwise
+            // rendered a row of flat, all-zero bars instead of an empty state.
+            forceEmpty={weeks.every((w) => w.workouts === 0)}
+            emptyState={{
+              preview: (
+                <ColumnChart
+                  columns={weeks.map((w, i) => ({
+                    label: weekLabel(w.weekStart),
+                    value: SYNTHETIC_TREND[i % SYNTHETIC_TREND.length],
+                  }))}
+                  formatValue={weekFormat}
+                />
+              ),
+              message: 'No training in the last 12 weeks — this fills in once you log a workout.',
             }}
           >
             <ColumnChart

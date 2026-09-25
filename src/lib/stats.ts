@@ -46,6 +46,17 @@ export function overallTotals(workouts: Workout[]): Totals {
 }
 
 /**
+ * When the very first workout in this history started, or null with no
+ * history at all. Backs "training age" — an honest, plain "how long you've
+ * been at this" figure, deliberately not a streak or a goal: it only ever
+ * grows, so it carries none of the pressure a broken streak does.
+ */
+export function firstWorkoutAt(workouts: Workout[]): number | null {
+  if (workouts.length === 0) return null
+  return Math.min(...workouts.map((w) => w.startedAt))
+}
+
+/**
  * Round numbers worth a moment of their own even when a session sets no PR —
  * most training days don't. 1st/10th/25th/50th round out the early stretch
  * where every session still feels new, then every 100th keeps marking
@@ -286,6 +297,67 @@ export function exerciseProgress(
   }
   // History arrives newest-first; charts read left-to-right in time.
   return points.sort((a, b) => a.date - b.date)
+}
+
+/**
+ * Which of `metricsFor`'s metrics best represents "is this exercise trending
+ * up" for a single inline sparkline, where there's room for exactly one line
+ * and no chip to let the user choose. Estimated 1RM wins when it's available
+ * — same choice `strengthTrend` makes on the home screen, for the same
+ * reason: it separates getting stronger from simply doing more work. Kinds
+ * with no measurable load fall back to whatever they do have, in the order
+ * they're most likely to be the point of the movement.
+ */
+function primaryMetric(kind: ExerciseKind): ProgressMetric | null {
+  const available = metricsFor(kind)
+  const preference: ProgressMetric[] = ['oneRm', 'heaviest', 'distance', 'duration', 'volume', 'reps']
+  return preference.find((m) => available.includes(m)) ?? null
+}
+
+/**
+ * A tiny recent-trend series per exercise, for list rows (e.g. the exercise
+ * library) that have far too many rows to run a per-exercise history query
+ * against Dexie. Instead of `getExerciseHistory`'s one-query-per-exercise
+ * pattern — fine for a handful of lifts on the home screen, ruinous over a
+ * ~150-row library — this makes a single pass over a bulk-loaded `workouts`
+ * array, grouping sets by exercise in memory, then hands each exercise's
+ * grouped history to `exerciseProgress` exactly as `strengthTrend` does. No
+ * extra Dexie reads happen here at all.
+ *
+ * Exercises with fewer than two plottable sessions are left out of the
+ * result entirely — a single point isn't a trend, and a caller iterating
+ * this map already has the right signal to skip the sparkline rather than
+ * needing to special-case a length-1 array.
+ */
+export function exerciseSparklines(
+  workouts: Workout[],
+  exerciseById: Map<string, Exercise>,
+  bodyweightKg: number | null,
+  countWarmups = false,
+  maxPoints = 12,
+): Map<string, number[]> {
+  const grouped = new Map<string, { workout: Workout; logged: { sets: Workout['exercises'][number]['sets'] } }[]>()
+  for (const w of workouts) {
+    if (w.status !== 'done') continue
+    for (const le of w.exercises) {
+      const arr = grouped.get(le.exerciseId)
+      const entry = { workout: w, logged: { sets: le.sets } }
+      if (arr) arr.push(entry)
+      else grouped.set(le.exerciseId, [entry])
+    }
+  }
+
+  const result = new Map<string, number[]>()
+  for (const [exerciseId, history] of grouped) {
+    const exercise = exerciseById.get(exerciseId)
+    if (!exercise) continue
+    const metric = primaryMetric(exercise.kind)
+    if (!metric) continue
+    const points = exerciseProgress(history, exercise, metric, bodyweightKg, countWarmups)
+    if (points.length < 2) continue
+    result.set(exerciseId, points.slice(-maxPoints).map((p) => p.value))
+  }
+  return result
 }
 
 export const TIME_RANGES = [

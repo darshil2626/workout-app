@@ -20,6 +20,22 @@ import {
   type RecordKind,
   type SetRecord,
 } from '../lib/records'
+
+/**
+ * Nonzero placeholder for every kind, purely so `recordTile` below returns a
+ * tile (and its label) for each record this exercise can set, instead of the
+ * null it returns for a genuine zero. Only the labels are used — the values
+ * are never rendered.
+ */
+const PREVIEW_RECORDS: ExerciseRecords = {
+  weight: 1,
+  oneRm: 1,
+  volume: 1,
+  sessionVolume: 1,
+  reps: 1,
+  duration: 1,
+  distance: 1,
+}
 import { formatDateLabel } from '../lib/time'
 import { hasActiveWorkout, mergeExercises } from '../lib/exerciseRepair'
 import { IconMore, IconTrash } from '../components/Icons'
@@ -248,7 +264,23 @@ export function ExerciseDetailPage() {
 
         <div className="section-title">Personal records</div>
         {totalSets === 0 || !records ? (
-          <p className="muted">Log this exercise once and your records appear here.</p>
+          <div className="chart-empty">
+            <div className="chart-empty-preview" aria-hidden="true">
+              <div className="stat-grid">
+                {recordKinds.map((kind) => {
+                  const tile = recordTile(kind, PREVIEW_RECORDS, fmt)
+                  if (!tile) return null
+                  return (
+                    <div className="stat" key={kind}>
+                      <div className="stat-value mono">—</div>
+                      <div className="stat-label">{tile.label}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <p className="muted">Log this exercise once and your records appear here.</p>
+          </div>
         ) : (
           <div className="stat-grid">
             {/* Only the records this movement can actually set: a pull-up has no

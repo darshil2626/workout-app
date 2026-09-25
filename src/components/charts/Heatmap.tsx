@@ -21,6 +21,27 @@ const RAMP = ['var(--heat-1)', 'var(--heat-2)', 'var(--heat-3)', 'var(--heat-4)'
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+const DAY_MS = 86400000
+
+/**
+ * A placeholder calendar for a chart's empty state: a regular, unmistakably
+ * fake pattern rather than real dates the user might mistake for their own
+ * training. Shared by every empty-state preview that wants "this is what the
+ * activity calendar looks like filled in" without inventing its own fake
+ * data shape.
+ */
+export function syntheticHeatCells(days: number, now = Date.now()): HeatCell[] {
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const start = today.getTime() - (days - 1) * DAY_MS
+  const cells: HeatCell[] = []
+  for (let i = 0; i < days; i++) {
+    const trains = i % 7 !== 0 && i % 7 !== 4
+    cells.push({ day: start + i * DAY_MS, value: trains ? 10 + (i % 5) * 4 : 0, workouts: trains ? 1 : 0 })
+  }
+  return cells
+}
+
 export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
   const [active, setActive] = useState<HeatCell | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)

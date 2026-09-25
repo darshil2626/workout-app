@@ -1425,6 +1425,15 @@ button.set-badge::before {
   color: var(--pr);
 }
 
+/* Inline with the volume figure rather than stacked under it, the way the
+   per-set one sits under .col-prev — there's a whole baseline row of space
+   here and stacking it would just add height for nothing. */
+.finish-summary .delta-badge {
+  margin-top: 0;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+
 /* Emoji ignore currentColor, so the active state has to read from the pill. */
 .chip-emoji {
   font-size: var(--text-2xl);
@@ -1756,6 +1765,53 @@ tr.done .set-step-btn {
 
 .app.fullscreen .toast {
   bottom: calc(var(--safe-bottom) + var(--space-3));
+}
+
+/* ── Celebration banner (PRs and milestones) ───────────────────────────── */
+
+/* Sits at the top rather than stacking with .toast at the bottom: a PR or a
+   milestone is a bigger moment than an Undo prompt and gets its own slot so
+   the two are never confused or forced to queue behind one another. Gold
+   gradient on --raised, borrowing the same hue `.finish-celebrate` and
+   `.badge-pr` already use for "won" moments, so this reads as the same kind
+   of event rather than a new visual language. Entrance-only, like `.toast`
+   and `.finish-celebrate` — there is nothing worth animating on the way out,
+   and the shared reduced-motion switch at the bottom of this file already
+   flattens the entrance for anyone who asked for stillness. */
+.celebration-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: calc(var(--safe-top) + var(--header-h) + var(--space-3));
+  z-index: 45;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--gold) 24%, var(--raised)),
+    color-mix(in srgb, var(--gold) 8%, var(--raised))
+  );
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: var(--gold);
+  font-weight: 700;
+  font-size: var(--text-base);
+  text-align: center;
+  cursor: pointer;
+  animation: celebration-in 420ms var(--ease) both;
+}
+
+.celebration-banner-text {
+  display: block;
+}
+
+@keyframes celebration-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-10px);
+  }
 }
 
 /* ── Swipe-to-delete ───────────────────────────────────────────────────── */
@@ -2135,6 +2191,39 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   /* A hairline edge on top of the tint so a PR still reads gold at a glance
      next to an RPE badge, rather than blurring into it. */
   border: 1px solid color-mix(in srgb, var(--pr) 45%, transparent);
+}
+
+/* A set's (or a session's) number against a fixed comparison point — see
+   DeltaBadge.tsx. Same up/down convention as `.home-trend-delta`: an
+   increase is gold, a decrease stays a dim neutral rather than `--danger`,
+   since a lighter set is not a failure. The icon alone never carries the
+   meaning — the signed number sits right next to it. */
+.delta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text-dim);
+}
+
+.delta-badge svg {
+  width: 0.75em;
+  height: 0.75em;
+}
+
+.delta-badge.up {
+  color: var(--gold);
+}
+
+/* Session-total delta sits inline with a stat tile's headline number rather
+   than stacked under it like the per-set one in .col-prev. */
+.stat-delta {
+  margin-top: 0;
+  margin-left: var(--space-1);
+  vertical-align: middle;
 }
 
 /* The dateline atop a finished session's record: a touch heavier than

@@ -164,3 +164,22 @@ export const IconPlay = ({ className }: Props) => (
     <path d="M7 4.5v15l13-7.5z" fill="currentColor" />
   </svg>
 )
+
+/**
+ * Small filled triangles for a delta arrow next to a number (this set vs
+ * last time, this session's total vs last session's). Deliberately distinct
+ * from IconArrowUp/IconArrowDown above, which are full-shaft arrows used for
+ * reordering — a delta glyph needs to read as a compact inline mark, not a
+ * button affordance.
+ */
+export const IconTriangleUp = ({ className }: Props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="1em" height="1em" className={className}>
+    <path d="M12 6l7 11H5z" />
+  </svg>
+)
+
+export const IconTriangleDown = ({ className }: Props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="1em" height="1em" className={className}>
+    <path d="M12 18L5 7h14z" />
+  </svg>
+)

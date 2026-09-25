@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
@@ -16,14 +16,20 @@ import {
   SET_TYPE_LABEL,
   setBadges,
 } from '../lib/workout'
-import { getPreviousPerformance, type PreviousPerformance } from '../lib/history'
+import {
+  getPreviousPerformance,
+  getPreviousSessionTotals,
+  type PreviousPerformance,
+} from '../lib/history'
 import {
   emptyRecords,
   findSessionPRs,
   loadRecords,
+  PR_LABEL,
   type ExerciseRecords,
   type PRKind,
 } from '../lib/records'
+import { isMilestoneWorkoutCount } from '../lib/stats'
 import { formatDuration } from '../lib/time'
 import { vibrateTick } from '../lib/chime'
 import { SetRow } from '../components/SetRow'
@@ -32,6 +38,8 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { PlateCalculator } from '../components/PlateCalculator'
 import { FinishSheet } from '../components/FinishSheet'
 import { Toast } from '../components/Toast'
+import { CelebrationBanner } from '../components/CelebrationBanner'
+import { DeltaBadge } from '../components/DeltaBadge'
 import { useSortable } from '../lib/useSortable'
 import { useSwipeToDelete } from '../lib/useSwipeToDelete'
 import { useLongPress } from '../lib/useLongPress'
@@ -144,6 +152,27 @@ export function ActiveWorkoutPage() {
   // Holds what a swipe just removed so an Undo tap can put it back where it was.
   const [undoSet, setUndoSet] = useState<{ leId: string; index: number; set: LoggedSet } | null>(null)
 
+  // PR and milestone banners queue rather than replace one another outright,
+  // so a burst of events (a PR set immediately followed by the finish-time
+  // milestone check) is read one at a time instead of the later one silently
+  // clobbering the first.
+  const [celebrations, setCelebrations] = useState<string[]>([])
+  const pushCelebration = useCallback((message: string) => {
+    setCelebrations((q) => [...q, message])
+  }, [])
+  const dismissCelebration = useCallback(() => setCelebrations((q) => q.slice(1)), [])
+  const currentCelebration = celebrations[0] ?? null
+
+  // Exercise ids a "first time doing this" banner has already fired for in
+  // this session, so completing a later set of the same exercise (or
+  // un-ticking and re-ticking the first one) doesn't repeat it.
+  const firstTimeShownRef = useRef<Set<string>>(new Set())
+  // Nth-workout milestone banner is checked once, at the moment "Finish" is
+  // confirmed (see the ConfirmSheet below) rather than continuously, since it
+  // only ever needs to fire on the finish flow.
+  const [workoutNumber, setWorkoutNumber] = useState<number | undefined>(undefined)
+  const milestoneShownRef = useRef(false)
+
   // Undefined until the library loads. Defaulting to [] here would make every
   // exercise look unknown for a tick, which silently suppresses PR badges and
   // shows the wrong input columns for anything that is not weight × reps.
@@ -156,6 +185,13 @@ export function ActiveWorkoutPage() {
     fmt.settings.bodyweightKg,
     fmt.settings.countWarmupSets,
     workout?.id,
+  )
+  // The last time this exact routine (or, for a freeform session, the last
+  // same-named one) was completed, for the session-total delta arrow.
+  const previousSessionTotals = useLiveQuery(
+    () => getPreviousSessionTotals(workout?.name ?? '', workout?.routineId, workout?.id),
+    [workout?.name, workout?.routineId, workout?.id],
+    null,
   )
 
   /**
@@ -199,6 +235,20 @@ export function ActiveWorkoutPage() {
     [workout?.exercises, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
 
+  // This session's running volume against the last time this routine (or
+  // same-named freeform workout) was done. Withheld until at least one set
+  // counts, so the arrow doesn't compare "0" against last time's total the
+  // instant the screen opens.
+  const sessionVolumeDelta = useMemo(() => {
+    if (!previousSessionTotals || totals.totalSets === 0) return null
+    const value = totals.totalVolumeKg - previousSessionTotals.totalVolumeKg
+    if (value === 0) return null
+    return {
+      up: value > 0,
+      text: `${value > 0 ? '+' : '−'}${formatVolumeCompact(Math.abs(value), fmt.weightUnit)} ${fmt.weightUnit}`,
+    }
+  }, [previousSessionTotals, totals.totalVolumeKg, totals.totalSets, fmt.weightUnit])
+
   const blockIds = useMemo(() => (workout?.exercises ?? []).map((le) => le.id), [workout?.exercises])
   const sortable = useSortable(blockIds, reorderExercises, () => {
     if (fmt.settings.restTimerVibrate) vibrateTick()
@@ -234,24 +284,90 @@ export function ActiveWorkoutPage() {
     setUndoSet(null)
   }
 
-  // Badged sets across the whole session, for the finish summary.
-  const prCount = useMemo(() => {
-    if (!baselines || !workout) return 0
-    let n = 0
+  // Every set's PR kinds this session, keyed by logged-exercise block id
+  // (rather than exercise id) so two blocks of the same exercise — a
+  // superset repeated later in the session — are judged independently, the
+  // same way the badges below are rendered per block. Reuses `baselines`,
+  // already loaded once per session for the badges, rather than re-scanning
+  // history here.
+  const prsByExercise = useMemo(() => {
+    if (!baselines || !workout) return undefined
+    const map = new Map<string, Map<string, PRKind[]>>()
     for (const le of workout.exercises) {
       const exercise = byId.get(le.exerciseId)
       if (!exercise) continue
-      const found = findSessionPRs(
-        le.sets,
-        exercise,
-        baselines.get(le.exerciseId) ?? emptyRecords(),
-        fmt.settings.bodyweightKg,
-        fmt.settings.countWarmupSets,
+      map.set(
+        le.id,
+        findSessionPRs(
+          le.sets,
+          exercise,
+          baselines.get(le.exerciseId) ?? emptyRecords(),
+          fmt.settings.bodyweightKg,
+          fmt.settings.countWarmupSets,
+        ),
       )
-      for (const kinds of found.values()) n += kinds.length
+    }
+    return map
+  }, [baselines, workout, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets])
+
+  // Badged sets across the whole session, for the finish summary.
+  const prCount = useMemo(() => {
+    if (!prsByExercise) return 0
+    let n = 0
+    for (const bySet of prsByExercise.values()) {
+      for (const kinds of bySet.values()) n += kinds.length
     }
     return n
-  }, [baselines, workout, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets])
+  }, [prsByExercise])
+
+  // The celebration banner for a PR: fires the moment a set's PR kinds first
+  // appear, mirroring the aria-live announcement SetRow fires for the same
+  // event (see the comment there) but scoped to the whole session rather
+  // than one row. `seenPRKeysRef` starts at `null` and is seeded — without
+  // celebrating — on its first run, so a session that already has a PR when
+  // this page (re)mounts (e.g. minimising and coming back) never re-fires
+  // for history that happened before this mount.
+  const seenPRKeysRef = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (!prsByExercise || !workout) return
+    const currentKeys = new Set<string>()
+    const newMessages: string[] = []
+    const alreadySeen = seenPRKeysRef.current
+    for (const le of workout.exercises) {
+      const bySet = prsByExercise.get(le.id)
+      if (!bySet) continue
+      const exercise = byId.get(le.exerciseId)
+      for (const [setId, kinds] of bySet) {
+        if (kinds.length === 0) continue
+        const key = `${setId}:${[...kinds].sort().join(',')}`
+        currentKeys.add(key)
+        if (alreadySeen && !alreadySeen.has(key)) {
+          newMessages.push(
+            `${exercise?.name ?? 'That exercise'} — ${kinds.map((k) => PR_LABEL[k]).join(', ')}`,
+          )
+        }
+      }
+    }
+    seenPRKeysRef.current = currentKeys
+    for (const msg of newMessages) pushCelebration(msg)
+  }, [prsByExercise, workout, byId, pushCelebration])
+
+  // The "Workout #N logged" milestone: checked once per finish attempt (see
+  // the ConfirmSheet below, which populates `workoutNumber` right as it's
+  // confirmed) rather than continuously, since it only ever needs to surface
+  // on the finish flow, not mid-workout.
+  useEffect(() => {
+    if (
+      rating &&
+      workoutNumber !== undefined &&
+      isMilestoneWorkoutCount(workoutNumber) &&
+      !milestoneShownRef.current
+    ) {
+      milestoneShownRef.current = true
+      pushCelebration(`Workout #${workoutNumber} logged`)
+    }
+    if (!rating) milestoneShownRef.current = false
+  }, [rating, workoutNumber, pushCelebration])
 
   if (loading || !exercises) return <div className="spinner" />
 
@@ -280,6 +396,23 @@ export function ActiveWorkoutPage() {
   function handleToggleComplete(le: LoggedExercise, set: LoggedSet) {
     const nowComplete = !set.completed
     updateSet(le.id, set.id, { completed: nowComplete })
+    // "First time doing this exercise": no prior completed session contains
+    // it (per the same `previous` lookup the Previous column already uses —
+    // no extra query), and this is the first set of it completed *within*
+    // this session, so repeating sets 2, 3, 4... doesn't repeat the banner.
+    // Gated on `baselines` having resolved, since that load and `previous`'s
+    // are kicked off together and finish well before a set can be ticked.
+    if (
+      nowComplete &&
+      baselines &&
+      !previous.get(le.exerciseId) &&
+      !firstTimeShownRef.current.has(le.exerciseId) &&
+      !le.sets.some((s) => s.id !== set.id && s.completed)
+    ) {
+      firstTimeShownRef.current.add(le.exerciseId)
+      const exercise = byId.get(le.exerciseId)
+      pushCelebration(`First time doing ${exercise?.name ?? 'this exercise'}`)
+    }
     // Rest starts on completion only; un-ticking a set should not start a timer.
     // Within a superset, rest is taken once per round — after the last
     // exercise in the group — not after every exercise in it.
@@ -360,7 +493,17 @@ export function ActiveWorkoutPage() {
 
         <div className="stat-grid" style={{ margin: '10px 0 4px' }}>
           <div className="stat">
-            <div className="stat-value mono">{fmt.volumeCompact(totals.totalVolumeKg)}</div>
+            <div className="stat-value mono">
+              {fmt.volumeCompact(totals.totalVolumeKg)}
+              {sessionVolumeDelta && (
+                <DeltaBadge
+                  className="stat-delta"
+                  up={sessionVolumeDelta.up}
+                  text={sessionVolumeDelta.text}
+                  label={`${sessionVolumeDelta.up ? 'Up' : 'Down'} ${sessionVolumeDelta.text} vs last time`}
+                />
+              )}
+            </div>
             <div className="stat-label">Volume {fmt.weightUnit}</div>
           </div>
           <div className="stat">
@@ -400,22 +543,10 @@ export function ActiveWorkoutPage() {
             const f = fieldsFor(kind)
             const badges = setBadges(le.sets)
             const prev = previous.get(le.exerciseId)
-            // A baseline of zeros would badge every set, so wait for the real
-            // one. Missing from a *loaded* map means no history at all, which
-            // is a genuine all-zero baseline and does badge.
-            const baseline = baselines && exercise
-              ? baselines.get(le.exerciseId) ?? emptyRecords()
-              : undefined
-            const prs =
-              exercise && baseline
-                ? findSessionPRs(
-                    le.sets,
-                    exercise,
-                    baseline,
-                    fmt.settings.bodyweightKg,
-                    fmt.settings.countWarmupSets,
-                  )
-                : new Map<string, PRKind[]>()
+            // Computed once above in `prsByExercise`, which reuses the same
+            // baseline data rather than re-running findSessionPRs per block
+            // on every render.
+            const prs = prsByExercise?.get(le.id) ?? new Map<string, PRKind[]>()
 
             const offset = sortable.offsetFor(le.id)
             // Visually brackets consecutive blocks sharing a superset group so
@@ -825,6 +956,14 @@ export function ActiveWorkoutPage() {
         confirmLabel="Finish"
         onConfirm={() => {
           setConfirmFinish(false)
+          // Counted once, right as the finish flow starts, rather than kept
+          // live for the whole session — this only ever needs to know the
+          // number this session is about to become on the summary sheet.
+          void db.workouts
+            .where('status')
+            .equals('done')
+            .count()
+            .then((n) => setWorkoutNumber(n + 1))
           setRating(true)
         }}
         onCancel={() => setConfirmFinish(false)}
@@ -836,6 +975,7 @@ export function ActiveWorkoutPage() {
           duration: formatDuration(elapsed),
           volume: `${formatVolumeCompact(totals.totalVolumeKg, fmt.weightUnit)} ${fmt.weightUnit}`,
           prCount,
+          volumeDelta: sessionVolumeDelta,
         }}
         onClose={() => setRating(false)}
         onSave={(r) => void handleFinish(r)}
@@ -857,6 +997,8 @@ export function ActiveWorkoutPage() {
         onAction={undoRemoveSet}
         onDismiss={() => setUndoSet(null)}
       />
+
+      <CelebrationBanner message={currentCelebration} onDismiss={dismissCelebration} />
     </>
   )
 }

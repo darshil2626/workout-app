@@ -10,6 +10,7 @@ import type { ActiveSetTimer } from '../state/SetTimerContext'
 import { PR_LABEL, type PRKind } from '../lib/records'
 import type { SwipeToDeleteState } from '../lib/useSwipeToDelete'
 import type { LongPressState } from '../lib/useLongPress'
+import { DeltaBadge } from './DeltaBadge'
 
 /**
  * Uncontrolled-while-focused text input.
@@ -136,6 +137,7 @@ export function SetRow({
   }, [prs])
 
   const prevLabel = previous ? describePrevious(previous, kind, weightUnit, distanceUnit) : '—'
+  const delta = previous ? primaryDelta(set, previous, kind, fmt) : null
 
   // The previous session's numbers become placeholders, so tapping the check
   // with empty inputs is never ambiguous about what was actually lifted.
@@ -276,6 +278,16 @@ export function SetRow({
           <span className="badge badge-pr" title={prs.map((k) => PR_LABEL[k]).join(', ')}>
             PR
           </span>
+        )}
+        {/* Only once the number actually typed in differs from last time's —
+            matching it exactly (the common case right after "Copy previous"
+            or auto-fill on tick) has nothing to compare. */}
+        {delta && (
+          <DeltaBadge
+            up={delta.value > 0}
+            text={delta.text}
+            label={`${delta.value > 0 ? 'Up' : 'Down'} ${delta.text} vs last time`}
+          />
         )}
         {/* PRs are rare and worth interrupting for — assertive, unlike the
             rest timer's polite announcements. role="alert" implies
@@ -456,4 +468,45 @@ function describePrevious(
 /** Rounds converted values so lb→kg round-trips don't accumulate noise. */
 function round3(v: number): number {
   return Math.round(v * 1000) / 1000
+}
+
+/**
+ * This set's value against last time's, on whichever field is the primary
+ * one for the exercise's kind — weight when there is one (the common case,
+ * and the field the audit calls out explicitly), otherwise reps for a
+ * bodyweight movement, then duration or distance for the rest. Only one
+ * field is compared rather than every field the row shows, so a set that
+ * matches last time's reps but adds weight gets one arrow, not a wall of
+ * them.
+ */
+function primaryDelta(
+  set: LoggedSet,
+  previous: LoggedSet,
+  kind: ExerciseKind,
+  fmt: Formatters,
+): { value: number; text: string } | null {
+  const f = fieldsFor(kind)
+  const sign = (v: number) => (v > 0 ? '+' : '−')
+
+  if (f.weight && set.weight !== null && previous.weight !== null) {
+    const value = set.weight - previous.weight
+    if (value === 0) return null
+    return { value, text: `${sign(value)}${formatWeight(Math.abs(value), fmt.weightUnit)}` }
+  }
+  if (f.reps && set.reps !== null && previous.reps !== null) {
+    const value = set.reps - previous.reps
+    if (value === 0) return null
+    return { value, text: `${sign(value)}${Math.abs(value)}` }
+  }
+  if (f.duration && set.durationSec !== null && previous.durationSec !== null) {
+    const value = set.durationSec - previous.durationSec
+    if (value === 0) return null
+    return { value, text: `${sign(value)}${formatDuration(Math.abs(value))}` }
+  }
+  if (f.distance && set.distanceM !== null && previous.distanceM !== null) {
+    const value = set.distanceM - previous.distanceM
+    if (value === 0) return null
+    return { value, text: `${sign(value)}${formatDistance(Math.abs(value), fmt.distanceUnit)}` }
+  }
+  return null
 }

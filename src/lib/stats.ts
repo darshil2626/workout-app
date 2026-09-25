@@ -45,6 +45,17 @@ export function overallTotals(workouts: Workout[]): Totals {
   )
 }
 
+/**
+ * Round numbers worth a moment of their own even when a session sets no PR —
+ * most training days don't. 1st/10th/25th/50th round out the early stretch
+ * where every session still feels new, then every 100th keeps marking
+ * progress without the list growing without bound.
+ */
+export function isMilestoneWorkoutCount(n: number): boolean {
+  if (n === 1 || n === 10 || n === 25 || n === 50) return true
+  return n >= 100 && n % 100 === 0
+}
+
 export interface Streaks {
   /** Consecutive weeks with at least one workout, counting back from this week. */
   currentWeeks: number

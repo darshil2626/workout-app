@@ -3,6 +3,7 @@ import { Sheet } from './Sheet'
 import type { SessionRating } from '../state/ActiveWorkoutContext'
 import { useSettings } from '../lib/useSettings'
 import { vibrate } from '../lib/chime'
+import { DeltaBadge } from './DeltaBadge'
 
 /** 1–5, mild to maximal. Stored as the number so it can be averaged later. */
 export const EFFORT_LABELS = ['Easy', 'Moderate', 'Hard', 'Very hard', 'Max'] as const
@@ -27,7 +28,15 @@ export function feelingFor(feeling: number): { emoji: string; label: string } | 
 interface Props {
   open: boolean
   /** Headline figures for the session just completed. */
-  summary: { duration: string; volume: string; prCount: number }
+  summary: {
+    duration: string
+    volume: string
+    prCount: number
+    /** This session's volume vs. the last time this routine (or same-named
+     *  workout) was done. Null/undefined when there's nothing to compare
+     *  against yet — a first-ever session, or one still logging zero volume. */
+    volumeDelta?: { up: boolean; text: string } | null
+  }
   onClose: () => void
   onSave: (rating: SessionRating) => void
 }
@@ -94,7 +103,16 @@ export function FinishSheet({ open, summary, onClose, onSave }: Props) {
 
       <div className="finish-summary">
         <span>{summary.duration}</span>
-        <span>{summary.volume}</span>
+        <span>
+          {summary.volume}
+          {summary.volumeDelta && (
+            <DeltaBadge
+              up={summary.volumeDelta.up}
+              text={summary.volumeDelta.text}
+              label={`${summary.volumeDelta.up ? 'Up' : 'Down'} ${summary.volumeDelta.text} vs last time`}
+            />
+          )}
+        </span>
         {summary.prCount > 0 && (
           <span className="finish-prs">
             {summary.prCount} PR{summary.prCount === 1 ? '' : 's'}

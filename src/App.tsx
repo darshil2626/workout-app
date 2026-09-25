@@ -12,6 +12,7 @@ import { RestTimerBar } from './components/RestTimerBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { PageSkeleton } from './components/Skeleton'
 
 // Route-level code splitting: each page becomes its own chunk, fetched on
 // first visit rather than bundled into the initial payload. The Suspense
@@ -90,7 +91,7 @@ function Shell() {
     <div className={`app${fullscreen ? ' fullscreen' : ''}`}>
       {/* The extra bottom padding keeps the last row clear of the rest timer. */}
       <main className="app-main" style={fullscreen ? { paddingBottom: 96 } : undefined}>
-        <Suspense fallback={<div className="spinner" />}>
+        <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/workout" element={<ActiveWorkoutPage />} />

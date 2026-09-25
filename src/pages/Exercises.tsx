@@ -10,8 +10,31 @@ import { Sparkline } from '../components/home/Sparkline'
 import { IconPlus, IconSearch } from '../components/Icons'
 import { exerciseSparklines } from '../lib/stats'
 import { useFormatters } from '../lib/useSettings'
+import { Skeleton } from '../components/Skeleton'
 
 const ALL = 'All'
+
+/**
+ * Shaped like the alphabetical rows about to render: a name line and a
+ * meta line per row. This list's first paint waits on a ~150+ row Dexie
+ * query before it can group and render anything, so a skeleton reads as
+ * "already loading the list" instead of the generic spinner flashing once
+ * and vanishing.
+ */
+function ExerciseListSkeleton() {
+  return (
+    <div className="card" style={{ padding: '4px 14px' }}>
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="picker-item" style={{ pointerEvents: 'none' }}>
+          <div className="stack grow">
+            <Skeleton height={14} width={`${55 + ((i * 7) % 30)}%`} style={{ marginBottom: 6 }} />
+            <Skeleton height={11} width={`${35 + ((i * 5) % 20)}%`} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export function ExercisesPage() {
   const navigate = useNavigate()
@@ -124,7 +147,7 @@ export function ExercisesPage() {
         </div>
 
         {exercisesRaw === undefined ? (
-          <div className="spinner" />
+          <ExerciseListSkeleton />
         ) : filtered.length === 0 ? (
           <div className="empty">
             <p className="muted">Nothing matches “{query}”.</p>

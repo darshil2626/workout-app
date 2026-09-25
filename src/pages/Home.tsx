@@ -28,6 +28,7 @@ import { RecentWins, collectWins, type Win } from '../components/home/RecentWins
 import { RecoveryCard } from '../components/home/RecoveryCard'
 import { RoutinesSection } from '../components/home/RoutinesSection'
 import { StrengthTrend } from '../components/home/StrengthTrend'
+import { Skeleton } from '../components/Skeleton'
 
 /**
  * How many finished sessions are scanned for personal records.
@@ -51,6 +52,25 @@ const MIN_RECOVERY_ROWS = 2
  * around it without needing to scroll.
  */
 const HOME_CALENDAR_DAYS = 70
+
+/**
+ * Shaped like the dashboard that's about to assemble itself: a primary
+ * action button, a goal ring, and a couple of routine rows. This screen is
+ * the app's default landing route and gates on four Dexie queries before its
+ * first paint, so on a cold start it's one of the two or three places in the
+ * app where a wait is long enough for a skeleton to earn its keep over a
+ * generic spinner.
+ */
+function HomeSkeleton() {
+  return (
+    <>
+      <Skeleton height={52} radius={14} style={{ marginBottom: 16 }} />
+      <Skeleton height={96} radius={16} style={{ marginBottom: 16 }} />
+      <Skeleton height={64} radius={14} style={{ marginBottom: 12 }} />
+      <Skeleton height={64} radius={14} />
+    </>
+  )
+}
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -294,7 +314,7 @@ export function HomePage() {
 
       <div className="page">
         {!loaded ? (
-          <div className="spinner" />
+          <HomeSkeleton />
         ) : firstRun ? (
           <FirstRun
             onStartEmpty={() => void start()}

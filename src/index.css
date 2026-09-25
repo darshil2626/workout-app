@@ -1843,11 +1843,20 @@ tr.done .set-step-btn {
 
 /* Wraps every swipeable row. The action layer beneath is absolutely
    positioned to the wrapper's own bounds, and overflow: hidden keeps it (and
-   an over-dragged content layer) from ever escaping the row. */
+   an over-dragged content layer) from ever escaping the row.
+   `border-radius: inherit` looked right but wasn't: it pulls from this
+   element's own *parent* (a plain, unstyled list wrapper), not from the
+   `.card`/`.ex-block` content sitting inside it — so it resolved to a flat
+   0, while the content on top is genuinely rounded. The action layer behind
+   was then a sharp-cornered rectangle exactly the card's size, showing
+   through as a small red wedge in each of the card's four (rounded) corners
+   at all times, not just mid-swipe. Every current use of .swipe-row wraps
+   card-tier content, so matching --radius directly (rather than inheriting)
+   is correct everywhere it's used today. */
 .swipe-row {
   position: relative;
   overflow: hidden;
-  border-radius: inherit;
+  border-radius: var(--radius);
 }
 
 /* Stands in for the margin a bare .card or .ex-block would have contributed
@@ -1869,6 +1878,9 @@ tr.done .set-step-btn {
   background: var(--danger);
   color: #fff;
   font-weight: 650;
+  /* Matches .swipe-row's own radius (see its comment) so this layer's
+     corners never poke out past the rounded content sitting on top of it. */
+  border-radius: inherit;
 }
 
 .swipe-row-action svg {
@@ -2659,7 +2671,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .heatmap-day {
   width: 11px;
-  height: 15px;
+  height: var(--heat-cell, 15px);
   font-size: var(--text-3xs);
   color: var(--text-faint);
   display: grid;
@@ -2668,10 +2680,16 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 /* 15px rather than 13px: large enough to judge a colour at a glance and to hit
    with a thumb, while 17 weeks still fit the scroller. The hairline keeps the
-   calendar grid legible so a rest day reads as absent, not as a low bin. */
+   calendar grid legible so a rest day reads as absent, not as a low bin.
+   --heat-cell is set per-instance (Heatmap.tsx) to grow cells up to 26px when
+   there are too few weeks to fill the card's width on their own — otherwise
+   a short window (a new user, or Home's compact 70-day preview) packs to the
+   left and leaves the rest of the box looking broken/empty. The `15px`
+   fallback is what the legend swatches in .heatmap-foot use, since they sit
+   outside .heatmap's subtree and are meant to stay small regardless. */
 .heatmap-cell {
-  width: 15px;
-  height: 15px;
+  width: var(--heat-cell, 15px);
+  height: var(--heat-cell, 15px);
   border-radius: var(--radius-control);
   flex-shrink: 0;
   padding: 0;
@@ -2818,6 +2836,32 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    `.card + .card`'s 10px does not apply and the block would sit flush. */
 .home-block {
   margin-top: var(--space-4);
+}
+
+/* A folder's header doubles as its collapse/expand toggle, so it needs the
+   same tap affordances a button gets elsewhere — a full-width hit area
+   (buttons are inline-sized by default) and a press state, on top of what
+   `.section-title.row` already gives it for text/layout. */
+.folder-toggle {
+  width: 100%;
+  transition: opacity var(--dur-press) var(--ease);
+}
+
+.folder-toggle:active {
+  opacity: 0.6;
+}
+
+.folder-toggle-chevron {
+  flex-shrink: 0;
+  transition: transform var(--dur-press) var(--ease);
+  /* IconMinimise points down by default (its other use, collapsing the
+     active workout screen); rotated to point at the folder's contents
+     until expanded, when it settles into its natural down-pointing shape. */
+  transform: rotate(-90deg);
+}
+
+.folder-toggle-chevron.open {
+  transform: rotate(0deg);
 }
 
 /* Each titled block is its own <section>, which makes its heading a

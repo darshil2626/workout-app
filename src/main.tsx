@@ -13,14 +13,18 @@ const root = createRoot(document.getElementById('root')!)
 // App.tsx re-applies (and keeps live) the real stored choice once settings load.
 applyTheme(resolveTheme('system'))
 
-// Seed the exercise library before the first render so pickers are never empty.
-initDb()
+// Dev-only synthetic data must load first: it fully repopulates every table
+// (including exercises/settings) on a genuinely empty database, and initDb's
+// own one-shot starter-routine seed below checks routines/workouts counts —
+// running initDb first would seed that routine, make those counts non-zero,
+// and permanently block the synthetic dataset from ever loading afterward.
+maybeSeedSyntheticData()
   .catch((err: unknown) => {
-    console.error('Database initialisation failed', err)
+    console.error('Synthetic dev data seed failed', err)
   })
   .then(() =>
-    maybeSeedSyntheticData().catch((err: unknown) => {
-      console.error('Synthetic dev data seed failed', err)
+    initDb().catch((err: unknown) => {
+      console.error('Database initialisation failed', err)
     }),
   )
   .then(() => db.settings.get(1))

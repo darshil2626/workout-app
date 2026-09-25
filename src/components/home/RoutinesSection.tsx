@@ -1,8 +1,32 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Exercise, Folder, Routine } from '../../db/types'
-import { IconFolder, IconPlay, IconTrash } from '../Icons'
+import { IconFolder, IconMinimise, IconPlay, IconTrash } from '../Icons'
 import { formatRelative } from '../../lib/time'
 import { useSwipeToDelete } from '../../lib/useSwipeToDelete'
+
+const EXPANDED_FOLDERS_KEY = 'ironlog_expanded_folders'
+
+/** Tracks which folders the user has explicitly opened, not which are
+ *  collapsed — so a newly created folder (never in this set) starts
+ *  collapsed by default without needing to be seeded into it up front. */
+function readExpandedFolders(): Set<string> {
+  try {
+    const raw = localStorage.getItem(EXPANDED_FOLDERS_KEY)
+    if (!raw) return new Set()
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? new Set(parsed.filter((id): id is string => typeof id === 'string')) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function writeExpandedFolders(ids: Set<string>): void {
+  try {
+    localStorage.setItem(EXPANDED_FOLDERS_KEY, JSON.stringify([...ids]))
+  } catch {
+    // Best-effort; a folder just falls back to collapsed-by-default next load.
+  }
+}
 
 interface Props {
   routines: Routine[]
@@ -39,6 +63,16 @@ export function RoutinesSection({
     const r = routineById.get(id)
     if (r) onSwipeDelete(r)
   })
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(readExpandedFolders)
+  function toggleFolder(id: string) {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      writeExpandedFolders(next)
+      return next
+    })
+  }
   const sortedFolders = useMemo(() => [...folders].sort((a, b) => a.order - b.order), [folders])
   const byFolder = useMemo(() => {
     const map = new Map<string | null, Routine[]>()
@@ -86,32 +120,48 @@ export function RoutinesSection({
         </div>
       )}
 
-      {sortedFolders.map((folder) => (
-        <div key={folder.id}>
-          <div className="section-title row" style={{ gap: 8 }}>
-            <IconFolder />
-            {folder.name}
-          </div>
-          {(byFolder.get(folder.id) ?? []).length === 0 ? (
-            <p className="faint" style={{ paddingLeft: 4 }}>
-              Empty folder
-            </p>
-          ) : (
-            <div className="list">
-              {(byFolder.get(folder.id) ?? []).map((r) => (
-                <RoutineCard
-                  key={r.id}
-                  routine={r}
-                  summary={summary(r)}
-                  onStart={() => onStart(r)}
-                  onMenu={() => onMenu(r)}
-                  swipe={swipe}
-                />
+      {sortedFolders.map((folder) => {
+        const folderRoutines = byFolder.get(folder.id) ?? []
+        const expanded = expandedFolders.has(folder.id)
+        return (
+          <div key={folder.id}>
+            <button
+              className="section-title row folder-toggle"
+              style={{ gap: 8 }}
+              onClick={() => toggleFolder(folder.id)}
+              aria-expanded={expanded}
+            >
+              <IconFolder />
+              <span className="grow truncate" style={{ textAlign: 'left' }}>
+                {folder.name}
+              </span>
+              <span className="faint">
+                {folderRoutines.length} {folderRoutines.length === 1 ? 'routine' : 'routines'}
+              </span>
+              <IconMinimise className={`folder-toggle-chevron${expanded ? ' open' : ''}`} />
+            </button>
+            {expanded &&
+              (folderRoutines.length === 0 ? (
+                <p className="faint" style={{ paddingLeft: 4 }}>
+                  Empty folder
+                </p>
+              ) : (
+                <div className="list">
+                  {folderRoutines.map((r) => (
+                    <RoutineCard
+                      key={r.id}
+                      routine={r}
+                      summary={summary(r)}
+                      onStart={() => onStart(r)}
+                      onMenu={() => onMenu(r)}
+                      swipe={swipe}
+                    />
+                  ))}
+                </div>
               ))}
-            </div>
-          )}
-        </div>
-      ))}
+          </div>
+        )
+      })}
 
       {loose.length > 0 && (
         <>

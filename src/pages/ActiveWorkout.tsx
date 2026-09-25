@@ -31,7 +31,10 @@ import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { PlateCalculator } from '../components/PlateCalculator'
 import { FinishSheet } from '../components/FinishSheet'
+import { Toast } from '../components/Toast'
 import { useSortable } from '../lib/useSortable'
+import { useSwipeToDelete } from '../lib/useSwipeToDelete'
+import { useLongPress } from '../lib/useLongPress'
 import { formatVolumeCompact } from '../lib/units'
 import {
   IconArrowDown,
@@ -109,6 +112,7 @@ export function ActiveWorkoutPage() {
     reorderExercises,
     addSet,
     removeSet,
+    insertSet,
     updateSet,
     updateExercise,
     setName,
@@ -137,6 +141,8 @@ export function ActiveWorkoutPage() {
   const [showNotes, setShowNotes] = useState(false)
   // Non-null while the plate calculator sheet is open; holds the target weight.
   const [plateTarget, setPlateTarget] = useState<number | null | undefined>(undefined)
+  // Holds what a swipe just removed so an Undo tap can put it back where it was.
+  const [undoSet, setUndoSet] = useState<{ leId: string; index: number; set: LoggedSet } | null>(null)
 
   // Undefined until the library loads. Defaulting to [] here would make every
   // exercise look unknown for a tick, which silently suppresses PR badges and
@@ -192,6 +198,36 @@ export function ActiveWorkoutPage() {
   const sortable = useSortable(blockIds, reorderExercises, () => {
     if (fmt.settings.restTimerVibrate) vibrateTick()
   })
+
+  // Swipe-to-delete and long-press-for-menu on set rows. Both are additional
+  // paths onto actions the set-number badge already reaches by tap (open the
+  // menu, then "Delete set" in it) — nothing here bypasses that badge, it's
+  // just faster for anyone who finds the gesture. Keyed by set id, which is
+  // unique across the whole session, so one pair of hooks covers every
+  // exercise block's table rather than one per block.
+  const swipeSet = useSwipeToDelete((setId) => {
+    const le = workout?.exercises.find((e) => e.sets.some((s) => s.id === setId))
+    if (!le) return
+    const index = le.sets.findIndex((s) => s.id === setId)
+    const removed = le.sets[index]
+    removeSet(le.id, setId)
+    setUndoSet({ leId: le.id, index, set: removed })
+  })
+  const longPressSet = useLongPress(
+    (setId) => {
+      const le = workout?.exercises.find((e) => e.sets.some((s) => s.id === setId))
+      const set = le?.sets.find((s) => s.id === setId)
+      if (le && set) setSetMenu({ leId: le.id, set })
+    },
+    // A row a swipe is already dragging doesn't also get a long-press menu.
+    { disabled: (id) => swipeSet.isSwiping(id) },
+  )
+
+  function undoRemoveSet() {
+    if (!undoSet) return
+    insertSet(undoSet.leId, undoSet.index, undoSet.set)
+    setUndoSet(null)
+  }
 
   // Badged sets across the whole session, for the finish summary.
   const prCount = useMemo(() => {
@@ -448,6 +484,8 @@ export function ActiveWorkoutPage() {
                         // one counts up until the hold gives out.
                         onStartTimer={() => setTimer.start(set.id, set.durationSec)}
                         onStopTimer={commitSetTimer}
+                        swipe={swipeSet}
+                        longPress={longPressSet}
                       />
                     ))}
                   </tbody>
@@ -772,6 +810,13 @@ export function ActiveWorkoutPage() {
         destructive
         onConfirm={() => void handleDiscard()}
         onCancel={() => setConfirmDiscard(false)}
+      />
+
+      <Toast
+        message={undoSet ? 'Set deleted' : null}
+        actionLabel="Undo"
+        onAction={undoRemoveSet}
+        onDismiss={() => setUndoSet(null)}
       />
     </>
   )

@@ -20,6 +20,8 @@ import { saveMeasurement } from '../lib/measurements'
 import { parseNumber } from '../lib/units'
 import { formatRelative } from '../lib/time'
 import { IconPlus, IconTrash } from '../components/Icons'
+import { Toast } from '../components/Toast'
+import { useSwipeToDelete } from '../lib/useSwipeToDelete'
 
 /** Local date in yyyy-mm-dd for <input type="date">, which has no timezone. */
 function toDateInput(ts: number): string {
@@ -236,6 +238,8 @@ function HistorySheet({
 }) {
   const settings = useSettings()
   const [deleting, setDeleting] = useState<Measurement | null>(null)
+  // Holds what a swipe just removed so an Undo tap can put it back.
+  const [undoEntry, setUndoEntry] = useState<Measurement | null>(null)
   const spec = type ? specFor(type) : null
 
   // Charts read left-to-right in time; the list below reads newest-first.
@@ -246,6 +250,18 @@ function HistorySheet({
         .map((e) => ({ date: e.takenAt, value: e.value })),
     [entries],
   )
+
+  // Swipe is an additional, faster path onto the same delete the icon button
+  // already reaches — immediate, paired with Undo, rather than repeating the
+  // confirm sheet that button still uses (a full modal would defeat the
+  // point of a quick swipe). No long-press here: this row has no "..." menu
+  // to open, just the direct delete button below.
+  const swipe = useSwipeToDelete((id) => {
+    const entry = entries.find((e) => e.id === id)
+    if (!entry) return
+    void removeMeasurement(id)
+    setUndoEntry(entry)
+  })
 
   if (!type || !spec) return null
 
@@ -279,19 +295,32 @@ function HistorySheet({
         </ChartCard>
 
         <div className="section-title">Entries</div>
-        {entries.map((e) => (
-          <div className="row-between" key={e.id} style={{ padding: '9px 2px', borderBottom: '1px solid var(--border)' }}>
-            <span className="muted">{new Date(e.takenAt).toLocaleDateString()}</span>
-            <div className="row" style={{ gap: 10 }}>
-              <span className="mono" style={{ fontWeight: 650 }}>
-                {formatMeasurement(e.value, spec.kind, settings)} {unit}
-              </span>
-              <button className="icon-btn" onClick={() => setDeleting(e)} aria-label="Delete entry">
+        {entries.map((e) => {
+          const swipeRow = swipe.rowProps(e.id)
+          return (
+            <div className="swipe-row" key={e.id}>
+              <div className="swipe-row-action">
                 <IconTrash />
-              </button>
+                Delete
+              </div>
+              <div
+                className="row-between swipe-row-content"
+                style={{ padding: '9px 2px', borderBottom: '1px solid var(--border)', ...swipeRow.style }}
+                onPointerDown={swipeRow.onPointerDown}
+              >
+                <span className="muted">{new Date(e.takenAt).toLocaleDateString()}</span>
+                <div className="row" style={{ gap: 10 }}>
+                  <span className="mono" style={{ fontWeight: 650 }}>
+                    {formatMeasurement(e.value, spec.kind, settings)} {unit}
+                  </span>
+                  <button className="icon-btn" onClick={() => setDeleting(e)} aria-label="Delete entry">
+                    <IconTrash />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </Sheet>
 
       <ConfirmSheet
@@ -305,11 +334,28 @@ function HistorySheet({
         confirmLabel="Delete"
         destructive
         onConfirm={() => {
-          if (deleting) void db.measurements.delete(deleting.id)
+          if (deleting) void removeMeasurement(deleting.id)
           setDeleting(null)
         }}
         onCancel={() => setDeleting(null)}
       />
+
+      <Toast
+        message={
+          undoEntry
+            ? `Deleted ${formatMeasurement(undoEntry.value, spec.kind, settings)} ${unit} entry`
+            : null
+        }
+        actionLabel="Undo"
+        onAction={() => {
+          if (undoEntry) void db.measurements.put(undoEntry)
+        }}
+        onDismiss={() => setUndoEntry(null)}
+      />
     </>
   )
+}
+
+async function removeMeasurement(id: string) {
+  await db.measurements.delete(id)
 }

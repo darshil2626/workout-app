@@ -7,11 +7,14 @@ import type { Exercise, Folder, Routine, RoutineExercise, RoutineSetTarget, SetT
 import { Header } from '../components/Header'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
+import { Toast } from '../components/Toast'
 import { useFormatters } from '../lib/useSettings'
 import { fieldsFor, SET_TYPE_LABEL, setBadges } from '../lib/workout'
 import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
 import { track } from '../lib/analytics'
+import { useSwipeToDelete } from '../lib/useSwipeToDelete'
+import { useLongPress } from '../lib/useLongPress'
 import {
   IconArrowDown,
   IconArrowUp,
@@ -48,6 +51,10 @@ export function RoutineEditPage() {
   const [restEditor, setRestEditor] = useState<RoutineExercise | null>(null)
   const [typeMenu, setTypeMenu] = useState<{ exId: string; index: number } | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  // Holds what a swipe just removed so an Undo tap can put it back where it
+  // was. Local-only, like `items` itself — nothing is written to Dexie until
+  // Save, so undo is just re-inserting into that same array.
+  const [undoExercise, setUndoExercise] = useState<{ item: RoutineExercise; index: number } | null>(null)
 
   // Load once; afterwards local state is the source of truth while editing.
   useEffect(() => {
@@ -107,6 +114,37 @@ export function RoutineEditPage() {
       return next
     })
   }
+
+  function removeItem(itemId: string) {
+    const index = items.findIndex((re) => re.id === itemId)
+    if (index < 0) return
+    const item = items[index]
+    setItems((prev) => prev.filter((re) => re.id !== itemId))
+    setUndoExercise({ item, index })
+  }
+
+  function undoRemoveItem() {
+    if (!undoExercise) return
+    setItems((prev) => {
+      const next = [...prev]
+      next.splice(Math.min(undoExercise.index, next.length), 0, undoExercise.item)
+      return next
+    })
+    setUndoExercise(null)
+  }
+
+  // Swipe-to-delete and long-press-for-menu on each exercise block. Both are
+  // additional paths onto actions the "..." button already reaches — that
+  // button stays put as the discoverable, tappable way to remove an exercise
+  // or open its menu.
+  const swipeExercise = useSwipeToDelete(removeItem)
+  const longPressExercise = useLongPress(
+    (id) => {
+      const item = items.find((re) => re.id === id)
+      if (item) setMenu(item)
+    },
+    { disabled: (id) => swipeExercise.isSwiping(id) },
+  )
 
   if (!hydrated) return <div className="spinner" />
 
@@ -180,8 +218,23 @@ export function RoutineEditPage() {
               })),
             )
 
+            const swipeRow = swipeExercise.rowProps(re.id)
+            const longPressRow = longPressExercise.rowProps(re.id)
+
             return (
-              <section className="ex-block" key={re.id}>
+              <div className="swipe-row" key={re.id}>
+                <div className="swipe-row-action">
+                  <IconTrash />
+                  Remove
+                </div>
+                <section
+                  className="ex-block swipe-row-content"
+                  style={swipeRow.style}
+                  onPointerDown={(e) => {
+                    swipeRow.onPointerDown(e)
+                    longPressRow.onPointerDown(e)
+                  }}
+                >
                 <div className="ex-head">
                   <div className="stack grow">
                     <span className="ex-name truncate">{exercise?.name ?? 'Unknown exercise'}</span>
@@ -325,7 +378,8 @@ export function RoutineEditPage() {
                     Add set
                   </button>
                 </div>
-              </section>
+                </section>
+              </div>
             )
           })}
         </div>
@@ -458,7 +512,7 @@ export function RoutineEditPage() {
         <button
           className="sheet-list-item danger"
           onClick={() => {
-            if (menu) setItems((prev) => prev.filter((x) => x.id !== menu.id))
+            if (menu) removeItem(menu.id)
             setMenu(null)
           }}
         >
@@ -499,6 +553,13 @@ export function RoutineEditPage() {
         destructive
         onConfirm={() => navigate('/', { replace: true })}
         onCancel={() => setConfirmLeave(false)}
+      />
+
+      <Toast
+        message={undoExercise ? `Removed "${byId.get(undoExercise.item.exerciseId)?.name ?? 'exercise'}"` : null}
+        actionLabel="Undo"
+        onAction={undoRemoveItem}
+        onDismiss={() => setUndoExercise(null)}
       />
     </>
   )

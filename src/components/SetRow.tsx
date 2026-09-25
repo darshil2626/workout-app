@@ -4,10 +4,12 @@ import { fieldsFor } from '../lib/workout'
 import type { Formatters } from '../lib/useSettings'
 import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
-import { IconCheck, IconTimer } from './Icons'
+import { IconCheck, IconTimer, IconTrash } from './Icons'
 import { vibrateTick } from '../lib/chime'
 import type { ActiveSetTimer } from '../state/SetTimerContext'
 import { PR_LABEL, type PRKind } from '../lib/records'
+import type { SwipeToDeleteState } from '../lib/useSwipeToDelete'
+import type { LongPressState } from '../lib/useLongPress'
 
 /**
  * Uncontrolled-while-focused text input.
@@ -75,6 +77,25 @@ interface Props {
    */
   onStartTimer?: () => void
   onStopTimer?: () => void
+  /** Swipe-left-to-delete and long-press-for-menu, shared across every row in
+   *  the table and keyed here by `set.id`. Both are additional, faster paths
+   *  onto onOpenMenu's existing "Delete set" action / the menu itself — the
+   *  set-number badge stays the tappable, discoverable way to reach either.
+   *  Omitted on the past-session editor (EditWorkout.tsx), which has no swipe
+   *  or long-press wired up and just gets the row inert either way. */
+  swipe?: SwipeToDeleteState
+  longPress?: LongPressState
+}
+
+const INERT_SWIPE: SwipeToDeleteState = {
+  isSwiping: () => false,
+  isArmed: () => false,
+  offsetFor: () => 0,
+  rowProps: () => ({ onPointerDown: () => {}, style: {} }),
+}
+
+const INERT_LONG_PRESS: LongPressState = {
+  rowProps: () => ({ onPointerDown: () => {} }),
 }
 
 export function SetRow({
@@ -90,6 +111,8 @@ export function SetRow({
   onOpenMenu,
   onStartTimer,
   onStopTimer,
+  swipe = INERT_SWIPE,
+  longPress = INERT_LONG_PRESS,
 }: Props) {
   const f = fieldsFor(kind)
   const { weightUnit, distanceUnit } = fmt
@@ -178,8 +201,21 @@ export function SetRow({
     onToggleComplete()
   }
 
+  const swipeRow = swipe.rowProps(set.id)
+  const longPressRow = longPress.rowProps(set.id)
+  const rowClasses = [set.completed ? 'done' : null, swipe.isArmed(set.id) ? 'swipe-armed' : null]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <tr className={set.completed ? 'done' : undefined}>
+    <tr
+      className={rowClasses || undefined}
+      style={swipeRow.style}
+      onPointerDown={(e) => {
+        swipeRow.onPointerDown(e)
+        longPressRow.onPointerDown(e)
+      }}
+    >
       <td className="col-set">
         <button
           className={`set-badge ${set.setType}`}
@@ -296,6 +332,13 @@ export function SetRow({
         >
           <IconCheck />
         </button>
+        {/* A set row is a <tr>, so there's no room for a separate revealed
+            "behind" layer the way card-shaped rows get one — this fades in
+            over the existing check column instead, once the drag has been
+            pulled far enough that releasing now deletes the set. */}
+        <span className="set-swipe-hint" aria-hidden="true">
+          <IconTrash />
+        </span>
       </td>
     </tr>
   )

@@ -1156,6 +1156,37 @@ textarea.input {
   color: var(--text-dim);
 }
 
+/* A set row is a <tr>, so it skips the .swipe-row two-layer treatment used
+   elsewhere — wrapping it in a div to host a hidden action layer would break
+   the table it lives in. Instead the row itself slides (via inline
+   transform, set in SetRow.tsx) and tints red once the drag has crossed the
+   delete threshold, with the trash glyph below fading in over the existing
+   check column rather than on a separate revealed layer. */
+.set-table tr.swipe-armed td {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+}
+
+.set-swipe-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--danger);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.set-swipe-hint svg {
+  width: 18px;
+  height: 18px;
+}
+
+.set-table tr.swipe-armed .set-swipe-hint {
+  opacity: 1;
+}
+
 .col-set {
   width: 42px;
 }
@@ -1166,6 +1197,7 @@ textarea.input {
 
 .col-check {
   width: 44px;
+  position: relative;
 }
 
 /* Carries a surface and border because it is a button: it opens the set menu
@@ -1633,6 +1665,85 @@ tr.done .set-input {
 /* Screens that hide the tab bar only have the rest timer to clear. */
 .app.fullscreen .update-toast {
   bottom: calc(var(--safe-bottom) + 64px);
+}
+
+/* ── Toast (swipe-to-delete undo) ──────────────────────────────────────── */
+
+/* Sits lower than .update-toast — the two are unrelated and would only ever
+   coincide by rare accident, but stacking closer to the tab bar than a
+   pending app update keeps that one from ever being obscured. */
+.toast {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3));
+  z-index: 40;
+  max-width: 616px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-weight: 600;
+  animation: fade 160ms var(--ease) both;
+}
+
+.app.fullscreen .toast {
+  bottom: calc(var(--safe-bottom) + var(--space-3));
+}
+
+/* ── Swipe-to-delete ───────────────────────────────────────────────────── */
+
+/* Wraps every swipeable row. The action layer beneath is absolutely
+   positioned to the wrapper's own bounds, and overflow: hidden keeps it (and
+   an over-dragged content layer) from ever escaping the row. */
+.swipe-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+/* Stands in for the margin a bare .card or .ex-block would have contributed
+   via their own "+ .card" / "+ .ex-block" adjacent-sibling rules — wrapping
+   them in .swipe-row makes those selectors stop matching, so the spacing
+   moves here instead of disappearing. */
+.swipe-row + .swipe-row {
+  margin-top: var(--space-3);
+}
+
+.swipe-row-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-right: var(--space-5);
+  background: var(--danger);
+  color: #fff;
+  font-weight: 650;
+}
+
+.swipe-row-action svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The foreground layer that actually slides. It needs an opaque background
+   of its own — matching the surface every row already sits on — so it fully
+   hides the action layer behind it at rest, and z-index (not just DOM order)
+   is what keeps it painted on top through the drag: both this and the
+   action layer above are positioned, so without it paint order would fall
+   back to ambiguous stacking-context rules instead of the visual order this
+   pattern depends on. */
+.swipe-row-content {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
 }
 
 /* ── Screen transitions ─────────────────────────────────────────────────── */

@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import type { Exercise, Folder, Routine } from '../../db/types'
-import { IconFolder, IconPlay } from '../Icons'
+import { IconFolder, IconPlay, IconTrash } from '../Icons'
 import { formatRelative } from '../../lib/time'
+import { useSwipeToDelete } from '../../lib/useSwipeToDelete'
 
 interface Props {
   routines: Routine[]
@@ -9,6 +10,11 @@ interface Props {
   exerciseById: Map<string, Exercise>
   onStart: (routine: Routine) => void
   onMenu: (routine: Routine) => void
+  /** Swipe's faster path onto the same delete this menu's "Delete routine"
+   *  option already reaches — no dedicated "..." trigger sits on this card
+   *  (the whole info area already opens the menu on a single tap), so this
+   *  list only picks up swipe-to-delete, not long-press. */
+  onSwipeDelete: (routine: Routine) => void
   onNewRoutine: () => void
   onNewFolder: () => void
 }
@@ -24,9 +30,15 @@ export function RoutinesSection({
   exerciseById,
   onStart,
   onMenu,
+  onSwipeDelete,
   onNewRoutine,
   onNewFolder,
 }: Props) {
+  const routineById = useMemo(() => new Map(routines.map((r) => [r.id, r])), [routines])
+  const swipe = useSwipeToDelete((id) => {
+    const r = routineById.get(id)
+    if (r) onSwipeDelete(r)
+  })
   const sortedFolders = useMemo(() => [...folders].sort((a, b) => a.order - b.order), [folders])
   const byFolder = useMemo(() => {
     const map = new Map<string | null, Routine[]>()
@@ -93,6 +105,7 @@ export function RoutinesSection({
                   summary={summary(r)}
                   onStart={() => onStart(r)}
                   onMenu={() => onMenu(r)}
+                  swipe={swipe}
                 />
               ))}
             </div>
@@ -111,6 +124,7 @@ export function RoutinesSection({
                 summary={summary(r)}
                 onStart={() => onStart(r)}
                 onMenu={() => onMenu(r)}
+                swipe={swipe}
               />
             ))}
           </div>
@@ -125,33 +139,42 @@ function RoutineCard({
   summary,
   onStart,
   onMenu,
+  swipe,
 }: {
   routine: Routine
   summary: string
   onStart: () => void
   onMenu: () => void
+  swipe: ReturnType<typeof useSwipeToDelete>
 }) {
+  const swipeRow = swipe.rowProps(routine.id)
   return (
-    <div className="card">
-      <div className="row-between" style={{ alignItems: 'flex-start' }}>
-        <button className="stack grow" style={{ textAlign: 'left' }} onClick={onMenu}>
-          <span style={{ fontWeight: 650 }}>{routine.name}</span>
-          <span className="faint" style={{ lineHeight: 1.4 }}>
-            {summary}
-          </span>
-          {routine.lastPerformedAt ? (
-            <span className="faint">Last done {formatRelative(routine.lastPerformedAt)}</span>
-          ) : null}
+    <div className="swipe-row">
+      <div className="swipe-row-action">
+        <IconTrash />
+        Delete
+      </div>
+      <div className="card swipe-row-content" style={swipeRow.style} onPointerDown={swipeRow.onPointerDown}>
+        <div className="row-between" style={{ alignItems: 'flex-start' }}>
+          <button className="stack grow" style={{ textAlign: 'left' }} onClick={onMenu}>
+            <span style={{ fontWeight: 650 }}>{routine.name}</span>
+            <span className="faint" style={{ lineHeight: 1.4 }}>
+              {summary}
+            </span>
+            {routine.lastPerformedAt ? (
+              <span className="faint">Last done {formatRelative(routine.lastPerformedAt)}</span>
+            ) : null}
+          </button>
+        </div>
+        <button
+          className="btn btn-primary btn-sm btn-block"
+          style={{ marginTop: 10 }}
+          onClick={onStart}
+        >
+          <IconPlay />
+          Start routine
         </button>
       </div>
-      <button
-        className="btn btn-primary btn-sm btn-block"
-        style={{ marginTop: 10 }}
-        onClick={onStart}
-      >
-        <IconPlay />
-        Start routine
-      </button>
     </div>
   )
 }

@@ -34,6 +34,8 @@ interface ActiveWorkoutValue {
   reorderExercises: (orderedIds: string[]) => void
   addSet: (loggedExerciseId: string) => void
   removeSet: (loggedExerciseId: string, setId: string) => void
+  /** Re-inserts a previously removed set — the undo half of a swipe-delete. */
+  insertSet: (loggedExerciseId: string, index: number, set: LoggedSet) => void
   updateSet: (loggedExerciseId: string, setId: string, patch: Partial<LoggedSet>) => void
   updateExercise: (loggedExerciseId: string, patch: Partial<Omit<LoggedExercise, 'sets' | 'id'>>) => void
   setName: (name: string) => void
@@ -275,6 +277,18 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
     [mutateExercise],
   )
 
+  /** Undo for a swipe-deleted set: puts it back at (or near) its old index. */
+  const insertSet = useCallback(
+    (loggedExerciseId: string, index: number, set: LoggedSet) => {
+      mutateExercise(loggedExerciseId, (le) => {
+        const sets = [...le.sets]
+        sets.splice(Math.min(index, sets.length), 0, set)
+        return { ...le, sets }
+      })
+    },
+    [mutateExercise],
+  )
+
   const updateSet = useCallback(
     (loggedExerciseId: string, setId: string, patch: Partial<LoggedSet>) => {
       mutateExercise(loggedExerciseId, (le) => ({
@@ -365,6 +379,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       reorderExercises,
       addSet,
       removeSet,
+      insertSet,
       updateSet,
       updateExercise,
       setName,
@@ -384,6 +399,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       reorderExercises,
       addSet,
       removeSet,
+      insertSet,
       updateSet,
       updateExercise,
       setName,

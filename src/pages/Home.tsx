@@ -6,6 +6,7 @@ import type { Routine } from '../db/types'
 import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
+import { Toast } from '../components/Toast'
 import { IconList, IconPlay, IconPlus, IconSettings, IconTrash } from '../components/Icons'
 import { useFormatters } from '../lib/useSettings'
 import { computeStreaks, overallTotals } from '../lib/stats'
@@ -64,6 +65,8 @@ export function HomePage() {
 
   const [menuRoutine, setMenuRoutine] = useState<Routine | null>(null)
   const [deleting, setDeleting] = useState<Routine | null>(null)
+  // Holds what a swipe just removed so an Undo tap can put it back.
+  const [undoRoutine, setUndoRoutine] = useState<Routine | null>(null)
   const [newFolder, setNewFolder] = useState(false)
   const [folderName, setFolderName] = useState('')
   const [startBlocked, setStartBlocked] = useState<null | { routine?: Routine }>(null)
@@ -205,9 +208,24 @@ export function HomePage() {
     setNewFolder(false)
   }
 
-  async function deleteRoutine(routine: Routine) {
+  async function removeRoutine(routine: Routine) {
     await db.routines.delete(routine.id)
+  }
+
+  async function deleteRoutine(routine: Routine) {
+    await removeRoutine(routine)
     setDeleting(null)
+  }
+
+  function swipeDeleteRoutine(routine: Routine) {
+    void removeRoutine(routine)
+    setUndoRoutine(routine)
+  }
+
+  async function undoDeleteRoutine() {
+    if (!undoRoutine) return
+    await db.routines.put(undoRoutine)
+    setUndoRoutine(null)
   }
 
   function scrollToRoutines() {
@@ -289,6 +307,7 @@ export function HomePage() {
                 exerciseById={exerciseById}
                 onStart={(r) => void start(r)}
                 onMenu={setMenuRoutine}
+                onSwipeDelete={swipeDeleteRoutine}
                 onNewRoutine={() => navigate('/routines/new')}
                 onNewFolder={() => setNewFolder(true)}
               />
@@ -385,6 +404,13 @@ export function HomePage() {
           navigate('/workout')
         }}
         onCancel={() => setStartBlocked(null)}
+      />
+
+      <Toast
+        message={undoRoutine ? `Deleted "${undoRoutine.name}"` : null}
+        actionLabel="Undo"
+        onAction={() => void undoDeleteRoutine()}
+        onDismiss={() => setUndoRoutine(null)}
       />
     </>
   )

@@ -122,6 +122,10 @@
      inside 120–180ms, long enough to be felt and short enough that a fast
      tapper never waits on one. */
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A slight overshoot, reserved for moments worth celebrating (a PR, a
+     milestone) rather than the app's routine state changes and screen
+     transitions above, which all use `--ease`. */
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   --dur: 150ms;
   /* The press-down half of a tap: snappier than a settle, so the "give" reads
      as instant. Named rather than left as a bare 130ms in four places. */
@@ -1400,7 +1404,7 @@ button.set-badge::before {
   color: var(--gold);
   font-weight: 700;
   font-size: var(--text-base);
-  animation: finish-celebrate-in 380ms var(--ease) both;
+  animation: finish-celebrate-in 380ms var(--ease-overshoot) both;
 }
 
 @keyframes finish-celebrate-in {
@@ -1800,7 +1804,7 @@ tr.done .set-step-btn {
   font-size: var(--text-base);
   text-align: center;
   cursor: pointer;
-  animation: celebration-in 420ms var(--ease) both;
+  animation: celebration-in 420ms var(--ease-overshoot) both;
 }
 
 .celebration-banner-text {
@@ -2707,6 +2711,29 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   }
 }
 
+/* ── List entrance stagger ──────────────────────────────────────────────── */
+
+/* A first-load cascade for a genuinely first-paint list (the exercise
+   library) — each row sets `--stagger-index` inline (its position in the
+   flattened list) and this converts that into a capped delay, so a 100+ row
+   library doesn't stagger for seconds. `min()` does the capping in CSS
+   rather than clamping the index in JS, so the constant lives in one place.
+   Reduced-motion's opacity-only override sits right below, per that block's
+   own comment about additions after it already being covered — this is the
+   one exception, since the audit calls for a fade to survive here rather
+   than collapsing to nothing like every other animation in the file. */
+.stagger-row {
+  animation: stagger-row-in 220ms var(--ease) both;
+  animation-delay: min(calc(var(--stagger-index, 0) * 20ms), 240ms);
+}
+
+@keyframes stagger-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 /* ── Reduced motion ─────────────────────────────────────────────────────── */
 
 /* One switch for the whole file. Nothing above animates to convey meaning — the
@@ -2732,6 +2759,22 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
+  }
+
+  /* The one animation in the file the audit wants to survive reduced-motion
+     rather than collapse to a same-frame snap: a class selector beats the
+     universal `*` rule above on specificity even with matching !important,
+     so this still overrides it. No delay (the `*` rule's 0ms already suits
+     a "no stagger" reading) and no translate — opacity only. */
+  .stagger-row {
+    animation-name: stagger-row-in-reduced !important;
+    animation-duration: 160ms !important;
+  }
+}
+
+@keyframes stagger-row-in-reduced {
+  from {
+    opacity: 0;
   }
 }
 

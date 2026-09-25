@@ -31,7 +31,7 @@ import {
 } from '../lib/records'
 import { isMilestoneWorkoutCount } from '../lib/stats'
 import { formatDuration } from '../lib/time'
-import { vibrateTick } from '../lib/chime'
+import { vibratePR, vibrateTick } from '../lib/chime'
 import { SetRow } from '../components/SetRow'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -157,9 +157,17 @@ export function ActiveWorkoutPage() {
   // milestone check) is read one at a time instead of the later one silently
   // clobbering the first.
   const [celebrations, setCelebrations] = useState<string[]>([])
-  const pushCelebration = useCallback((message: string) => {
-    setCelebrations((q) => [...q, message])
-  }, [])
+  const pushCelebration = useCallback(
+    (message: string) => {
+      setCelebrations((q) => [...q, message])
+      // Mid-workout celebrations (a PR the instant it's set, a milestone at
+      // finish) had no haptic of their own before — only the finish sheet's
+      // PR summary buzzed. Same double-pulse pattern as that summary, so
+      // every celebratory banner reads as the same kind of event.
+      if (fmt.settings.restTimerVibrate) vibratePR()
+    },
+    [fmt.settings.restTimerVibrate],
+  )
   const dismissCelebration = useCallback(() => setCelebrations((q) => q.slice(1)), [])
   const currentCelebration = celebrations[0] ?? null
 

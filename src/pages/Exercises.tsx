@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -106,6 +106,13 @@ export function ExercisesPage() {
     return [...groups.entries()]
   }, [filtered])
 
+  // A running index across the whole flattened list (not reset per letter),
+  // so the stagger reads as one continuous cascade down the screen rather
+  // than restarting at the top of every alphabetical group. Plain mutable
+  // counter, not state: it's only read while building this render's JSX and
+  // never needs to survive past it.
+  let staggerIndex = 0
+
   return (
     <>
       <Header
@@ -165,14 +172,30 @@ export function ExercisesPage() {
               <div className="card" style={{ padding: '4px 14px' }}>
                 {list.map((e) => {
                   const series = sparklines.get(e.id)
+                  const index = staggerIndex++
                   return (
                     <button
                       key={e.id}
-                      className="picker-item"
+                      className="picker-item stagger-row"
+                      style={{ '--stagger-index': index } as CSSProperties}
                       onClick={() => navigate(`/exercises/${e.id}`)}
                     >
                       <div className="stack grow">
-                        <span className="picker-name truncate">{e.name}</span>
+                        {/* Shared-element transition into ExerciseDetail's header: a
+                            per-exercise name, unique to this row, so the browser
+                            morphs this exact span into the detail header's title
+                            rather than cross-fading the whole screen. Safe to set
+                            on every row unconditionally (not just the tapped one)
+                            because this whole page unmounts on navigation — no two
+                            elements ever hold the same name at once, since each
+                            id's name is used by at most one row here and at most
+                            one header there. */}
+                        <span
+                          className="picker-name truncate"
+                          style={{ viewTransitionName: `exercise-name-${e.id}` } as CSSProperties}
+                        >
+                          {e.name}
+                        </span>
                         <span className="picker-meta">
                           {e.muscleGroup} · {e.equipment}
                         </span>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -38,6 +38,7 @@ const PREVIEW_RECORDS: ExerciseRecords = {
 }
 import { formatDateLabel } from '../lib/time'
 import { hasActiveWorkout, mergeExercises } from '../lib/exerciseRepair'
+import { vibrateError } from '../lib/chime'
 import { IconMore, IconTrash } from '../components/Icons'
 import { ChartCard } from '../components/charts/ChartCard'
 import { LineChart } from '../components/charts/LineChart'
@@ -232,7 +233,15 @@ export function ExerciseDetailPage() {
   return (
     <>
       <Header
-        title={exercise.name}
+        // Paired with the same name on the list row in Exercises.tsx — see
+        // the comment there for why setting it unconditionally is safe (this
+        // page only ever renders one such span, for the one exercise it's
+        // showing, so there is never a duplicate to collide with).
+        title={
+          <span style={{ viewTransitionName: `exercise-name-${exercise.id}` } as CSSProperties}>
+            {exercise.name}
+          </span>
+        }
         back={true}
         right={
           <button className="icon-btn" onClick={() => setMenu(true)} aria-label="Exercise options">
@@ -444,8 +453,12 @@ export function ExerciseDetailPage() {
           className="sheet-list-item danger"
           onClick={() => {
             setMenu(false)
-            if (exercise.isCustom) setConfirmDelete(true)
-            else setBlockedDelete(true)
+            if (exercise.isCustom) {
+              setConfirmDelete(true)
+            } else {
+              if (fmt.settings.restTimerVibrate) vibrateError()
+              setBlockedDelete(true)
+            }
           }}
         >
           <IconTrash />

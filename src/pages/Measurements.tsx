@@ -22,6 +22,7 @@ import { formatRelative } from '../lib/time'
 import { IconPlus, IconTrash } from '../components/Icons'
 import { Toast } from '../components/Toast'
 import { useSwipeToDelete } from '../lib/useSwipeToDelete'
+import { vibrateError } from '../lib/chime'
 
 /** Local date in yyyy-mm-dd for <input type="date">, which has no timezone. */
 function toDateInput(ts: number): string {
@@ -126,19 +127,24 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
 
   const spec = type ? specFor(type) : null
 
+  function fail(message: string) {
+    setError(message)
+    if (settings.restTimerVibrate) vibrateError()
+  }
+
   async function save() {
     if (!type || !spec) return
     const n = parseNumber(value)
     if (n === null || n <= 0) {
-      setError('Enter a number greater than zero.')
+      fail('Enter a number greater than zero.')
       return
     }
     if (spec.kind === 'percent' && n > 100) {
-      setError('Body fat percentage cannot exceed 100.')
+      fail('Body fat percentage cannot exceed 100.')
       return
     }
     if (date > toDateInput(Date.now())) {
-      setError('Date cannot be in the future.')
+      fail('Date cannot be in the future.')
       return
     }
     await saveMeasurement(type, fromDisplayValue(n, spec.kind, settings), fromDateInput(date))

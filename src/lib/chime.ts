@@ -46,3 +46,24 @@ export function vibrate(): void {
 export function vibrateTick(): void {
   if ('vibrate' in navigator) navigator.vibrate(15)
 }
+
+/**
+ * Two short pulses for a genuinely celebratory moment — a PR, a milestone
+ * banner. Distinct from both `vibrateTick`'s single light pulse (too subtle
+ * for "you just set a record") and `vibrate`'s triple pulse (that one means
+ * "a timer finished", an unrelated event this would otherwise be confused
+ * with if reused here).
+ */
+export function vibratePR(): void {
+  if ('vibrate' in navigator) navigator.vibrate([15, 60, 15])
+}
+
+/**
+ * One longer buzz for a rejected, invalid action — a blocked delete, a
+ * validation failure. Deliberately unlike every other pattern here (all of
+ * which mark something succeeding) so a mis-tap reads as "that didn't work"
+ * before the user even reads the message.
+ */
+export function vibrateError(): void {
+  if ('vibrate' in navigator) navigator.vibrate(250)
+}

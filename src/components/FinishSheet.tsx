@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Sheet } from './Sheet'
 import type { SessionRating } from '../state/ActiveWorkoutContext'
 import { useSettings } from '../lib/useSettings'
-import { vibrate } from '../lib/chime'
+import { vibratePR } from '../lib/chime'
 import { DeltaBadge } from './DeltaBadge'
 
 /** 1–5, mild to maximal. Stored as the number so it can be averaged later. */
@@ -54,7 +54,7 @@ export function FinishSheet({ open, summary, onClose, onSave }: Props) {
   // keyed on `open` alone since `summary`/`settings` are a snapshot for the
   // sheet's lifetime, not something that changes while it's up.
   useEffect(() => {
-    if (open && summary.prCount > 0 && settings.restTimerVibrate) vibrate()
+    if (open && summary.prCount > 0 && settings.restTimerVibrate) vibratePR()
   }, [open])
 
   function reset() {

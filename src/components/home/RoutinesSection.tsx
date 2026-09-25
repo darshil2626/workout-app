@@ -145,7 +145,7 @@ function RoutineCard({
         </button>
       </div>
       <button
-        className="btn btn-accent-soft btn-sm btn-block"
+        className="btn btn-primary btn-sm btn-block"
         style={{ marginTop: 10 }}
         onClick={onStart}
       >

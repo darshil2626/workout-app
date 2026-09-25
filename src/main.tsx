@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { db, initDb } from './db/db'
 import { applyTheme, resolveTheme } from './lib/theme'
+import { maybeSeedSyntheticData } from './dev/seedSynthetic'
 import './index.css'
 
 const root = createRoot(document.getElementById('root')!)
@@ -17,6 +18,11 @@ initDb()
   .catch((err: unknown) => {
     console.error('Database initialisation failed', err)
   })
+  .then(() =>
+    maybeSeedSyntheticData().catch((err: unknown) => {
+      console.error('Synthetic dev data seed failed', err)
+    }),
+  )
   .then(() => db.settings.get(1))
   .then((settings) => {
     if (settings) applyTheme(resolveTheme(settings.theme))

@@ -135,6 +135,10 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
       setError('Body fat percentage cannot exceed 100.')
       return
     }
+    if (date > toDateInput(Date.now())) {
+      setError('Date cannot be in the future.')
+      return
+    }
     await saveMeasurement(type, fromDisplayValue(n, spec.kind, settings), fromDateInput(date))
     setValue('')
     setError(null)
@@ -210,6 +214,7 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
             id="m-date"
             className="input"
             type="date"
+            max={toDateInput(Date.now())}
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />

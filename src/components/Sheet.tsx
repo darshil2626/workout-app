@@ -29,6 +29,20 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
     }
   }, [open, rendered])
 
+  // Safety net for the unmount below: a backgrounded/suspended tab pauses CSS
+  // animations indefinitely, so `animationend` can simply never fire (a PWA
+  // going to the background mid-tap is the common case) — without this, the
+  // sheet is stuck fully open forever and its close button looks dead, since
+  // tapping it again is a no-op (it already called onClose once).
+  useEffect(() => {
+    if (!closing) return
+    const timeout = window.setTimeout(() => {
+      setRendered(false)
+      setClosing(false)
+    }, 260)
+    return () => window.clearTimeout(timeout)
+  }, [closing])
+
   // Lock the page behind the sheet so scrolling stays inside it.
   useEffect(() => {
     if (!open) return

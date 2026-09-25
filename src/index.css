@@ -2678,19 +2678,11 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   place-items: center;
 }
 
-/* Height fixed at 15px — large enough to judge a colour at a glance and to
-   hit with a thumb, while staying compact. Width is set per-instance
-   (Heatmap.tsx, --heat-cell-w) and stretched up to 48px when there are too
-   few weeks to fill the card's width as a plain square would — otherwise a
-   short window (a new user, or Home's compact 70-day preview) packs to the
-   left and leaves the rest of the box looking broken/empty. Wide-and-short
-   rather than growing square keeps the grid from also getting taller. The
-   `15px` fallback is what the legend swatches in .heatmap-foot use, since
-   they sit outside .heatmap's subtree and are meant to stay small
-   regardless. The hairline border keeps the grid legible so a rest day
-   reads as absent, not as a low bin. */
+/* 15px rather than 13px: large enough to judge a colour at a glance and to hit
+   with a thumb, while 17 weeks still fit the scroller. The hairline keeps the
+   calendar grid legible so a rest day reads as absent, not as a low bin. */
 .heatmap-cell {
-  width: var(--heat-cell-w, 15px);
+  width: 15px;
   height: 15px;
   border-radius: var(--radius-control);
   flex-shrink: 0;
@@ -2864,6 +2856,22 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 
 .folder-toggle-chevron.open {
   transform: rotate(0deg);
+}
+
+/* Sits beside the consistency calendar rather than below it, in the width
+   the calendar's fixed-size cells don't need — a narrow column rather than
+   `.stat-grid`'s auto-fit columns, since two tiles stacked read better here
+   than two tiles squeezed side by side into whatever's left over. */
+.consistency-streaks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  width: 96px;
+}
+
+.consistency-streaks .stat {
+  padding: var(--space-2);
 }
 
 /* Each titled block is its own <section>, which makes its heading a

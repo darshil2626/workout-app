@@ -31,33 +31,37 @@ export function ConsistencyCalendar({ days, streaks, firstDayOfWeek, fmt }: Prop
     <section className="home-sect home-appear">
       <div className="section-title">Consistency</div>
       <div className="card">
-        {hasRecentActivity ? (
-          <Heatmap
-            cells={days.map((d) => ({ day: d.day, value: d.volumeKg, workouts: d.workouts }))}
-            firstDayOfWeek={firstDayOfWeek}
-            formatValue={(v) => `${fmt.volume(v)} ${fmt.weightUnit}`}
-          />
-        ) : (
-          <div className="chart-empty">
-            <div className="chart-empty-preview" aria-hidden="true">
+        <div className="row" style={{ alignItems: 'stretch', gap: 12 }}>
+          <div className="grow" style={{ minWidth: 0 }}>
+            {hasRecentActivity ? (
               <Heatmap
-                cells={syntheticHeatCells(days.length)}
+                cells={days.map((d) => ({ day: d.day, value: d.volumeKg, workouts: d.workouts }))}
                 firstDayOfWeek={firstDayOfWeek}
-                formatValue={() => ''}
+                formatValue={(v) => `${fmt.volume(v)} ${fmt.weightUnit}`}
               />
-            </div>
-            <p className="muted">Train a few days and your calendar fills in here.</p>
+            ) : (
+              <div className="chart-empty">
+                <div className="chart-empty-preview" aria-hidden="true">
+                  <Heatmap
+                    cells={syntheticHeatCells(days.length)}
+                    firstDayOfWeek={firstDayOfWeek}
+                    formatValue={() => ''}
+                  />
+                </div>
+                <p className="muted">Train a few days and your calendar fills in here.</p>
+              </div>
+            )}
           </div>
-        )}
 
-        <div className="stat-grid" style={{ marginTop: 10 }}>
-          <div className="stat">
-            <div className="stat-value">{streaks.currentWeeks}</div>
-            <div className="stat-label">Current streak</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{streaks.longestWeeks}</div>
-            <div className="stat-label">Best streak</div>
+          <div className="consistency-streaks">
+            <div className="stat">
+              <div className="stat-value">{streaks.currentWeeks}</div>
+              <div className="stat-label">Current streak</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">{streaks.longestWeeks}</div>
+              <div className="stat-label">Best streak</div>
+            </div>
           </div>
         </div>
       </div>

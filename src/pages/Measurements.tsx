@@ -140,11 +140,11 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
       return
     }
     if (spec.kind === 'percent' && n > 100) {
-      fail('Body fat percentage cannot exceed 100.')
+      fail('Enter a percentage of 100 or less.')
       return
     }
     if (date > toDateInput(Date.now())) {
-      fail('Date cannot be in the future.')
+      fail('Enter a date on or before today.')
       return
     }
     await saveMeasurement(type, fromDisplayValue(n, spec.kind, settings), fromDateInput(date))

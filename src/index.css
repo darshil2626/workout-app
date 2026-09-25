@@ -1,7 +1,22 @@
 :root {
   /* Surfaces climb from bg → raised as elements come forward. The ladder is the
      old one rotated off blue-grey toward red/yellow at matched lightness, so the
-     shell reads as charcoal under an ember accent instead of as cold slate. */
+     shell reads as charcoal under an ember accent instead of as cold slate.
+     Tonal elevation, dark palette only (light theme's hierarchy works the
+     opposite direction and is tuned separately below): each rung sits
+     roughly 3% lightness above the one before, since a shadow alone barely
+     reads against near-black. In role order rather than token order —
+     --bg (~5% L, the page) → nav (header/bottom-nav: a translucent tint of
+     --surface, blurred over whatever scrolls beneath — chrome distinguishes
+     itself by blur+border rather than a flat step) → --surface (~9% L,
+     .card, the resting content surface) → --surface-2 (~12% L, .sheet — a
+     full step above .card so a sheet sliding over the page actually reads as
+     coming forward, not just gaining a shadow no one can see) → --raised
+     (~15% L, controls plus the topmost floating bits: .chart-tooltip,
+     .toast/.update-toast). --surface-2 doing double duty as both "sheet
+     background" and "recessed input well" is intentional, not a collision:
+     the two roles never overlap on screen except once (Settings' Strong-
+     units sheet), where the shared tone still reads fine off its border. */
   --bg: #0f0d0b;
   --surface: #191714;
   --surface-2: #221f1b;
@@ -313,7 +328,11 @@ select {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  /* Same nav-tier tint as .bottom-nav below (a translucent --surface, not
+     --bg) so the top and bottom chrome bars read as one tier of the
+     elevation stack instead of the header sitting a step lower than the tab
+     bar it mirrors. */
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   padding-top: var(--safe-top);
@@ -571,16 +590,18 @@ button.card {
    month label needs to travel with you or that grouping is pointless once you
    scroll — you'd lose track of what month you're looking at. Sits flush under
    the app header (53px is that header's own floor: 52px row height plus its
-   1px border, on a page with no back/action button to stretch it taller) and
-   shares its blurred backdrop so the list never shows through the seam. */
+   1px border, on a page with no back/action button to stretch it taller). A
+   sub-header within the page's own content, not floating chrome like the
+   header or tab bar above it, so it just needs an opaque --bg to keep the
+   list from showing through the seam — a blur here was doing the same job as
+   plain opacity while spending glassmorphism outside where it belongs. */
 .month-title {
   position: sticky;
   top: calc(var(--safe-top) + var(--header-h));
   z-index: 15;
   margin: 0;
   padding: var(--space-4) 0 var(--space-2);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--bg);
 }
 
 .month-title:first-child {
@@ -1978,7 +1999,10 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 }
 
 .sheet {
-  background: var(--surface);
+  /* One step above --surface (see the elevation comment in :root): a sheet
+     is a full rung forward of the cards it covers, not a shadow on the same
+     tone. */
+  background: var(--surface-2);
   width: 100%;
   max-width: 640px;
   max-height: 88dvh;
@@ -2037,8 +2061,10 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   transition: background-color var(--dur-press) var(--ease);
 }
 
+/* One more rung up than the sheet itself (which now sits on --surface-2),
+   the same "press lifts a step further" rule .card-tappable:active uses. */
 .sheet-list-item:active {
-  background: var(--surface-2);
+  background: var(--raised);
 }
 
 .sheet-list-item:last-child {
@@ -2078,16 +2104,17 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    have to stay reachable through the whole scroll rather than disappearing
    with the first screenful. 57px is the app header's own floor on a page
    with a back chevron: 56px row height (the back button's 36px plus its
-   10px top/bottom padding) plus its 1px border. Sits flush beneath it,
-   sharing the same blurred backdrop so neither layer fights the other. */
+   10px top/bottom padding) plus its 1px border. Sits flush beneath it. Opaque
+   --bg rather than a blurred translucent one: like .month-title, this is a
+   sticky sub-header inside the page's own content, not floating app chrome,
+   so blur belongs on the header above it and not here too. */
 .exercise-filter-bar {
   position: sticky;
   top: calc(var(--safe-top) + var(--header-h-action));
   z-index: 15;
   margin: 0 calc(-1 * var(--space-4));
   padding: var(--space-3) var(--space-4) var(--space-3);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 

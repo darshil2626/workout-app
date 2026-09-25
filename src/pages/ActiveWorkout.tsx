@@ -264,7 +264,7 @@ export function ActiveWorkoutPage() {
 
   // Swipe-to-delete and long-press-for-menu on set rows. Both are additional
   // paths onto actions the set-number badge already reaches by tap (open the
-  // menu, then "Delete set" in it) — nothing here bypasses that badge, it's
+  // menu, then "Remove set" in it) — nothing here bypasses that badge, it's
   // just faster for anyone who finds the gesture. Keyed by set id, which is
   // unique across the whole session, so one pair of hooks covers every
   // exercise block's table rather than one per block.
@@ -829,7 +829,7 @@ export function ActiveWorkoutPage() {
           }}
         >
           <IconTrash />
-          <span className="grow">Delete set</span>
+          <span className="grow">Remove set</span>
         </button>
       </Sheet>
 

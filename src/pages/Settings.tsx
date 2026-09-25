@@ -378,7 +378,7 @@ export function SettingsPage() {
         )}
         {error && (
           <div className="card" style={{ borderColor: 'var(--danger)', marginBottom: 12 }}>
-            <p style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>{error}</p>
+            <p style={{ color: 'var(--danger)', fontSize: 'var(--text-base)' }}>{error}</p>
           </div>
         )}
 
@@ -419,7 +419,7 @@ export function SettingsPage() {
               ))}
             </div>
           </div>
-          <div className="field" style={{ marginTop: 14 }}>
+          <div className="field" style={{ marginTop: 12 }}>
             <span className="field-label">Distance</span>
             <div className="segmented">
               {(['km', 'mi'] as DistanceUnit[]).map((u) => (
@@ -433,7 +433,7 @@ export function SettingsPage() {
               ))}
             </div>
           </div>
-          <div className="field" style={{ marginTop: 14 }}>
+          <div className="field" style={{ marginTop: 12 }}>
             <span className="field-label">Bodyweight</span>
             <div className="segmented">
               {(['kg', 'lb'] as WeightUnit[]).map((u) => (
@@ -447,7 +447,7 @@ export function SettingsPage() {
               ))}
             </div>
           </div>
-          <div className="field" style={{ marginTop: 14 }}>
+          <div className="field" style={{ marginTop: 12 }}>
             <span className="field-label">Body measurements</span>
             <div className="segmented">
               {(['cm', 'in'] as LengthUnit[]).map((u) => (
@@ -877,7 +877,7 @@ export function SettingsPage() {
           </>
         }
       >
-        <p className="muted" style={{ marginBottom: 14 }}>
+        <p className="muted" style={{ marginBottom: 12 }}>
           Strong's export doesn't record which units it used, so pick what your app was set to when
           you exported this file.
         </p>
@@ -895,7 +895,7 @@ export function SettingsPage() {
             ))}
           </div>
         </div>
-        <div className="field" style={{ marginTop: 14 }}>
+        <div className="field" style={{ marginTop: 12 }}>
           <span className="field-label">Distance</span>
           <div className="segmented">
             {(['km', 'mi'] as DistanceUnit[]).map((u) => (

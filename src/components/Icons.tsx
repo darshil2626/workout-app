@@ -161,7 +161,9 @@ export const IconLink = ({ className }: Props) => (
 
 export const IconPlay = ({ className }: Props) => (
   <svg {...base} className={className}>
-    <path d="M7 4.5v15l13-7.5z" fill="currentColor" />
+    {/* Solid glyph like IconMore's dots below: stroke is explicitly off so the
+        triangle doesn't pick up base's 2px currentColor outline on top of its fill. */}
+    <path d="M7 4.5v15l13-7.5z" fill="currentColor" stroke="none" />
   </svg>
 )
 

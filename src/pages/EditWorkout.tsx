@@ -346,7 +346,7 @@ export function EditWorkoutPage() {
           }}
         >
           <IconTrash />
-          <span className="grow">Delete set</span>
+          <span className="grow">Remove set</span>
         </button>
       </Sheet>
 

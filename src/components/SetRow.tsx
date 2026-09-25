@@ -80,7 +80,7 @@ interface Props {
   onStopTimer?: () => void
   /** Swipe-left-to-delete and long-press-for-menu, shared across every row in
    *  the table and keyed here by `set.id`. Both are additional, faster paths
-   *  onto onOpenMenu's existing "Delete set" action / the menu itself — the
+   *  onto onOpenMenu's existing "Remove set" action / the menu itself — the
    *  set-number badge stays the tappable, discoverable way to reach either.
    *  Omitted on the past-session editor (EditWorkout.tsx), which has no swipe
    *  or long-press wired up and just gets the row inert either way. */

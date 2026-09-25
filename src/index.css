@@ -2858,20 +2858,26 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   transform: rotate(0deg);
 }
 
-/* Sits beside the consistency calendar rather than below it, in the width
-   the calendar's fixed-size cells don't need — a narrow column rather than
-   `.stat-grid`'s auto-fit columns, since two tiles stacked read better here
-   than two tiles squeezed side by side into whatever's left over. */
+/* A 2:1 split with the streak column beside it — `flex-basis: 0%` makes both
+   sides ignore their content size and divide the row purely by these ratios,
+   so the calendar's fixed-size cells (which can only shrink to scroll
+   internally on narrow screens, never grow to fill leftover space) don't
+   throw off the proportion. */
+.consistency-chart {
+  flex: 2 1 0%;
+  min-width: 0;
+}
+
+/* Sits beside the consistency calendar rather than below it: two tiles
+   stacked read better here than two tiles squeezed side by side. Takes the
+   other third of the row (see `.consistency-chart`), wide enough for the
+   figures to breathe without crowding out the calendar. */
 .consistency-streaks {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  flex-shrink: 0;
-  width: 96px;
-}
-
-.consistency-streaks .stat {
-  padding: var(--space-2);
+  flex: 1 1 0%;
+  min-width: 96px;
 }
 
 /* Each titled block is its own <section>, which makes its heading a

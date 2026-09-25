@@ -32,7 +32,7 @@ export function ConsistencyCalendar({ days, streaks, firstDayOfWeek, fmt }: Prop
       <div className="section-title">Consistency</div>
       <div className="card">
         <div className="row" style={{ alignItems: 'stretch', gap: 12 }}>
-          <div className="grow" style={{ minWidth: 0 }}>
+          <div className="consistency-chart">
             {hasRecentActivity ? (
               <Heatmap
                 cells={days.map((d) => ({ day: d.day, value: d.volumeKg, workouts: d.workouts }))}

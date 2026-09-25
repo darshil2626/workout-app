@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ActiveWorkoutProvider } from './state/ActiveWorkoutContext'
 import { RestTimerProvider } from './state/RestTimerContext'
@@ -11,17 +11,24 @@ import { BottomNav } from './components/BottomNav'
 import { RestTimerBar } from './components/RestTimerBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
-import { HomePage } from './pages/Home'
-import { ActiveWorkoutPage } from './pages/ActiveWorkout'
-import { RoutineEditPage } from './pages/RoutineEdit'
-import { HistoryPage } from './pages/History'
-import { WorkoutDetailPage } from './pages/WorkoutDetail'
-import { ExercisesPage } from './pages/Exercises'
-import { ExerciseDetailPage } from './pages/ExerciseDetail'
-import { SettingsPage } from './pages/Settings'
-import { StatsPage } from './pages/Stats'
-import { MeasurementsPage } from './pages/Measurements'
-import { EditWorkoutPage } from './pages/EditWorkout'
+import { ErrorBoundary } from './components/ErrorBoundary'
+
+// Route-level code splitting: each page becomes its own chunk, fetched on
+// first visit rather than bundled into the initial payload. The Suspense
+// fallback below covers the gap between navigating and the chunk arriving.
+const HomePage = lazy(() => import('./pages/Home').then((m) => ({ default: m.HomePage })))
+const ActiveWorkoutPage = lazy(() => import('./pages/ActiveWorkout').then((m) => ({ default: m.ActiveWorkoutPage })))
+const RoutineEditPage = lazy(() => import('./pages/RoutineEdit').then((m) => ({ default: m.RoutineEditPage })))
+const HistoryPage = lazy(() => import('./pages/History').then((m) => ({ default: m.HistoryPage })))
+const WorkoutDetailPage = lazy(() => import('./pages/WorkoutDetail').then((m) => ({ default: m.WorkoutDetailPage })))
+const ExercisesPage = lazy(() => import('./pages/Exercises').then((m) => ({ default: m.ExercisesPage })))
+const ExerciseDetailPage = lazy(() =>
+  import('./pages/ExerciseDetail').then((m) => ({ default: m.ExerciseDetailPage })),
+)
+const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })))
+const StatsPage = lazy(() => import('./pages/Stats').then((m) => ({ default: m.StatsPage })))
+const MeasurementsPage = lazy(() => import('./pages/Measurements').then((m) => ({ default: m.MeasurementsPage })))
+const EditWorkoutPage = lazy(() => import('./pages/EditWorkout').then((m) => ({ default: m.EditWorkoutPage })))
 
 function Shell() {
   const location = useLocation()
@@ -83,20 +90,22 @@ function Shell() {
     <div className={`app${fullscreen ? ' fullscreen' : ''}`}>
       {/* The extra bottom padding keeps the last row clear of the rest timer. */}
       <main className="app-main" style={fullscreen ? { paddingBottom: 96 } : undefined}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/workout" element={<ActiveWorkoutPage />} />
-          <Route path="/routines/:id" element={<RoutineEditPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/history/:id" element={<WorkoutDetailPage />} />
-          <Route path="/history/:id/edit" element={<EditWorkoutPage />} />
-          <Route path="/stats" element={<StatsPage />} />
-          <Route path="/measurements" element={<MeasurementsPage />} />
-          <Route path="/exercises" element={<ExercisesPage />} />
-          <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<div className="spinner" />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/workout" element={<ActiveWorkoutPage />} />
+            <Route path="/routines/:id" element={<RoutineEditPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/history/:id" element={<WorkoutDetailPage />} />
+            <Route path="/history/:id/edit" element={<EditWorkoutPage />} />
+            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/measurements" element={<MeasurementsPage />} />
+            <Route path="/exercises" element={<ExercisesPage />} />
+            <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {!fullscreen && <ActiveWorkoutBanner />}
@@ -113,7 +122,13 @@ export default function App() {
       <RestTimerProvider>
         <SetTimerProvider>
           <ActiveWorkoutProvider>
-            <Shell />
+            {/* Inside the timer/workout providers so a render error caught here
+                doesn't unmount that state — Dexie is still the source of truth,
+                but there's no reason to throw away in-memory state we don't
+                have to. */}
+            <ErrorBoundary>
+              <Shell />
+            </ErrorBoundary>
           </ActiveWorkoutProvider>
         </SetTimerProvider>
       </RestTimerProvider>

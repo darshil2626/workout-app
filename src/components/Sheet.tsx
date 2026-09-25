@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type AnimationEvent, type ReactNode } from 'react'
 import { IconClose } from './Icons'
 
 interface SheetProps {
@@ -13,6 +13,22 @@ interface SheetProps {
 
 /** Bottom sheet used for pickers, menus and confirmations. */
 export function Sheet({ open, title, onClose, children, footer, hideClose }: SheetProps) {
+  // Stays mounted a beat after `open` goes false so the reverse animation
+  // (see .sheet-backdrop.closing / .sheet.closing in index.css) can play —
+  // the backdrop's own animationend is what actually unmounts it, rather
+  // than a setTimeout duplicating the CSS duration as a second number.
+  const [rendered, setRendered] = useState(open)
+  const [closing, setClosing] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setRendered(true)
+      setClosing(false)
+    } else if (rendered) {
+      setClosing(true)
+    }
+  }, [open, rendered])
+
   // Lock the page behind the sheet so scrolling stays inside it.
   useEffect(() => {
     if (!open) return
@@ -28,16 +44,32 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
     }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!rendered) return null
+
+  // The sheet's own slide (180ms) outlasts the backdrop's fade (140ms), so
+  // the unmount waits on the sheet's animationend, not the backdrop's —
+  // ending on the shorter one would cut the slide-down off early.
+  function onSheetAnimationEnd(e: AnimationEvent<HTMLDivElement>) {
+    if (closing && e.target === e.currentTarget) {
+      setRendered(false)
+      setClosing(false)
+    }
+  }
 
   return (
     <div
-      className="sheet-backdrop"
+      className={`sheet-backdrop${closing ? ' closing' : ''}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        className={`sheet${closing ? ' closing' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onAnimationEnd={onSheetAnimationEnd}
+      >
         {(title || !hideClose) && (
           <div className="sheet-head">
             <div className="sheet-title">{title}</div>

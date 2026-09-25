@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sheet } from './Sheet'
 import type { SessionRating } from '../state/ActiveWorkoutContext'
+import { useSettings } from '../lib/useSettings'
+import { vibrate } from '../lib/chime'
 
 /** 1–5, mild to maximal. Stored as the number so it can be averaged later. */
 export const EFFORT_LABELS = ['Easy', 'Moderate', 'Hard', 'Very hard', 'Max'] as const
@@ -35,8 +37,16 @@ interface Props {
  * and "Skip" is as prominent as "Save", so the rating never blocks the finish.
  */
 export function FinishSheet({ open, summary, onClose, onSave }: Props) {
+  const settings = useSettings()
   const [effort, setEffort] = useState<number | undefined>(undefined)
   const [feeling, setFeeling] = useState<number | undefined>(undefined)
+
+  // Fires once as the sheet opens on a PR, alongside the celebration text —
+  // keyed on `open` alone since `summary`/`settings` are a snapshot for the
+  // sheet's lifetime, not something that changes while it's up.
+  useEffect(() => {
+    if (open && summary.prCount > 0 && settings.restTimerVibrate) vibrate()
+  }, [open])
 
   function reset() {
     setEffort(undefined)

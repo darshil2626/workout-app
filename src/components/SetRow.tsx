@@ -5,6 +5,7 @@ import type { Formatters } from '../lib/useSettings'
 import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
 import { IconCheck, IconTimer } from './Icons'
+import { vibrateTick } from '../lib/chime'
 import type { ActiveSetTimer } from '../state/SetTimerContext'
 import { PR_LABEL, type PRKind } from '../lib/records'
 
@@ -152,6 +153,9 @@ export function SetRow({
       if (f.distance && set.distanceM === null && previous?.distanceM != null)
         patch.distanceM = previous.distanceM
       if (Object.keys(patch).length > 0) onChange(patch)
+      // Only on the completing tap, not on un-checking — that's a correction,
+      // not a confirmation worth a buzz.
+      if (fmt.settings.restTimerVibrate) vibrateTick()
     }
     onToggleComplete()
   }

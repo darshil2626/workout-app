@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { Header } from '../components/Header'

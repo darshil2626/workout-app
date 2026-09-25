@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Exercise, LoggedExercise, LoggedSet, SetType } from '../db/types'
@@ -25,6 +25,7 @@ import {
   type PRKind,
 } from '../lib/records'
 import { formatDuration } from '../lib/time'
+import { vibrateTick } from '../lib/chime'
 import { SetRow } from '../components/SetRow'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -188,7 +189,9 @@ export function ActiveWorkoutPage() {
   )
 
   const blockIds = useMemo(() => (workout?.exercises ?? []).map((le) => le.id), [workout?.exercises])
-  const sortable = useSortable(blockIds, reorderExercises)
+  const sortable = useSortable(blockIds, reorderExercises, () => {
+    if (fmt.settings.restTimerVibrate) vibrateTick()
+  })
 
   // Badged sets across the whole session, for the finish summary.
   const prCount = useMemo(() => {

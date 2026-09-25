@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../db/db'
 import type { Exercise, Routine } from '../db/types'
@@ -86,7 +87,9 @@ export function WorkoutDetailPage() {
       order: await db.routines.count(),
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      lastPerformedAt: null,
+      // Seed from the workout it's built from, so a routine saved from a
+      // session done days ago doesn't read as "never done" on Home.
+      lastPerformedAt: workout!.status === 'done' ? (workout!.finishedAt ?? null) : null,
     }
     await db.routines.put(routine)
     setMenu(false)

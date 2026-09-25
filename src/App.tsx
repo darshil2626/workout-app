@@ -1,7 +1,11 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ActiveWorkoutProvider } from './state/ActiveWorkoutContext'
 import { RestTimerProvider } from './state/RestTimerContext'
 import { SetTimerProvider } from './state/SetTimerContext'
+import { useSettings } from './lib/useSettings'
+import { applyTheme, resolveTheme } from './lib/theme'
+import { isFullscreenRoute } from './lib/navigate'
 import { BottomNav } from './components/BottomNav'
 import { RestTimerBar } from './components/RestTimerBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
@@ -18,14 +22,29 @@ import { StatsPage } from './pages/Stats'
 import { MeasurementsPage } from './pages/Measurements'
 import { EditWorkoutPage } from './pages/EditWorkout'
 
-/** Screens that own the whole viewport and hide the tab bar. */
-const FULLSCREEN = ['/workout', '/routines']
-
 function Shell() {
   const location = useLocation()
-  // Edit screens are modal too: leaving one mid-edit should be a deliberate act.
-  const fullscreen =
-    FULLSCREEN.some((p) => location.pathname.startsWith(p)) || location.pathname.endsWith('/edit')
+  const { theme } = useSettings()
+  const fullscreen = isFullscreenRoute(location.pathname)
+
+  // A route change is a new screen, not a continuation of the last one's
+  // scroll position — without this, opening e.g. an exercise from partway
+  // down a scrolled list renders that detail page already scrolled down.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
+  // Re-applies whenever the setting changes (main.tsx only covers the first
+  // paint), and stays live for 'system' — flipping the OS theme updates the
+  // app immediately rather than waiting for a reload.
+  useEffect(() => {
+    applyTheme(resolveTheme(theme))
+    if (theme !== 'system') return
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => applyTheme(resolveTheme('system'))
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [theme])
 
   return (
     <div className={`app${fullscreen ? ' fullscreen' : ''}`}>

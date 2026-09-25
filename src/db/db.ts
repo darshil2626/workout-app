@@ -37,6 +37,10 @@ export const DEFAULT_SETTINGS: Settings = {
   // home screen explains where the number comes from and offers one drawn
   // from your own history once there is enough of it.
   weeklyGoalWorkouts: 3,
+  // Follows the OS by default rather than staying pinned to the dark palette
+  // this app shipped with until now — an install on a light-mode device will
+  // see that the moment this build lands, before ever opening Settings.
+  theme: 'system',
 }
 
 class IronLogDB extends Dexie {

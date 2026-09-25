@@ -14,6 +14,8 @@ export interface TableData {
 interface Props {
   title: string
   subtitle?: ReactNode
+  /** A secondary header button beside the Table toggle, e.g. a link to a fuller page. */
+  action?: ReactNode
   /** Filter controls sit above the plot, scoping only this card's data. */
   controls?: ReactNode
   /**
@@ -33,7 +35,7 @@ interface Props {
  * The table is not optional: it is how the values stay reachable without
  * relying on colour or hover.
  */
-export function ChartCard({ title, subtitle, controls, ranges, table, empty, children }: Props) {
+export function ChartCard({ title, subtitle, action, controls, ranges, table, empty, children }: Props) {
   const [showTable, setShowTable] = useState(false)
   const isEmpty = table.rows.length === 0
 
@@ -44,6 +46,7 @@ export function ChartCard({ title, subtitle, controls, ranges, table, empty, chi
           <h3 className="chart-title">{title}</h3>
           {subtitle ? <span className="faint">{subtitle}</span> : null}
         </div>
+        {action}
         {!isEmpty && (
           <button
             className="chart-toggle"

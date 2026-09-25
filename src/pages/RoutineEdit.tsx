@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../db/db'
 import type { Exercise, Folder, Routine, RoutineExercise, RoutineSetTarget, SetType } from '../db/types'

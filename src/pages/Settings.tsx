@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, initDb } from '../db/db'
-import type { DistanceUnit, Exercise, LengthUnit, WeightUnit, Workout } from '../db/types'
+import type { DistanceUnit, Exercise, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
@@ -377,6 +377,24 @@ export function SettingsPage() {
           </div>
         )}
 
+        <div className="section-title">Appearance</div>
+        <div className="card">
+          <div className="field">
+            <span className="field-label">Theme</span>
+            <div className="segmented">
+              {(['light', 'dark', 'system'] as Theme[]).map((t) => (
+                <button
+                  key={t}
+                  className={settings.theme === t ? 'active' : ''}
+                  onClick={() => void updateSettings({ theme: t })}
+                >
+                  {t === 'system' ? 'System' : t === 'light' ? 'Light' : 'Dark'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="section-title">Units</div>
         <div className="card">
           <div className="field">
@@ -492,8 +510,10 @@ export function SettingsPage() {
           <div className="divider" />
           <div className="row-between">
             <div className="stack grow">
-              <span>Vibrate when finished</span>
-              <span className="faint">Android only; iOS does not allow it</span>
+              <span>Haptic feedback</span>
+              <span className="faint">
+                Timers, completing a set, PRs and reordering. Android only; iOS does not allow it
+              </span>
             </div>
             <button
               className={`switch${settings.restTimerVibrate ? ' on' : ''}`}

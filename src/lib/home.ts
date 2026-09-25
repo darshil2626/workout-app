@@ -501,8 +501,9 @@ export function homeStatus(
   }
 
   // `muscleRecovery` sorts most-rested first, so the head of the list is the
-  // most overdue thing there is. Phrased with the same word the recovery chips
-  // use, so the header and the block below it are saying one thing, not two.
+  // most overdue thing there is. `restState`/`REST_OVERDUE_DAYS` stay just
+  // for this one line — RecoveryCard itself dropped the chip in favor of a
+  // colored day count, but the header still needs a single yes/no cutoff.
   const stalest = recovery[0]
   if (stalest && restState(stalest.daysSince) === 'overdue') {
     return { day, fact: `${stalest.muscle} is overdue` }

@@ -32,7 +32,13 @@ interface DragState {
   rows: { id: string; top: number; height: number }[]
 }
 
-export function useSortable(ids: string[], onReorder: (orderedIds: string[]) => void): SortableState {
+export function useSortable(
+  ids: string[],
+  onReorder: (orderedIds: string[]) => void,
+  /** Fires once per slot change during a drag, not continuously — a haptic
+   * tick is the caller's business, this hook only knows when a swap happens. */
+  onSwap?: () => void,
+): SortableState {
   const refs = useRef(new Map<string, HTMLElement>())
   const drag = useRef<DragState | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -45,6 +51,11 @@ export function useSortable(ids: string[], onReorder: (orderedIds: string[]) => 
   // close over the index as it stood when the drag began.
   const targetIndexRef = useRef<number | null>(null)
   targetIndexRef.current = targetIndex
+
+  // Tracks the slot as of the last move(), updated synchronously within the
+  // handler itself — targetIndexRef only catches up on the next render, which
+  // lags behind pointermove's own firing rate.
+  const lastSwapIndexRef = useRef<number | null>(null)
 
   const registerRef = useCallback(
     (id: string) => (el: HTMLElement | null) => {
@@ -72,6 +83,7 @@ export function useSortable(ids: string[], onReorder: (orderedIds: string[]) => 
       e.preventDefault()
       e.currentTarget.setPointerCapture(e.pointerId)
       drag.current = { id, fromIndex, startY: e.clientY, rows }
+      lastSwapIndexRef.current = fromIndex
       setDraggingId(id)
       setTargetIndex(fromIndex)
       setDy(0)
@@ -98,6 +110,10 @@ export function useSortable(ids: string[], onReorder: (orderedIds: string[]) => 
         const r = d.rows[i]
         if (centre > r.top + r.height / 2) next++
       }
+      if (next !== lastSwapIndexRef.current) {
+        lastSwapIndexRef.current = next
+        onSwap?.()
+      }
       setTargetIndex(next)
     }
 
@@ -123,7 +139,7 @@ export function useSortable(ids: string[], onReorder: (orderedIds: string[]) => 
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
     }
-  }, [draggingId, ids, onReorder])
+  }, [draggingId, ids, onReorder, onSwap])
 
   const offsetFor = useCallback(
     (id: string) => {

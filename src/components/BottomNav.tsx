@@ -17,6 +17,13 @@ export function BottomNav() {
           key={to}
           to={to}
           end={to === '/'}
+          viewTransition
+          // Tabs never lead to/from a fullscreen route, so the direction is
+          // always a plain forward slide — no need for the full classifier
+          // in lib/navigate.ts that Header/list-to-detail navigation uses.
+          onClick={() => {
+            document.documentElement.dataset.navDirection = 'forward'
+          }}
           className={({ isActive }) =>
             `nav-item${to === '/' ? ' nav-item-home' : ''}${isActive ? ' active' : ''}`
           }

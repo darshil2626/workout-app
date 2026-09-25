@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Exercise, Workout } from '../db/types'
@@ -13,11 +13,13 @@ export function HistoryPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const workouts = useLiveQuery(
-    () => db.workouts.where('status').equals('done').reverse().sortBy('startedAt'),
-    [],
-    [] as Workout[],
+  // `undefined` while Dexie hasn't answered yet, distinct from a genuinely
+  // empty history — collapsing that into `[]` immediately would show the
+  // "No workouts yet" empty state as a flash before real history pops in.
+  const workoutsRaw = useLiveQuery(() =>
+    db.workouts.where('status').equals('done').reverse().sortBy('startedAt'),
   )
+  const workouts = workoutsRaw ?? []
   const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
@@ -45,7 +47,9 @@ export function HistoryPage() {
     <>
       <Header title="History" />
       <div className="page">
-        {workouts.length === 0 ? (
+        {workoutsRaw === undefined ? (
+          <div className="spinner" />
+        ) : workouts.length === 0 ? (
           <div className="empty">
             <div className="empty-icon">📈</div>
             <h3>No workouts yet</h3>

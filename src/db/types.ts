@@ -172,6 +172,7 @@ export interface Folder {
 export type WeightUnit = 'kg' | 'lb'
 export type DistanceUnit = 'km' | 'mi'
 export type LengthUnit = 'cm' | 'in'
+export type Theme = 'light' | 'dark' | 'system'
 
 /** What kind of quantity a measurement records, which fixes its unit. */
 export type MeasurementKind = 'weight' | 'percent' | 'length'
@@ -242,4 +243,6 @@ export interface Settings {
   bodyweightKg: number | null
   /** Workouts per week the home goal ring is measured against. */
   weeklyGoalWorkouts: number
+  /** 'system' follows the OS's light/dark preference and stays live if it changes. */
+  theme: Theme
 }

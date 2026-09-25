@@ -37,3 +37,12 @@ export function playChime(): void {
 export function vibrate(): void {
   if ('vibrate' in navigator) navigator.vibrate([180, 90, 180])
 }
+
+/**
+ * A single light pulse for frequent, low-stakes confirmations — completing a
+ * set, a drag-reorder swap — where the timer's triple-pulse pattern would be
+ * too much repeated dozens of times a workout.
+ */
+export function vibrateTick(): void {
+  if ('vibrate' in navigator) navigator.vibrate(15)
+}

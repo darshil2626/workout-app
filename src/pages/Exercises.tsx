@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Exercise } from '../db/types'
@@ -98,7 +99,9 @@ export function ExercisesPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {exercisesRaw === undefined ? (
+          <div className="spinner" />
+        ) : filtered.length === 0 ? (
           <div className="empty">
             <p className="muted">Nothing matches “{query}”.</p>
             <button className="btn btn-accent-soft btn-sm" style={{ marginTop: 12 }} onClick={() => setCreating(true)}>

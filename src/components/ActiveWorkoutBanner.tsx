@@ -1,4 +1,5 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { useRestTimer } from '../state/RestTimerContext'
 import { useNow } from '../lib/useNow'

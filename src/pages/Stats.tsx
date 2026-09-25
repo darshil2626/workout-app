@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState, type RefObject } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
-import type { Exercise, Measurement, Workout } from '../db/types'
+import type { Exercise, Measurement, MeasurementType, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ChartCard } from '../components/charts/ChartCard'
 import { ColumnChart } from '../components/charts/ColumnChart'
@@ -17,7 +17,7 @@ import {
   volumeByWeek,
   type WeekPoint,
 } from '../lib/stats'
-import { formatMeasurement, specFor, unitLabel } from '../lib/measurements'
+import { formatMeasurement, MEASUREMENT_SPECS, specFor, unitLabel } from '../lib/measurements'
 import { formatHoursTotal } from '../lib/time'
 import { IconChart } from '../components/Icons'
 
@@ -47,7 +47,7 @@ function weekMetricValue(w: WeekPoint, metric: WeekMetric): number {
 
 const WEEK_METRIC_SUBTITLE: Record<WeekMetric, string> = {
   volume: 'Total weight moved per week',
-  perSession: 'Volume divided by that week’s workout count, so training more often doesn’t by itself push the line up',
+  perSession: 'Volume divided by that week’s workout count',
   sets: 'Working sets logged per week',
 }
 
@@ -63,24 +63,43 @@ export function StatsPage() {
   const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
-  const bodyweightRows = useLiveQuery(
-    () => db.measurements.where('type').equals('bodyweight').toArray(),
-    [],
-    [] as Measurement[],
+  const measurementRows = useLiveQuery(() => db.measurements.toArray(), [], [] as Measurement[])
+  const measurementsByType = useMemo(() => {
+    const map = new Map<MeasurementType, Measurement[]>()
+    for (const m of measurementRows) {
+      const rows = map.get(m.type)
+      if (rows) rows.push(m)
+      else map.set(m.type, [m])
+    }
+    return map
+  }, [measurementRows])
+  // Chips only for what's actually been logged — an empty chip for a
+  // measurement the user has never taken would just be dead UI.
+  const trackedTypes = useMemo(
+    () =>
+      MEASUREMENT_SPECS.filter((s) => (measurementsByType.get(s.type)?.length ?? 0) > 0).map(
+        (s) => s.type,
+      ),
+    [measurementsByType],
   )
+  const [activeType, setActiveType] = useState<MeasurementType | null>(null)
+  const selectedType: MeasurementType =
+    (activeType && trackedTypes.includes(activeType) ? activeType : null) ??
+    (trackedTypes.includes('bodyweight') ? 'bodyweight' : trackedTypes[0]) ??
+    'bodyweight'
   // Charts read left-to-right in time; the delta wants newest-first, so both
   // directions are taken from the one sorted array rather than sorting twice.
-  const bodyweightEntries = useMemo(
-    () => [...bodyweightRows].sort((a, b) => a.takenAt - b.takenAt),
-    [bodyweightRows],
+  const selectedEntries = useMemo(
+    () => [...(measurementsByType.get(selectedType) ?? [])].sort((a, b) => a.takenAt - b.takenAt),
+    [measurementsByType, selectedType],
   )
-  const latestWeight = bodyweightEntries[bodyweightEntries.length - 1]
-  const previousWeight = bodyweightEntries[bodyweightEntries.length - 2]
+  const latestEntry = selectedEntries[selectedEntries.length - 1]
+  const previousEntry = selectedEntries[selectedEntries.length - 2]
   // Absent rather than zero: a single entry has nothing to compare against, and
   // "+0" would read as a real, measured lack of change.
-  const weightDelta =
-    latestWeight && previousWeight ? latestWeight.value - previousWeight.value : null
-  const weightSpec = specFor('bodyweight')
+  const selectedDelta =
+    latestEntry && previousEntry ? latestEntry.value - previousEntry.value : null
+  const selectedSpec = specFor(selectedType)
 
   const firstDay = fmt.settings.firstDayOfWeek
   const totals = useMemo(() => overallTotals(workouts), [workouts])
@@ -105,56 +124,82 @@ export function StatsPage() {
   }
 
   /**
-   * The Measurements card doubles as a bodyweight preview once there is
-   * something to preview. A brand-new user — or one who hasn't weighed in —
-   * still gets a plain link rather than an empty chart.
+   * The Measurements card doubles as a preview of whichever measurement is
+   * selected, once there's something to preview. A brand-new user — or one
+   * who hasn't logged anything yet — gets a plain link instead of an empty
+   * chart. This is also the app's only route to the full Measurements page,
+   * so that link stays reachable as a header action once chips take over the
+   * rest of the card (can't nest it in a whole-card button once the chips
+   * inside need their own taps).
    */
   function measurementsCard() {
-    if (bodyweightEntries.length === 0) {
+    const viewAll = (
+      <button className="chart-toggle" onClick={() => navigate('/measurements')}>
+        View all
+      </button>
+    )
+
+    if (trackedTypes.length === 0) {
       return (
-        <button
-          className="card card-tappable"
-          style={{ textAlign: 'left' }}
-          onClick={() => navigate('/measurements')}
-        >
-          <span style={{ fontWeight: 650 }}>Measurements</span>
+        <div className="card">
+          <div className="row-between">
+            <span style={{ fontWeight: 650 }}>Measurements</span>
+            {viewAll}
+          </div>
           <p className="faint" style={{ marginTop: 4 }}>
             Bodyweight and circumferences — log an entry or see the trend.
           </p>
-        </button>
+        </div>
       )
     }
-    const unit = unitLabel(weightSpec.kind, fmt.settings)
+
+    const unit = unitLabel(selectedSpec.kind, fmt.settings)
     return (
-      <button
-        className="card card-tappable"
-        style={{ textAlign: 'left', width: '100%' }}
-        onClick={() => navigate('/measurements')}
+      <ChartCard
+        title="Measurements"
+        subtitle={
+          latestEntry
+            ? `${formatMeasurement(latestEntry.value, selectedSpec.kind, fmt.settings)} ${unit}${
+                selectedDelta !== null && selectedDelta !== 0
+                  ? ` · ${selectedDelta > 0 ? '+' : '−'}${formatMeasurement(Math.abs(selectedDelta), selectedSpec.kind, fmt.settings)} since last`
+                  : ''
+              }`
+            : undefined
+        }
+        action={viewAll}
+        controls={trackedTypes.map((type) => (
+          <button
+            key={type}
+            className={`chip${selectedType === type ? ' active' : ''}`}
+            onClick={() => setActiveType(type)}
+          >
+            {specFor(type).label}
+          </button>
+        ))}
+        table={{
+          columns: [{ header: 'Date' }, { header: unit, numeric: true }],
+          rows: [...selectedEntries]
+            .reverse()
+            .map((e) => [
+              new Date(e.takenAt).toLocaleDateString(),
+              formatMeasurement(e.value, selectedSpec.kind, fmt.settings),
+            ]),
+        }}
+        empty="Log at least one entry to see a chart."
       >
-        <div className="row-between">
-          <div className="stack">
-            <span style={{ fontWeight: 650 }}>Measurements</span>
-            <span className="faint">
-              {formatMeasurement(latestWeight.value, weightSpec.kind, fmt.settings)} {unit}
-              {weightDelta !== null && weightDelta !== 0
-                ? ` · ${weightDelta > 0 ? '+' : '−'}${formatMeasurement(Math.abs(weightDelta), weightSpec.kind, fmt.settings)} since last`
-                : ''}
-            </span>
-          </div>
-        </div>
         <div className="measurement-preview">
           <LineChart
-            points={bodyweightEntries.map((e) => ({ date: e.takenAt, value: e.value }))}
-            // Bodyweight never nears zero, so a zero baseline would flatten a
-            // real trend into a near-straight line, same as on the full page.
+            points={selectedEntries.map((e) => ({ date: e.takenAt, value: e.value }))}
+            // Body measurements never near zero, so a zero baseline would
+            // flatten a real trend into a near-straight line.
             baseline="auto"
             xAxis="time"
             height={84}
-            formatValue={(v) => `${formatMeasurement(v, weightSpec.kind, fmt.settings)} ${unit}`}
+            formatValue={(v) => `${formatMeasurement(v, selectedSpec.kind, fmt.settings)} ${unit}`}
             formatDate={(ts) => new Date(ts).toLocaleDateString()}
           />
         </div>
-      </button>
+      </ChartCard>
     )
   }
 

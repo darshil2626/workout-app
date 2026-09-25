@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '../lib/navigate'
 import type { ReactNode } from 'react'
 import { IconBack } from './Icons'
 
@@ -19,7 +19,9 @@ export function Header({ title, back, right, left }: HeaderProps) {
           <button
             className="icon-btn"
             aria-label="Back"
-            onClick={() => (back === true ? navigate(-1) : navigate(back))}
+            onClick={() =>
+              back === true ? navigate(-1) : navigate(back, { direction: 'back' })
+            }
           >
             <IconBack />
           </button>

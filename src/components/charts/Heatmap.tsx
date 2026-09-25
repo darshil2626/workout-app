@@ -27,13 +27,17 @@ const DAY_MS = 86400000
 // Cells are fixed-size by default, so a short window (Home's 70-day preview,
 // or any calendar with only a few weeks of real history) leaves the flex row
 // packed to the left with a wide blank strip after it — the box looks half
-// empty even though it's rendering correctly. Growing cells to fill the
-// measured container width fixes that; when there ARE enough weeks to need
-// more room than the container has, the size clamps to MIN_CELL and the
-// existing horizontal scroll (auto-scrolled to the most recent week) takes
-// over exactly as before.
-const MIN_CELL = 15
-const MAX_CELL = 26
+// empty even though it's rendering correctly. Stretching cells WIDE (not
+// square — height stays put) to fill the measured container width fixes
+// that without the grid growing tall: a short, wide rectangle reads as
+// "deliberately sized for this box" the way a bigger square wouldn't. When
+// there ARE enough weeks to need more room than the container has, the
+// width clamps back to MIN_CELL_W and the existing horizontal scroll
+// (auto-scrolled to the most recent week) takes over exactly as before.
+// Height is fixed at 15px directly in CSS (.heatmap-cell/.heatmap-day) —
+// only width scales here.
+const MIN_CELL_W = 15
+const MAX_CELL_W = 48
 const GAP = 3
 /** `.heatmap-day`'s 11px width plus `.heatmap-days`' 1px padding-right. */
 const DAY_COL_WIDTH = 12
@@ -94,16 +98,16 @@ export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
   const weeks: (HeatCell | null)[][] = []
   for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7))
 
-  const cellSize = useMemo(() => {
-    if (containerWidth === 0 || weeks.length === 0) return MIN_CELL
+  const cellWidth = useMemo(() => {
+    if (containerWidth === 0 || weeks.length === 0) return MIN_CELL_W
     const available = containerWidth - DAY_COL_WIDTH - GAP * weeks.length
-    return Math.min(MAX_CELL, Math.max(MIN_CELL, Math.floor(available / weeks.length)))
+    return Math.min(MAX_CELL_W, Math.max(MIN_CELL_W, Math.floor(available / weeks.length)))
   }, [containerWidth, weeks.length])
 
   return (
     <div className="heatmap-wrap" ref={measureRef}>
       <div className="heatmap-scroll" ref={scroller}>
-        <div className="heatmap" style={{ '--heat-cell': `${cellSize}px` } as CSSProperties}>
+        <div className="heatmap" style={{ '--heat-cell-w': `${cellWidth}px` } as CSSProperties}>
           <div className="heatmap-days">
             {DAY_LABELS.map((_, i) => (
               // Only alternate labels are drawn: seven stacked letters is noise.

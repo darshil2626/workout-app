@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ExerciseKind, LoggedSet } from '../db/types'
 import { fieldsFor } from '../lib/workout'
 import type { Formatters } from '../lib/useSettings'
@@ -93,6 +93,24 @@ export function SetRow({
 }: Props) {
   const f = fieldsFor(kind)
   const { weightUnit, distanceUnit } = fmt
+
+  // The gold PR badge below is a purely visual cue, so a screen reader user
+  // completing this exact set would otherwise never learn it was a record.
+  // Announce once, the moment `prs` first arrives non-empty for this row —
+  // not on every render while it stays populated, and not on mount (a set
+  // that already had a PR when the row appeared, e.g. re-opening a session,
+  // hasn't just achieved anything).
+  const [prAnnouncement, setPrAnnouncement] = useState('')
+  const hadPrRef = useRef((prs?.length ?? 0) > 0)
+  useEffect(() => {
+    const hasPr = (prs?.length ?? 0) > 0
+    if (hasPr && !hadPrRef.current) {
+      setPrAnnouncement(
+        `New personal record: ${prs!.map((k) => PR_LABEL[k]).join(', ')}`,
+      )
+    }
+    hadPrRef.current = hasPr
+  }, [prs])
 
   const prevLabel = previous ? describePrevious(previous, kind, weightUnit, distanceUnit) : '—'
 
@@ -192,6 +210,13 @@ export function SetRow({
             PR
           </span>
         )}
+        {/* PRs are rare and worth interrupting for — assertive, unlike the
+            rest timer's polite announcements. role="alert" implies
+            aria-live="assertive" + aria-atomic; both are named explicitly
+            since AT support for the implicit mapping alone is inconsistent. */}
+        <span className="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
+          {prAnnouncement}
+        </span>
       </td>
       {f.distance && (
         <td>

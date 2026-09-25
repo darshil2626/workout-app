@@ -215,7 +215,11 @@ export function RoutineEditPage() {
                       {f.weight && <th>{fmt.weightUnit}</th>}
                       {f.duration && <th>Time</th>}
                       {f.reps && <th>Reps</th>}
-                      <th style={{ width: 40 }} aria-label="Remove" />
+                      {/* 44px, not 40: this column sits flush against .ex-block's
+                          clipped edge, and .icon-btn's padded 44px hit area needs
+                          the full column to avoid getting clipped by the card's
+                          overflow: hidden. */}
+                      <th style={{ width: 44 }} aria-label="Remove" />
                     </tr>
                   </thead>
                   <tbody>
@@ -287,7 +291,7 @@ export function RoutineEditPage() {
                             />
                           </td>
                         )}
-                        <td style={{ width: 40 }}>
+                        <td style={{ width: 44 }}>
                           <button
                             className="icon-btn"
                             aria-label="Remove set"

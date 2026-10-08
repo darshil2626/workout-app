@@ -7,12 +7,13 @@ import { fileURLToPath } from 'node:url'
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 
-// These mirror --bg and --accent in src/index.css. Nothing enforces that, so
-// they have to be changed by hand when the palette moves — they were missed
-// when the app went from blue to ember, which left a blue icon sitting on a
-// home screen in front of an orange app.
-const BG = [15, 13, 11, 255] // #0f0d0b
-const FG = [255, 106, 43, 255] // #ff6a2b
+// These mirror the light theme's --accent and --bg in src/index.css: the icon
+// is the accent colour with the glyph cut out in the page colour. Nothing
+// enforces that, so they have to be changed by hand when the palette moves —
+// they were missed when the app went from blue to ember, which left a blue icon
+// sitting on a home screen in front of an orange app.
+const BG = [181, 64, 14, 255] // #b5400e, the fill behind the glyph
+const FG = [242, 236, 226, 255] // #f2ece2, the glyph
 
 // The "t" from the wordmark: a monoline stroke with round ends, in the
 // wordmark's own coordinate space (stroke 26). Keep in step with the t in

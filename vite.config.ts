@@ -38,11 +38,14 @@ export default defineConfig({
         short_name: 'Trana',
         description:
           'Offline-first strength log: routines, set-by-set logging, rest timer, personal records, muscle recovery and progress charts.',
-        // Both must track --bg in src/index.css. They colour the splash screen
-        // and the phone's status bar, which is the one place a stale value
-        // shows as a flash of the wrong black before the app paints.
+        // theme_color must track the dark --bg in src/index.css: it colours the
+        // phone's status bar before the page has loaded, which is the one place
+        // a stale value shows as a flash of the wrong black.
         theme_color: '#0f0d0b',
-        background_color: '#0f0d0b',
+        // The system's own launch screen, shown before any of our code runs. It
+        // matches the in-app splash painted by index.html (the icon's field
+        // colour), so one flows into the other with no dark flash between.
+        background_color: '#b5400e',
         display: 'standalone',
         orientation: 'portrait',
         start_url: base,

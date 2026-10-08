@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { db, initDb } from './db/db'
 import { applyTheme, resolveTheme } from './lib/theme'
+import { dismissSplash } from './lib/splash'
 import { maybeLoadQaDataset, maybeSeedSyntheticData } from './dev/seedSynthetic'
 import { migrateLegacyDatabase, migrateLegacyStorage } from './db/legacyMigration'
 import './index.css'
@@ -51,4 +52,5 @@ migrateLegacyDatabase(db)
         <App />
       </StrictMode>,
     )
+    dismissSplash()
   })

@@ -6,14 +6,101 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
     />
-    <meta name="theme-color" content="#0f0d0b" />
+    <meta name="theme-color" content="#b5400e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Trana" />
     <title>Trana</title>
+    <!--
+      Launch splash. Inline on purpose: it has to paint before the app bundle
+      downloads, so it cannot live in index.css. Colours are the light theme's
+      accent and background, the same pair as the app icon. Timing (1.6s overall:
+      draw-on, hold, fade) is split between this file and src/lib/splash.ts —
+      keep the numbers in step.
+    -->
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #b5400e;
+        /* Taps fall through to the app, so a test or an impatient thumb is never swallowed. */
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 450ms ease;
+      }
+      #splash.leaving {
+        opacity: 0;
+      }
+      #splash svg {
+        width: min(62vw, 300px);
+        height: auto;
+        overflow: visible;
+        animation: splash-scale 1.6s ease-out both;
+      }
+      #splash .l path,
+      #splash .l circle {
+        /* pathLength is normalised to 1; the 1.1 gap keeps round caps from showing a dot before the draw. */
+        stroke-dasharray: 1 1.1;
+        stroke-dashoffset: 1.1;
+        animation: splash-draw 0.48s cubic-bezier(0.45, 0.05, 0.25, 1) both;
+        animation-delay: calc(0.08s + var(--i) * 0.112s);
+      }
+      @keyframes splash-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes splash-scale {
+        from {
+          transform: scale(0.96);
+        }
+        to {
+          transform: scale(1.03);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash svg {
+          animation: none;
+        }
+        #splash .l path,
+        #splash .l circle {
+          animation: none;
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <svg viewBox="-27 -20 492 176" fill="none" stroke="#f2ece2" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+        <g class="l" style="--i: 0"><path pathLength="1" d="M24 16 V96 Q24 120 50 120" /><path pathLength="1" d="M2 48 H46" /></g>
+        <g class="l" style="--i: 1" transform="translate(-0.26 0)"><path pathLength="1" d="M88 120 V48" /><path pathLength="1" d="M88 80 Q88 48 122 48" /></g>
+        <g class="l" style="--i: 2" transform="translate(6.6 0)"><circle pathLength="1" cx="176" cy="84" r="36" /><path pathLength="1" d="M212 48 V120" /></g>
+        <g class="l" style="--i: 3" transform="translate(6.6 0)"><path pathLength="1" d="M250 120 V48" /><path pathLength="1" d="M250 78 Q250 48 286 48 Q322 48 322 78 V120" /></g>
+        <g class="l" style="--i: 4" transform="translate(3.6 0)"><circle pathLength="1" cx="396" cy="84" r="36" /><path pathLength="1" d="M432 48 V120" /></g>
+      </svg>
+    </div>
     <div id="root"></div>
+    <script>
+      // The splash's clock starts when it is first painted, not when navigation
+      // began: on a cold start the two can be several hundred ms apart, and
+      // timing the fade from navigation would cut the splash short.
+      requestAnimationFrame(function () {
+        window.__splashAt = performance.now()
+      })
+    </script>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // If the app never starts (a failed script, an offline first load), do not
+      // leave the splash covering whatever the browser would otherwise show.
+      setTimeout(function () {
+        var el = document.getElementById('splash')
+        if (el) el.remove()
+      }, 10000)
+    </script>
   </body>
 </html>

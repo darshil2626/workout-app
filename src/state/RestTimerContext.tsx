@@ -11,7 +11,7 @@ import {
 import { useSettings } from '../lib/useSettings'
 import { playChime, vibrate } from '../lib/chime'
 
-const STORAGE_KEY = 'ironlog.restTimer'
+const STORAGE_KEY = 'trana.restTimer'
 
 interface StoredTimer {
   endsAt: number

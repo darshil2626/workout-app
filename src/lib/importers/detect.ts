@@ -7,8 +7,8 @@ export type DetectedFormat = 'backup' | 'strong' | 'hevy' | 'unknown'
  *
  * A JSON file is one of our own backups if it has the *shape* of one — a
  * version number and the collections a restore needs. The `app` marker is only
- * a fallback, mirroring `assertBackup`: routing on the product name meant that
- * renaming the app would stop it recognising its own exports, and it was never
+ * a fallback, mirroring `assertBackup`: routing on the product name would stop
+ * the app recognising exports written under an earlier name, and it was never
  * the marker that made the file ours.
  *
  * A file that carries the marker but is malformed is still claimed here, so the

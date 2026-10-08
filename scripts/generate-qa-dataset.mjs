@@ -242,7 +242,7 @@ for (let w = 12; w >= 0; w--) {
 
 // ── Backup file ─────────────────────────────────────────────────────────
 const backup = {
-  app: 'ironlog',
+  app: 'trana',
   version: 2,
   exportedAt: NOW,
   exercises: SEED_EXERCISES,

@@ -120,7 +120,7 @@ check('stats: 4 small tiles in 2 rows', tiles.count === 4 && tiles.rows === 2, J
 
 // ── Measurements: no future points ──────────────────────────────────────
 const noFuture = await page.evaluate(async () => {
-  const req = indexedDB.open('ironlog')
+  const req = indexedDB.open('trana')
   return 'skipped'
 }).catch(() => 'skipped')
 

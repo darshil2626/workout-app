@@ -1,4 +1,4 @@
-# IronLog
+# Trana
 
 An offline-first gym tracker in the mould of Strong — routines, set-by-set logging,
 rest timer, history and personal records — with every feature free.
@@ -28,7 +28,7 @@ To try it on your phone while both devices are on the same Wi-Fi, open the
    ```bash
    git init
    git add .
-   git commit -m "IronLog"
+   git commit -m "Trana"
    git branch -M main
    git remote add origin https://github.com/<you>/<repo>.git
    git push -u origin main
@@ -146,7 +146,7 @@ metadata. Two consequences:
   is unaffected, and GitHub Actions builds on Linux without any of this. To build
   locally anyway, target the Linux filesystem:
   ```bash
-  npm run build -- --outDir ~/ironlog-dist --emptyOutDir
+  npm run build -- --outDir ~/trana-dist --emptyOutDir
   ```
 
 The permanent fix is to add the following to `/etc/wsl.conf` and run

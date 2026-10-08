@@ -5,12 +5,11 @@ import type { Exercise, Folder, Measurement, Routine, Settings, Workout } from '
 export const BACKUP_VERSION = 2
 
 /**
- * Stamped into every file this app writes, and deliberately frozen at the
- * original name. It identifies the file format, not the product, so renaming
- * the app must not touch it: change it and a new export stops importing into
- * an older install, while every file already exported stops importing at all.
+ * Stamped into every file this app writes. It is informational only: an import
+ * is accepted or refused by the file's shape (see `assertBackup`), never by this
+ * value, so backups written under an earlier name still restore.
  */
-export const APP_MARKER = 'ironlog'
+export const APP_MARKER = 'trana'
 
 export interface BackupFile {
   app: string
@@ -53,7 +52,7 @@ export async function downloadBackup(): Promise<void> {
   const a = document.createElement('a')
   const stamp = new Date(backup.exportedAt).toISOString().slice(0, 10)
   a.href = url
-  a.download = `ironlog-backup-${stamp}.json`
+  a.download = `trana-backup-${stamp}.json`
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -69,38 +68,20 @@ export interface ImportSummary {
   measurements: number
 }
 
-/**
- * Markers this app has ever written into a backup file.
- *
- * A file is recognised by its *shape*, not by its branding — see `assertBackup`.
- * This list only exists so that a file stamped by some other tool is refused
- * rather than silently restored, and it is append-only: dropping a marker here
- * would orphan every backup already sitting in someone's downloads folder.
- */
-const KNOWN_MARKERS: readonly string[] = [APP_MARKER]
-
 function assertBackup(data: unknown): asserts data is BackupFile {
   if (typeof data !== 'object' || data === null) throw new Error('That file is not valid JSON data.')
   const b = data as Partial<BackupFile>
 
-  // Shape is the real gate. `restoreBackup` clears every table before writing,
-  // so something has to stand between a stray JSON file and the user's whole
-  // history — but a hardcoded product name was never what made this file ours,
-  // and gating on it meant renaming the app would reject every backup already
-  // taken. A version number plus the four required collections is both a
-  // stronger signal and one that survives a rename.
+  // Shape is the gate. `restoreBackup` clears every table before writing, so
+  // something has to stand between a stray JSON file and the user's whole
+  // history. A version number plus the four required collections is a stronger
+  // signal than a product name, and it keeps every backup already taken
+  // importable whatever the app was called when it wrote them.
   if (typeof b.version !== 'number' || b.version > BACKUP_VERSION) {
     throw new Error('That backup was made by a newer version of the app.')
   }
   for (const key of ['exercises', 'workouts', 'routines', 'folders'] as const) {
     if (!Array.isArray(b[key])) throw new Error(`Backup is missing its "${key}" section.`)
-  }
-
-  // `app` is a hint, not the gate: absent is fine (it is the right shape), but
-  // a *foreign* marker means some other tool wrote this and the resemblance is
-  // a coincidence worth refusing.
-  if (b.app !== undefined && !KNOWN_MARKERS.includes(b.app)) {
-    throw new Error('That file was exported from a different app.')
   }
 }
 

@@ -4,7 +4,7 @@ import { IconFolder, IconMinimise, IconPlay, IconTrash } from '../Icons'
 import { formatRelative } from '../../lib/time'
 import { useSwipeToDelete } from '../../lib/useSwipeToDelete'
 
-const EXPANDED_FOLDERS_KEY = 'ironlog_expanded_folders'
+const EXPANDED_FOLDERS_KEY = 'trana_expanded_folders'
 
 /** Tracks which folders the user has explicitly opened, not which are
  *  collapsed — so a newly created folder (never in this set) starts

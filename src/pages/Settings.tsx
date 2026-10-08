@@ -194,7 +194,7 @@ export function SettingsPage() {
     } else if (format === 'hevy') {
       await previewCsv((existing) => parseHevyCsv(text, existing, settings.bodyweightKg))
     } else {
-      setError('Unrecognized file. Expected an IronLog backup (.json), or a CSV export from Strong or Hevy.')
+      setError('Unrecognized file. Expected a Trana backup (.json), or a CSV export from Strong or Hevy.')
     }
   }
 
@@ -719,7 +719,7 @@ export function SettingsPage() {
             </button>
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
-            Import accepts an IronLog backup (.json, replaces everything), or a CSV export from Strong
+            Import accepts a Trana backup (.json, replaces everything), or a CSV export from Strong
             or Hevy (added alongside what's already here). Re-importing a CSV is safe because sessions you
             already have are skipped so a longer export only adds what's new. Clean up history finds
             duplicates and empty sets left behind by older imports; Match imported exercises folds
@@ -734,7 +734,7 @@ export function SettingsPage() {
               <span>Share anonymous usage data</span>
               <span className="faint">
                 Which screens and features get used, and whether the app gets reopened but never your
-                workouts, routines, weights or measurements. Helps me improve IronLog while it's early.
+                workouts, routines, weights or measurements. Helps me improve Trana while it's early.
               </span>
             </div>
             <button
@@ -750,7 +750,7 @@ export function SettingsPage() {
         <div className="section-title">About</div>
         <div className="card">
           <p className="muted">
-            IronLog is an offline-first workout tracker. Add it to your home screen and it behaves
+            Trana is an offline-first workout tracker. Add it to your home screen and it behaves
             like a native app and needs no account or subscription or internet.
           </p>
           <p className="faint" style={{ marginTop: 10 }}>

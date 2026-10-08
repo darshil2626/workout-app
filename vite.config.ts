@@ -34,8 +34,8 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'IronLog Gym Tracker',
-        short_name: 'IronLog',
+        name: 'Trana Gym Tracker',
+        short_name: 'Trana',
         description:
           'Offline-first strength log: routines, set-by-set logging, rest timer, personal records, muscle recovery and progress charts.',
         // Both must track --bg in src/index.css. They colour the splash screen

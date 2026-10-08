@@ -1,4 +1,4 @@
-// Generates a synthetic IronLog backup (.json) meant to stress-test the app:
+// Generates a synthetic Trana backup (.json) meant to stress-test the app:
 // a big custom-exercise set, folders, long/superset/empty routines, ~9 months
 // of realistic progressive workout history across several training phases,
 // and multi-type body measurements.
@@ -846,7 +846,7 @@ const settings = {
 
 // ── Assemble backup file ──────────────────────────────────────────────
 const backup = {
-  app: 'ironlog',
+  app: 'trana',
   version: 2,
   exportedAt: Date.now(),
   exercises: ALL_EXERCISES,

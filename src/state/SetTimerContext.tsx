@@ -11,7 +11,7 @@ import {
 import { useSettings } from '../lib/useSettings'
 import { playChime, vibrate } from '../lib/chime'
 
-const STORAGE_KEY = 'ironlog.setTimer'
+const STORAGE_KEY = 'trana.setTimer'
 
 interface StoredSetTimer {
   /** The set being held. Only one can run at a time. */

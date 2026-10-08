@@ -14,30 +14,64 @@ const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 const BG = [15, 13, 11, 255] // #0f0d0b
 const FG = [255, 106, 43, 255] // #ff6a2b
 
-/** Dumbbell geometry expressed in a 512×512 space, scaled per output size. */
-const SHAPES = [
-  [150, 234, 362, 278], // bar
-  [116, 190, 152, 322], // left inner plate
-  [360, 190, 396, 322], // right inner plate
-  [84, 214, 116, 298], // left outer plate
-  [396, 214, 428, 298], // right outer plate
+// The "t" from the wordmark: a monoline stroke with round ends, in the
+// wordmark's own coordinate space (stroke 26). Keep in step with the t in
+// public/trana-wordmark.svg if that glyph is ever redrawn.
+const STROKE = 26
+const GLYPH_CENTRE = [26, 68] // centre of the t's ink, so it can be centred on the icon
+const GLYPH_HEIGHT = 130 // ink height, cap to baseline including the stroke
+// Share of the icon the glyph's height may fill. The 512 icon doubles as the
+// maskable icon, whose safe zone is the central 80%, so this stays well inside.
+const FILL = 0.56
+
+function sampleQuad([x0, y0], [cx, cy], [x1, y1], steps = 48) {
+  const pts = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps
+    const u = 1 - t
+    pts.push([u * u * x0 + 2 * u * t * cx + t * t * x1, u * u * y0 + 2 * u * t * cy + t * t * y1])
+  }
+  return pts
+}
+
+/** Centrelines as polylines: the stem curving into the foot, and the crossbar. */
+const STROKES = [
+  [[24, 16], [24, 96], ...sampleQuad([24, 96], [24, 120], [50, 120]).slice(1)],
+  [[2, 48], [46, 48]],
 ]
 
+function distToSegment(px, py, [ax, ay], [bx, by]) {
+  const dx = bx - ax
+  const dy = by - ay
+  const len2 = dx * dx + dy * dy
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2))
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+}
+
 function render(size) {
-  const scale = size / 512
   const px = Buffer.alloc(size * size * 4)
   for (let i = 0; i < size * size; i++) px.set(BG, i * 4)
 
-  for (const [x0, y0, x1, y1] of SHAPES) {
-    const sx0 = Math.round(x0 * scale)
-    const sy0 = Math.round(y0 * scale)
-    const sx1 = Math.round(x1 * scale)
-    const sy1 = Math.round(y1 * scale)
-    for (let y = sy0; y < sy1; y++) {
-      for (let x = sx0; x < sx1; x++) {
-        if (x < 0 || y < 0 || x >= size || y >= size) continue
-        px.set(FG, (y * size + x) * 4)
+  // Work in glyph units: map each pixel centre back into wordmark space so the
+  // stroke radius and edge softness need no per-size tuning.
+  const unitsPerPx = GLYPH_HEIGHT / (size * FILL)
+  const radius = STROKE / 2
+  const softness = unitsPerPx // one output pixel of antialiasing, in glyph units
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const gx = GLYPH_CENTRE[0] + (x + 0.5 - size / 2) * unitsPerPx
+      const gy = GLYPH_CENTRE[1] + (y + 0.5 - size / 2) * unitsPerPx
+
+      let d = Infinity
+      for (const line of STROKES) {
+        for (let i = 1; i < line.length; i++) d = Math.min(d, distToSegment(gx, gy, line[i - 1], line[i]))
       }
+
+      const cover = Math.max(0, Math.min(1, (radius - d) / softness + 0.5))
+      if (cover === 0) continue
+      const o = (y * size + x) * 4
+      for (let c = 0; c < 3; c++) px[o + c] = Math.round(BG[c] + (FG[c] - BG[c]) * cover)
     }
   }
   return px

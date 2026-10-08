@@ -115,8 +115,8 @@ function Shell() {
   }, [analyticsEnabled])
 
   useEffect(() => {
-    const firstOpen = window.localStorage.getItem('ironlog_opened') === null
-    window.localStorage.setItem('ironlog_opened', '1')
+    const firstOpen = window.localStorage.getItem('trana_opened') === null
+    window.localStorage.setItem('trana_opened', '1')
     track('app_opened', { is_pwa: isStandalonePwa(), platform: detectPlatform(), first_open: firstOpen })
   }, [])
 

@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   analyticsEnabled: true,
 }
 
-class IronLogDB extends Dexie {
+class TranaDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>
   workouts!: EntityTable<Workout, 'id'>
   routines!: EntityTable<Routine, 'id'>
@@ -56,7 +56,7 @@ class IronLogDB extends Dexie {
   meta!: EntityTable<MetaRow, 'key'>
 
   constructor() {
-    super('ironlog')
+    super('trana')
     this.version(1).stores({
       exercises: 'id, name, muscleGroup, equipment, isCustom, archived',
       // `*exerciseIds` is a multi-entry index: one query finds every session
@@ -78,7 +78,7 @@ class IronLogDB extends Dexie {
   }
 }
 
-export const db = new IronLogDB()
+export const db = new TranaDB()
 
 function sameGroups(a: MuscleGroup[] = [], b: MuscleGroup[] = []): boolean {
   return a.length === b.length && a.every((g, i) => g === b[i])

@@ -232,10 +232,10 @@ export function EditWorkoutPage() {
                     <tr>
                       <th className="col-set">Set</th>
                       <th className="col-prev">Previous</th>
-                      {f.distance && <th>{fmt.distanceUnit}</th>}
-                      {f.weight && <th>{fmt.weightUnit}</th>}
+                      {f.distance && <th className="col-weight">{fmt.distanceUnit}</th>}
+                      {f.weight && <th className="col-weight">{fmt.weightUnit}</th>}
                       {f.duration && <th>Time</th>}
-                      {f.reps && <th>Reps</th>}
+                      {f.reps && <th className="col-reps">Reps</th>}
                       <th className="col-check" aria-label="Completed" />
                     </tr>
                   </thead>

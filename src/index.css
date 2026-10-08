@@ -1288,9 +1288,20 @@ textarea.input {
   width: 36px;
 }
 
-/* A share of the table rather than a pixel count, so the column grows with the
-   card; the weight and reps columns split whatever is left evenly. */
+/* Shares of the table rather than pixel counts, so the columns grow with the
+   card. Reps gets the widest share of the three because its +/- buttons take
+   about 40px of it before the number gets any room; any other value column
+   (time, distance) splits what is left. */
 .col-prev {
+  width: 28%;
+}
+
+/* Also used for the distance column: another short number. */
+.col-weight {
+  width: 19%;
+}
+
+.col-reps {
   width: 28%;
 }
 
@@ -1566,7 +1577,8 @@ tr.done .set-input {
 }
 
 .set-stepper .set-input {
-  flex: 0 1 34px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .set-step-btn {

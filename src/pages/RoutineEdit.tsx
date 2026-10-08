@@ -266,10 +266,10 @@ export function RoutineEditPage() {
                   <thead>
                     <tr>
                       <th className="col-set">Set</th>
-                      {f.distance && <th>{fmt.distanceUnit}</th>}
-                      {f.weight && <th>{fmt.weightUnit}</th>}
+                      {f.distance && <th className="col-weight">{fmt.distanceUnit}</th>}
+                      {f.weight && <th className="col-weight">{fmt.weightUnit}</th>}
                       {f.duration && <th>Time</th>}
-                      {f.reps && <th>Reps</th>}
+                      {f.reps && <th className="col-reps">Reps</th>}
                       {/* 44px, not 40: this column sits flush against .ex-block's
                           clipped edge, and .icon-btn's padded 44px hit area needs
                           the full column to avoid getting clipped by the card's

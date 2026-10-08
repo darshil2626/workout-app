@@ -516,29 +516,6 @@ export function SettingsPage() {
               onClick={() => void updateSettings({ restTimerSound: !settings.restTimerSound })}
             />
           </div>
-          <div className="divider" />
-          <div className="row-between">
-            <div className="stack grow">
-              <span>Haptic feedback</span>
-              <span className="faint">
-                Timers, completing a set, PRs and reordering. Android only; iOS does not allow it
-              </span>
-            </div>
-            <button
-              className={`switch${settings.restTimerVibrate ? ' on' : ''}`}
-              role="switch"
-              aria-checked={settings.restTimerVibrate}
-              aria-label="Rest timer vibration"
-              onClick={() => void updateSettings({ restTimerVibrate: !settings.restTimerVibrate })}
-            />
-          </div>
-          <div className="divider" />
-          <button
-            className="btn btn-ghost btn-sm btn-block"
-            onClick={() => restTimer.start(settings.defaultRestSeconds)}
-          >
-            Test the timer
-          </button>
         </div>
 
         <div className="section-title">Lifting</div>
@@ -655,17 +632,6 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
-          {/* Offered, never applied on its own. A goal the app quietly rewrote
-              is not a goal, so adopting the suggestion stays a deliberate tap. */}
-          {suggestedGoal !== null && suggestedGoal !== settings.weeklyGoalWorkouts && (
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ marginTop: 10 }}
-              onClick={() => void updateSettings({ weeklyGoalWorkouts: suggestedGoal })}
-            >
-              Use {suggestedGoal} a week
-            </button>
-          )}
         </div>
 
         <div className="section-title">Your data</div>

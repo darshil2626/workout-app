@@ -41,6 +41,8 @@ interface Props {
   onSwipeDelete: (routine: Routine) => void
   onNewRoutine: () => void
   onNewFolder: () => void
+  /** Asks for confirmation upstream; the routines inside are kept. */
+  onDeleteFolder: (folder: Folder) => void
 }
 
 /**
@@ -57,6 +59,7 @@ export function RoutinesSection({
   onSwipeDelete,
   onNewRoutine,
   onNewFolder,
+  onDeleteFolder,
 }: Props) {
   const routineById = useMemo(() => new Map(routines.map((r) => [r.id, r])), [routines])
   const swipe = useSwipeToDelete((id) => {
@@ -125,21 +128,30 @@ export function RoutinesSection({
         const expanded = expandedFolders.has(folder.id)
         return (
           <div key={folder.id}>
-            <button
-              className="section-title row folder-toggle"
-              style={{ gap: 8 }}
-              onClick={() => toggleFolder(folder.id)}
-              aria-expanded={expanded}
-            >
-              <IconFolder />
-              <span className="grow truncate" style={{ textAlign: 'left' }}>
-                {folder.name}
-              </span>
-              <span className="faint">
-                {folderRoutines.length} {folderRoutines.length === 1 ? 'routine' : 'routines'}
-              </span>
-              <IconMinimise className={`folder-toggle-chevron${expanded ? ' open' : ''}`} />
-            </button>
+            <div className="row folder-head">
+              <button
+                className="section-title row folder-toggle"
+                style={{ gap: 8 }}
+                onClick={() => toggleFolder(folder.id)}
+                aria-expanded={expanded}
+              >
+                <IconFolder />
+                <span className="grow truncate" style={{ textAlign: 'left' }}>
+                  {folder.name}
+                </span>
+                <span className="faint">
+                  {folderRoutines.length} {folderRoutines.length === 1 ? 'routine' : 'routines'}
+                </span>
+                <IconMinimise className={`folder-toggle-chevron${expanded ? ' open' : ''}`} />
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => onDeleteFolder(folder)}
+                aria-label={`Delete folder ${folder.name}`}
+              >
+                <IconTrash />
+              </button>
+            </div>
             {expanded &&
               (folderRoutines.length === 0 ? (
                 <p className="faint" style={{ paddingLeft: 4 }}>

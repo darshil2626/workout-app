@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../db/db'
-import type { Routine } from '../db/types'
+import type { Folder, Routine } from '../db/types'
 import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -99,6 +99,7 @@ export function HomePage() {
   const [undoRoutine, setUndoRoutine] = useState<Routine | null>(null)
   const [newFolder, setNewFolder] = useState(false)
   const [folderName, setFolderName] = useState('')
+  const [deletingFolder, setDeletingFolder] = useState<Folder | null>(null)
   const [startBlocked, setStartBlocked] = useState<null | { routine?: Routine }>(null)
   const routinesRef = useRef<HTMLDivElement>(null)
 
@@ -266,6 +267,15 @@ export function HomePage() {
     setNewFolder(false)
   }
 
+  /** Removes the folder only. Its routines are kept and drop to "Other routines". */
+  async function deleteFolder(folder: Folder) {
+    await db.transaction('rw', db.routines, db.folders, async () => {
+      await db.routines.where('folderId').equals(folder.id).modify({ folderId: null })
+      await db.folders.delete(folder.id)
+    })
+    setDeletingFolder(null)
+  }
+
   async function removeRoutine(routine: Routine) {
     await db.routines.delete(routine.id)
   }
@@ -380,6 +390,7 @@ export function HomePage() {
                 onSwipeDelete={swipeDeleteRoutine}
                 onNewRoutine={() => navigate('/routines/new')}
                 onNewFolder={() => setNewFolder(true)}
+                onDeleteFolder={setDeletingFolder}
               />
             </div>
           </>
@@ -453,6 +464,23 @@ export function HomePage() {
           />
         </div>
       </Sheet>
+
+      <ConfirmSheet
+        open={deletingFolder !== null}
+        title={`Delete folder “${deletingFolder?.name}”?`}
+        message={
+          (() => {
+            const n = routineList.filter((r) => r.folderId === deletingFolder?.id).length
+            return n === 0
+              ? 'The folder is empty.'
+              : `Its ${n} ${n === 1 ? 'routine moves' : 'routines move'} to Other routines and nothing else is deleted.`
+          })()
+        }
+        confirmLabel="Delete folder"
+        destructive
+        onConfirm={() => deletingFolder && void deleteFolder(deletingFolder)}
+        onCancel={() => setDeletingFolder(null)}
+      />
 
       <ConfirmSheet
         open={deleting !== null}

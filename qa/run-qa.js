@@ -206,10 +206,82 @@ const prRows = await page.evaluate(() =>
 check('PR set row is gold (has pr class)', /\bpr\b/.test(prRows[0].cls), JSON.stringify(prRows))
 check('non-PR completed set is not gold', !/\bpr\b/.test(prRows[1].cls) && /done/.test(prRows[1].cls), JSON.stringify(prRows))
 check('PR pill badge is gone', prRows.every((r) => !r.pill))
+// ── Set row stays on one line at a narrow width ─────────────────────────
+await page.setViewportSize({ width: 360, height: 844 })
+await page.waitForTimeout(400)
+const rowFit = await page.evaluate(() => {
+  const row = document.querySelector('.set-table tbody tr')
+  const prev = row.querySelector('.prev-cell')
+  prev.textContent = '102.5 × 12'
+  const lineH = parseFloat(getComputedStyle(prev).lineHeight)
+  const pad = parseFloat(getComputedStyle(prev).paddingTop) * 2 + 2
+  const inputs = [...row.querySelectorAll('input')]
+  return {
+    prevOneLine: prev.getBoundingClientRect().height <= lineH + pad + 1,
+    prevClipped: prev.scrollWidth > prev.clientWidth + 1,
+    inputsClipped: inputs.some((i) => i.scrollWidth > i.clientWidth + 1),
+    headerOneLine: (() => {
+      const ths = [...document.querySelectorAll('.set-table thead th')]
+      const single = ths[0].getBoundingClientRect().height
+      return ths.every((th) => th.getBoundingClientRect().height <= single + 1)
+    })(),
+    tableFits: document.querySelector('.set-table').scrollWidth <= document.querySelector('.set-table').parentElement.clientWidth + 1,
+  }
+})
+check('set row: previous on one line at 360px', rowFit.prevOneLine && !rowFit.prevClipped, JSON.stringify(rowFit))
+check('set row: inputs and headers fit at 360px', !rowFit.inputsClipped && rowFit.headerOneLine && rowFit.tableFits, JSON.stringify(rowFit))
+await page.setViewportSize({ width: 390, height: 844 })
+
 await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Discard')?.click())
 await page.waitForTimeout(500)
 await page.evaluate(() => [...document.querySelectorAll('.sheet button, .confirm button')].find((b) => /^Discard/.test(b.innerText.trim()))?.click())
 await page.waitForTimeout(800)
+
+// ── Folder delete keeps its routines (problem 2) ─────────────────────────
+await page.evaluate(async () => {
+  await new Promise((res) => {
+    const o = indexedDB.open('trana')
+    o.onsuccess = () => {
+      const db = o.result
+      const tx = db.transaction(['folders', 'routines'], 'readwrite')
+      tx.objectStore('folders').put({ id: 'qa-folder', name: 'QA Folder', order: 0, createdAt: 1 })
+      const r = tx.objectStore('routines')
+      r.getAll().onsuccess = (e) => {
+        for (const x of e.target.result) if (/^R1 /.test(x.name)) { x.folderId = 'qa-folder'; r.put(x) }
+      }
+      tx.oncomplete = () => res(1)
+    }
+  })
+})
+await page.goto(`${BASE}/`)
+await page.waitForTimeout(2200)
+await page.click('button[aria-label="Delete folder QA Folder"]')
+await page.waitForTimeout(500)
+await page.click('text=Delete folder >> nth=-1')
+await page.waitForTimeout(800)
+const folderState = await page.evaluate(
+  () =>
+    new Promise((res) => {
+      const o = indexedDB.open('trana')
+      o.onsuccess = () => {
+        const tx = o.result.transaction(['folders', 'routines'])
+        const out = {}
+        tx.objectStore('folders').getAll().onsuccess = (e) => (out.folders = e.target.result.length)
+        tx.objectStore('routines').getAll().onsuccess = (e) => {
+          out.routines = e.target.result.length
+          out.r1Folder = e.target.result.find((r) => /^R1 /.test(r.name)).folderId
+        }
+        tx.oncomplete = () => res(out)
+      }
+    }),
+)
+check('deleting a folder removes only the folder', folderState.folders === 0 && folderState.routines === 8 && folderState.r1Folder === null, JSON.stringify(folderState))
+
+// ── Settings: haptic option, timer test and "use N a week" are gone (problem 3) ─
+await page.goto(`${BASE}/settings`)
+await page.waitForTimeout(1500)
+const settingsText = await page.evaluate(() => document.body.innerText)
+check('settings has no haptic option, timer test or suggested-goal button', !/Haptic/i.test(settingsText) && !/Test the timer/i.test(settingsText) && !/Use \d+ a week/i.test(settingsText))
 
 // ── Banner and rest bar clear the last row (problem 4) ──────────────────
 await page.goto(`${BASE}/`)

@@ -1200,6 +1200,10 @@ textarea.input {
 .set-table {
   width: 100%;
   border-collapse: collapse;
+  /* Fixed layout so the columns hold the widths below instead of renegotiating
+     them around whatever a row contains; a long previous value used to push
+     the other columns around and wrap onto two lines. */
+  table-layout: fixed;
 }
 
 .set-table th {
@@ -1208,14 +1212,16 @@ textarea.input {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-faint);
-  padding: var(--space-1) var(--space-1) var(--space-2);
+  padding: var(--space-1) 0 var(--space-2);
   text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
 }
 
 /* Every cell here is a figure and the columns are narrow, so a proportional 1
    visibly shifts the number in the row below it. */
 .set-table td {
-  padding: var(--space-1) var(--space-1);
+  padding: var(--space-1) 2px;
   text-align: center;
   vertical-align: middle;
   font-variant-numeric: tabular-nums lining-nums;
@@ -1279,11 +1285,13 @@ textarea.input {
 }
 
 .col-set {
-  width: 42px;
+  width: 36px;
 }
 
+/* A share of the table rather than a pixel count, so the column grows with the
+   card; the weight and reps columns split whatever is left evenly. */
 .col-prev {
-  width: 74px;
+  width: 28%;
 }
 
 .col-check {
@@ -1419,6 +1427,7 @@ button.set-badge::before {
 }
 
 .prev-cell {
+  white-space: nowrap;
   font-size: var(--text-xs);
   color: var(--text-faint);
   font-variant-numeric: tabular-nums lining-nums;
@@ -1434,7 +1443,7 @@ button.set-badge::before {
 .prev-cell.prev-copy {
   display: block;
   width: 100%;
-  padding: var(--space-1) 3px;
+  padding: var(--space-1) 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -1519,6 +1528,14 @@ button.set-badge::before {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
+/* A weight is at most five characters, so the box stays a number's width and
+   centres in its column instead of stretching across it. */
+.set-table td > .set-input {
+  display: block;
+  max-width: 64px;
+  margin-inline: auto;
+}
+
 .set-input:focus {
   border-color: var(--accent);
   background: var(--bg);
@@ -1543,13 +1560,18 @@ tr.done .set-input {
 .set-stepper {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2px;
   min-width: 0;
 }
 
+.set-stepper .set-input {
+  flex: 0 1 34px;
+}
+
 .set-step-btn {
   flex: 0 0 auto;
-  width: 20px;
+  width: 18px;
   height: 32px;
   display: grid;
   place-items: center;
@@ -1575,14 +1597,20 @@ tr.done .set-step-btn {
 .set-duration-cell {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 2px;
   min-width: 0;
+}
+
+/* A m:ss value needs five characters; one step down in size keeps "10:00"
+   whole beside the stopwatch button even in a narrow shared column. */
+.set-duration-cell .set-input {
+  font-size: var(--text-base);
 }
 
 .set-timer-btn {
   position: relative;
   flex: 0 0 auto;
-  width: 30px;
+  width: 26px;
   height: 34px;
   display: grid;
   place-items: center;
@@ -2923,8 +2951,15 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    same tap affordances a button gets elsewhere — a full-width hit area
    (buttons are inline-sized by default) and a press state, on top of what
    `.section-title.row` already gives it for text/layout. */
+.folder-head {
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .folder-toggle {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: auto;
   transition: opacity var(--dur-press) var(--ease);
 }
 

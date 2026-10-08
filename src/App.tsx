@@ -1,13 +1,14 @@
-import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { ActiveWorkoutProvider } from './state/ActiveWorkoutContext'
+import { lazy, Suspense, useEffect, useRef } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom'
+import { ActiveWorkoutProvider, useActiveWorkout } from './state/ActiveWorkoutContext'
 import { RestTimerProvider } from './state/RestTimerContext'
 import { SetTimerProvider } from './state/SetTimerContext'
 import { useSettings } from './lib/useSettings'
 import { applyTheme, resolveTheme } from './lib/theme'
-import { isFullscreenRoute } from './lib/navigate'
+import { consumeBackIntent, isFullscreenRoute } from './lib/navigate'
 import { detectPlatform, isStandalonePwa, syncAnalyticsConsent, track, trackPageview } from './lib/analytics'
 import { BottomNav } from './components/BottomNav'
+import { useRestTimer } from './state/RestTimerContext'
 import { RestTimerBar } from './components/RestTimerBar'
 import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
@@ -36,12 +37,76 @@ function Shell() {
   const { theme, analyticsEnabled } = useSettings()
   const fullscreen = isFullscreenRoute(location.pathname)
 
-  // A route change is a new screen, not a continuation of the last one's
-  // scroll position — without this, opening e.g. an exercise from partway
-  // down a scrolled list renders that detail page already scrolled down.
+  const navigationType = useNavigationType()
+  const { workout } = useActiveWorkout()
+  const { remaining: restRemaining } = useRestTimer()
+  const showingBanner = !!workout && !fullscreen
+
+  // Where each screen was scrolled to when it was left, keyed both by history
+  // entry (for the phone's back gesture) and by path (for the in-app back
+  // button, which the router sees as a fresh push).
+  const scrollByKey = useRef(new Map<string, number>())
+  const scrollByPath = useRef(new Map<string, number>())
+  // Back intent per history entry, read once and remembered so a repeated
+  // effect run (StrictMode) sees the same answer instead of a consumed flag.
+  const backByKey = useRef(new Map<string, boolean>())
+  // Set during render, before the new screen mounts, so a scroll event caused
+  // by the old page unmounting is filed under the new entry, not the old one.
+  const current = useRef({ key: location.key, path: location.pathname })
+  current.current = { key: location.key, path: location.pathname }
+
   useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [location.pathname])
+    const onScroll = () => {
+      scrollByKey.current.set(current.current.key, window.scrollY)
+      scrollByPath.current.set(current.current.path, window.scrollY)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // A forward navigation opens a new screen at the top. Going back returns to
+  // where the screen was left, retrying briefly because the page's content
+  // streams in after the route mounts and may not be tall enough yet.
+  useEffect(() => {
+    if (!backByKey.current.has(location.key)) backByKey.current.set(location.key, consumeBackIntent())
+    const wentBack = backByKey.current.get(location.key) === true
+    const target =
+      navigationType === 'POP'
+        ? (scrollByKey.current.get(location.key) ?? scrollByPath.current.get(location.pathname))
+        : wentBack
+          ? scrollByPath.current.get(location.pathname)
+          : undefined
+    if (!target) {
+      window.scrollTo(0, 0)
+      return
+    }
+    const deadline = performance.now() + 1500
+    let raf = 0
+    const attempt = () => {
+      window.scrollTo(0, target)
+      if (Math.abs(window.scrollY - target) > 2 && performance.now() < deadline) {
+        raf = requestAnimationFrame(attempt)
+      }
+    }
+    attempt()
+    return () => cancelAnimationFrame(raf)
+    // Keyed on the history entry so reopening the same path is still a change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key])
+
+  // Tapping anywhere that isn't a text field puts the keyboard away, so there
+  // is always somewhere to tap to dismiss it after typing a set's numbers.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const active = document.activeElement
+      if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)) return
+      const target = e.target as Element | null
+      if (target?.closest('input, textarea, select, label')) return
+      active.blur()
+    }
+    document.addEventListener('click', onClick)
+    return () => document.removeEventListener('click', onClick)
+  }, [])
 
   // Must run before the pageview/app_opened effects below so PostHog is
   // initialized (or opted out) before anything tries to capture.
@@ -89,8 +154,11 @@ function Shell() {
 
   return (
     <div className={`app${fullscreen ? ' fullscreen' : ''}`}>
-      {/* The extra bottom padding keeps the last row clear of the rest timer. */}
-      <main className="app-main" style={fullscreen ? { paddingBottom: 96 } : undefined}>
+      {/* Extra bottom padding only while the rest timer bar is up. */}
+      <main
+        className={`app-main${showingBanner ? ' has-active-banner' : ''}${!fullscreen && restRemaining !== null ? ' has-rest-bar' : ''}`}
+        style={fullscreen ? { paddingBottom: restRemaining !== null ? 72 : 8 } : undefined}
+      >
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/" element={<HomePage />} />

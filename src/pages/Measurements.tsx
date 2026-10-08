@@ -92,7 +92,7 @@ export function MeasurementsPage() {
                     <span className="mono" style={{ fontWeight: 650 }}>
                       {latest
                         ? `${formatMeasurement(latest.value, spec.kind, settings)} ${unitLabel(spec.kind, settings)}`
-                        : '—'}
+                        : '-'}
                     </span>
                     <button
                       className="icon-btn"
@@ -334,7 +334,7 @@ function HistorySheet({
         title="Delete entry?"
         message={
           deleting
-            ? `${new Date(deleting.takenAt).toLocaleDateString()} — ${formatMeasurement(deleting.value, spec.kind, settings)} ${unit}`
+            ? `${new Date(deleting.takenAt).toLocaleDateString()}: ${formatMeasurement(deleting.value, spec.kind, settings)} ${unit}`
             : undefined
         }
         confirmLabel="Delete"

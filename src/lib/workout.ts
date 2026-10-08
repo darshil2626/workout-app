@@ -204,7 +204,7 @@ export function describeSet(
   }
   if (f.duration && set.durationSec !== null) parts.push(fmt.duration(set.durationSec))
   if (f.reps && set.reps !== null) parts.push(`${set.reps} reps`)
-  return parts.length > 0 ? parts.join(' · ') : '—'
+  return parts.length > 0 ? parts.join(' · ') : '-'
 }
 
 export const SET_TYPE_LABEL: Record<LoggedSet['setType'], string> = {

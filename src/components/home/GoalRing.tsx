@@ -89,7 +89,7 @@ function supportingCopy(progress: WeekProgress, streaks: Streaks): string {
   const days = `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`
 
   if (state === 'hit') {
-    if (done > goal) return `${done - goal} past your goal — everything now is extra`
+    if (done > goal) return `${done - goal} past your goal so everything now is extra`
     return 'Goal hit. Anything from here is a bonus'
   }
 
@@ -97,7 +97,7 @@ function supportingCopy(progress: WeekProgress, streaks: Streaks): string {
     // A live streak is the most concrete thing on the line, and it really does
     // end if this week closes empty, so it can be said plainly.
     if (done === 0 && streaks.currentWeeks > 0) {
-      return `Your ${streaks.currentWeeks}-week streak is on the line — ${days}`
+      return `Your ${streaks.currentWeeks}-week streak is on the line with ${days}`
     }
     return `${remaining} to go and only ${days}`
   }

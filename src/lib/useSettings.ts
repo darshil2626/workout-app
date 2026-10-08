@@ -27,13 +27,13 @@ export function useFormatters() {
     distanceUnit: settings.distanceUnit,
     weight: (kg: number | null) => formatWeight(kg, settings.weightUnit),
     weightWithUnit: (kg: number | null) =>
-      kg === null ? '—' : `${formatWeight(kg, settings.weightUnit)} ${settings.weightUnit}`,
+      kg === null ? '-' : `${formatWeight(kg, settings.weightUnit)} ${settings.weightUnit}`,
     volume: (kg: number) => formatVolume(kg, settings.weightUnit),
     /** Abbreviated for stat tiles; `volume` stays exact for tables and tooltips. */
     volumeCompact: (kg: number) => formatVolumeCompact(kg, settings.weightUnit),
     distance: (m: number | null) => formatDistance(m, settings.distanceUnit),
     distanceWithUnit: (m: number | null) =>
-      m === null ? '—' : `${formatDistance(m, settings.distanceUnit)} ${settings.distanceUnit}`,
+      m === null ? '-' : `${formatDistance(m, settings.distanceUnit)} ${settings.distanceUnit}`,
     duration: (s: number) => formatDuration(s),
   }
 }

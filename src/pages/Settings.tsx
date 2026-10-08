@@ -1,3 +1,4 @@
+import { EXERCISE_ART_ENABLED } from '../lib/features'
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, initDb } from '../db/db'
@@ -63,7 +64,7 @@ function describeCsvPreview(preview: CsvPreview): string {
       : ''
   const sameTimeText =
     preview.sameTimeDifferent > 0
-      ? ` ${preview.sameTimeDifferent} start at the same time as a session you already have but log different sets — those are added as new.`
+      ? ` ${preview.sameTimeDifferent} start at the same time as a session you already have but log different sets so those are added as new.`
       : ''
   const warnText =
     parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) couldn't be read and were skipped.` : ''
@@ -74,12 +75,12 @@ function describeHistoryIssues(issues: HistoryIssues): string {
   const parts: string[] = []
   if (issues.duplicates > 0) {
     parts.push(
-      `${issues.duplicates} workout(s) are exact copies of another session — one copy of each is kept.`,
+      `${issues.duplicates} workout(s) are exact copies of another session so one copy of each is kept.`,
     )
   }
   if (issues.placeholderSets > 0) {
     parts.push(
-      `${issues.placeholderSets} workout(s) hold sets that record nothing (an import kept rows for sets you never performed) — those sets go and the totals are recalculated.`,
+      `${issues.placeholderSets} workout(s) hold sets that record nothing (an import kept rows for sets you never performed) so those sets go and the totals are recalculated.`,
     )
   }
   if (issues.emptyWorkouts > 0) {
@@ -280,7 +281,7 @@ export function SettingsPage() {
     try {
       const issues = await scanHistoryIssues()
       if (hasHistoryIssues(issues)) setHistoryIssues(issues)
-      else setMessage('Your history is already clean — no duplicates and no empty sets.')
+      else setMessage('Your history is already clean with no duplicates and no empty sets.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not scan your history.')
     }
@@ -302,7 +303,7 @@ export function SettingsPage() {
     setMessage(null)
     try {
       if (await hasActiveWorkout()) {
-        setError('Finish or discard the workout in progress first — merging exercises would change it underneath you.')
+        setError('Finish or discard the workout in progress first because merging exercises would change it underneath you.')
         return
       }
       const fixes = await scanExerciseFixes()
@@ -546,8 +547,8 @@ export function SettingsPage() {
             <div className="stack grow">
               <span>Count warm-up sets</span>
               <span className="faint">
-                Include them in volume, set counts and records. Off by default — a warm-up is
-                preparation, not a training stimulus.
+                Include them in volume, set counts and records. Off by default because a warm-up is
+                preparation and not a training stimulus.
               </span>
             </div>
             <button
@@ -684,7 +685,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="faint" style={{ marginBottom: 12 }}>
-            Your workouts, routines and exercises live on this device only. Export regularly —
+            Your workouts, routines and exercises live on this device only. Export regularly because
             clearing your browser data or deleting the app will erase them.
           </p>
           <div className="list">
@@ -719,8 +720,8 @@ export function SettingsPage() {
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
             Import accepts an IronLog backup (.json, replaces everything), or a CSV export from Strong
-            or Hevy (added alongside what's already here). Re-importing a CSV is safe — sessions you
-            already have are skipped, so a longer export only adds what's new. Clean up history finds
+            or Hevy (added alongside what's already here). Re-importing a CSV is safe because sessions you
+            already have are skipped so a longer export only adds what's new. Clean up history finds
             duplicates and empty sets left behind by older imports; Match imported exercises folds
             differently-named imports into the built-in library.
           </p>
@@ -732,7 +733,7 @@ export function SettingsPage() {
             <div className="stack grow">
               <span>Share anonymous usage data</span>
               <span className="faint">
-                Which screens and features get used, and whether the app gets reopened — never your
+                Which screens and features get used, and whether the app gets reopened but never your
                 workouts, routines, weights or measurements. Helps me improve IronLog while it's early.
               </span>
             </div>
@@ -750,7 +751,7 @@ export function SettingsPage() {
         <div className="card">
           <p className="muted">
             IronLog is an offline-first workout tracker. Add it to your home screen and it behaves
-            like a native app — no account, no subscription, no internet required.
+            like a native app and needs no account or subscription or internet.
           </p>
           <p className="faint" style={{ marginTop: 10 }}>
             iPhone: Share → Add to Home Screen. Android: menu → Install app.
@@ -758,13 +759,15 @@ export function SettingsPage() {
           <p className="faint mono" style={{ marginTop: 10 }}>
             Build {__BUILD_ID__}
           </p>
-          <p className="faint" style={{ marginTop: 10 }}>
-            Exercise illustrations by Bryl Lim and Everkinetic, licensed{' '}
-            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">
-              CC BY-SA 4.0
-            </a>
-            .
-          </p>
+          {EXERCISE_ART_ENABLED && (
+            <p className="faint" style={{ marginTop: 10 }}>
+              Exercise illustrations by Bryl Lim and Everkinetic, licensed{' '}
+              <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">
+                CC BY-SA 4.0
+              </a>
+              .
+            </p>
+          )}
         </div>
       </div>
 

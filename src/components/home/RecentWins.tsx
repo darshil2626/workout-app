@@ -193,9 +193,9 @@ function describeMilestone(milestone: Milestone, fmt: Formatters): string {
   // as arithmetic before it parses as an ambition.
   if (milestone.kind === 'volumeKg') {
     const target = `${fmt.volumeCompact(milestone.target)} ${fmt.weightUnit}`
-    return `${target} ${milestone.unitLabel} — ${fmt.volumeCompact(remaining)} to go`
+    return `${target} ${milestone.unitLabel} with ${fmt.volumeCompact(remaining)} to go`
   }
-  return `${milestone.target.toLocaleString()} ${milestone.unitLabel} — ${Math.ceil(remaining).toLocaleString()} to go`
+  return `${milestone.target.toLocaleString()} ${milestone.unitLabel} with ${Math.ceil(remaining).toLocaleString()} to go`
 }
 
 function capitalise(text: string): string {

@@ -102,10 +102,34 @@ export function HomePage() {
   const [startBlocked, setStartBlocked] = useState<null | { routine?: Routine }>(null)
   const routinesRef = useRef<HTMLDivElement>(null)
 
-  const routineList = useMemo(() => routines ?? [], [routines])
   const folderList = useMemo(() => folders ?? [], [folders])
   const exerciseList = useMemo(() => exercises ?? [], [exercises])
   const workoutList = useMemo(() => sessions ?? [], [sessions])
+  // A routine counts as done when a session was started from it, or when a
+  // finished session covered all of its exercises (a freeform workout that
+  // repeated the routine). The stored stamp alone misses both, which left
+  // routines labelled "never done" after they had been done.
+  const routineList = useMemo(
+    () =>
+      (routines ?? []).map((r) => {
+        let last = r.lastPerformedAt ?? null
+        const wanted = new Set(r.exercises.map((e) => e.exerciseId))
+        for (const w of workoutList) {
+          const at = w.finishedAt ?? w.startedAt
+          if (last !== null && at <= last) continue
+          const covers =
+            w.routineId === r.id ||
+            (wanted.size > 0 &&
+              (() => {
+                const done = new Set(w.exercises.map((e) => e.exerciseId))
+                return [...wanted].every((id) => done.has(id))
+              })())
+          if (covers) last = at
+        }
+        return last === r.lastPerformedAt ? r : { ...r, lastPerformedAt: last }
+      }),
+    [routines, workoutList],
+  )
   const exerciseById = useMemo(
     () => new Map(exerciseList.map((e) => [e.id, e])),
     [exerciseList],

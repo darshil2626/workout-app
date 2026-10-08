@@ -115,16 +115,25 @@ export function HistoryPage() {
                       </div>
                       {/* The thing people actually scan a history card for, so it
                           outranks the stats row above it rather than trailing it. */}
-                      <div className="card-exercises" style={{ marginTop: 6 }}>
-                        {w.exercises.length === 0
-                          ? 'No exercises logged'
-                          : w.exercises
-                              .map(
-                                (le) =>
-                                  `${le.sets.length} × ${byId.get(le.exerciseId)?.name ?? 'Unknown'}`,
-                              )
-                              .join(', ')}
-                      </div>
+                      {w.exercises.length === 0 ? (
+                        <div className="card-exercises" style={{ marginTop: 6 }}>
+                          No exercises logged
+                        </div>
+                      ) : (
+                        <ul className="history-ex-list">
+                          {w.exercises.slice(0, 5).map((le) => (
+                            <li key={le.id}>
+                              <span className="truncate">{byId.get(le.exerciseId)?.name ?? 'Unknown'}</span>
+                              <span className="mono">
+                                {le.sets.length} {le.sets.length === 1 ? 'set' : 'sets'}
+                              </span>
+                            </li>
+                          ))}
+                          {w.exercises.length > 5 && (
+                            <li className="history-ex-more">+{w.exercises.length - 5} more</li>
+                          )}
+                        </ul>
+                      )}
                     </button>
                   ))}
                 </div>

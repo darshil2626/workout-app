@@ -169,7 +169,7 @@ export function StatsPage() {
                 formatDate={() => ''}
               />
             </div>
-            <p className="muted">Bodyweight and circumferences — log an entry to see the trend.</p>
+            <p className="muted">Log an entry to see the trend in your bodyweight and circumferences.</p>
             <button className="btn btn-accent-soft btn-sm" onClick={() => navigate('/measurements')}>
               Log an entry
             </button>
@@ -270,10 +270,10 @@ export function StatsPage() {
           </span>
         </div>
 
-        {/* Three headline figures, then the smaller counts. Volume is abbreviated
-            because an all-time total runs to seven digits; the exact number stays
-            reachable on hover and in every table view. Each tile also doubles as
-            a shortcut to the chart it summarises. */}
+        {/* Volume, sets and reps lead as the three headline figures. Volume is
+            abbreviated because an all-time total runs to seven digits; the exact
+            number stays reachable on hover and in every table view. The pairs
+            below are time lifting with training age, then the two streaks. */}
         <div className="headline-card">
           <button className="headline" onClick={() => scrollToChart(weeklyRef)}>
             <div className="headline-value" title={`${fmt.volume(totals.volumeKg)} ${fmt.weightUnit}`}>
@@ -282,38 +282,39 @@ export function StatsPage() {
             </div>
             <div className="stat-label">Volume lifted</div>
           </button>
-          <button className="headline" onClick={() => scrollToChart(activityRef)}>
-            <div className="headline-value">{formatHoursTotal(totals.durationSec)}</div>
+          <button className="headline" onClick={() => scrollToChart(weeklyRef)}>
+            <div className="headline-value">{totals.sets.toLocaleString()}</div>
+            <div className="stat-label">Sets</div>
+          </button>
+          <button className="headline" onClick={() => scrollToChart(weeklyRef)}>
+            <div className="headline-value">{totals.reps.toLocaleString()}</div>
+            <div className="stat-label">Reps</div>
+          </button>
+        </div>
+
+        <div className="stat-grid stat-grid-pairs" style={{ marginTop: 10 }}>
+          <button className="stat" onClick={() => scrollToChart(activityRef)}>
+            <div className="stat-value">{formatHoursTotal(totals.durationSec)}</div>
             <div className="stat-label">Time lifting</div>
           </button>
-          <button className="headline" onClick={() => scrollToChart(activityRef)}>
-            <div className="headline-value">
+          <div className="stat">
+            <div className="stat-value">{trainingAgeDays !== null ? formatAge(trainingAgeDays) : '-'}</div>
+            <div className="stat-label">Training age</div>
+          </div>
+          <button className="stat" onClick={() => scrollToChart(activityRef)}>
+            <div className="stat-value">
               {streaks.currentWeeks}
               <span className="headline-unit">wk</span>
             </div>
             <div className="stat-label">Week streak</div>
           </button>
-        </div>
-
-        <div className="stat-grid" style={{ marginTop: 10 }}>
-          <div className="stat">
-            <div className="stat-value">{streaks.longestWeeks}</div>
-            <div className="stat-label">Best streak</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{totals.sets.toLocaleString()}</div>
-            <div className="stat-label">Sets</div>
-          </div>
-          <div className="stat">
-            <div className="stat-value">{totals.reps.toLocaleString()}</div>
-            <div className="stat-label">Reps</div>
-          </div>
-          {trainingAgeDays !== null && (
-            <div className="stat">
-              <div className="stat-value">{formatAge(trainingAgeDays)}</div>
-              <div className="stat-label">Training age</div>
+          <button className="stat" onClick={() => scrollToChart(activityRef)}>
+            <div className="stat-value">
+              {streaks.longestWeeks}
+              <span className="headline-unit">wk</span>
             </div>
-          )}
+            <div className="stat-label">Best streak</div>
+          </button>
         </div>
 
         <div className="section-title">Body</div>
@@ -324,7 +325,7 @@ export function StatsPage() {
         <div ref={activityRef} className="chart-anchor">
           <ChartCard
             title="Activity"
-            subtitle="Last 17 weeks — brighter means more volume"
+            subtitle="Last 17 weeks with brighter meaning more volume"
             table={{
               columns: [{ header: 'Date' }, { header: 'Workouts', numeric: true }, { header: `Volume (${fmt.weightUnit})`, numeric: true }],
               rows: days
@@ -344,7 +345,7 @@ export function StatsPage() {
                   formatValue={() => ''}
                 />
               ),
-              message: 'No training in this window yet — log a workout and it starts filling in.',
+              message: 'No training in this window yet so log a workout and it starts filling in.',
             }}
           >
             <Heatmap
@@ -383,7 +384,7 @@ export function StatsPage() {
                   w.workouts,
                   w.sets,
                   fmt.volume(w.volumeKg),
-                  w.workouts > 0 ? fmt.volume(w.volumeKg / w.workouts) : '—',
+                  w.workouts > 0 ? fmt.volume(w.volumeKg / w.workouts) : '-',
                 ]),
             }}
             // The table always has one row per week in the window, whether or
@@ -401,7 +402,7 @@ export function StatsPage() {
                   formatValue={weekFormat}
                 />
               ),
-              message: 'No training in the last 12 weeks — this fills in once you log a workout.',
+              message: 'No training in the last 12 weeks so this fills in once you log a workout.',
             }}
           >
             <ColumnChart
@@ -417,7 +418,7 @@ export function StatsPage() {
 
         <ChartCard
           title="Muscle balance"
-          subtitle="Working sets by primary muscle group, all time — tap a muscle to see its exercises"
+          subtitle="Working sets by primary muscle group, all time with a tap on a muscle showing its exercises"
           table={{
             columns: [
               { header: 'Muscle' },
@@ -441,7 +442,7 @@ export function StatsPage() {
                 key={m.muscle}
                 className="bar-row tappable"
                 onClick={() => navigate(`/exercises?muscle=${encodeURIComponent(m.muscle)}`)}
-                aria-label={`${m.muscle}: ${m.sets} set${m.sets === 1 ? '' : 's'} — view exercises`}
+                aria-label={`${m.muscle}: ${m.sets} set${m.sets === 1 ? '' : 's'} and a tap opens its exercises`}
               >
                 <span className="bar-label truncate">{m.muscle}</span>
                 <div className="bar-track">

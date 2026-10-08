@@ -8,6 +8,8 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { MuscleTargets } from '../components/MuscleTargets'
+import { ExerciseArt } from '../components/ExerciseArt'
+import { EXERCISE_ART_ENABLED } from '../lib/features'
 import { useFormatters, type Formatters } from '../lib/useSettings'
 import { getExerciseHistory } from '../lib/history'
 import { countsTowardVolume, describeSet, setBadges } from '../lib/workout'
@@ -178,7 +180,10 @@ export function ExerciseDetailPage() {
       case 'distance':
         return `${fmt.distance(v)} ${fmt.distanceUnit}`
       case 'reps':
+      case 'maxReps':
         return `${Math.round(v)} reps`
+      case 'sets':
+        return `${Math.round(v)} sets`
     }
   }
 
@@ -256,12 +261,9 @@ export function ExerciseDetailPage() {
           {exercise.isCustom ? ' · Custom' : ''}
         </p>
 
-        {/* Animated illustration retired in favor of the muscle readout below.
-            Archived, not deleted: components/ExerciseArt.tsx, db/exerciseArt.ts,
-            public/exercise-art/ and scripts/match-exercise-illustrations.mjs are
-            all still intact and unreferenced. To bring it back, restore the
-            `ExerciseArt` import above and swap it in for `MuscleTargets` here. */}
-        <MuscleTargets exercise={exercise} />
+        {/* The animated illustration is archived behind EXERCISE_ART_ENABLED
+            (lib/features.ts); the muscle readout shows while it is off. */}
+        {EXERCISE_ART_ENABLED ? <ExerciseArt exerciseId={exercise.id} /> : <MuscleTargets exercise={exercise} />}
 
         {exercise.notes ? (
           <div className="card" style={{ marginTop: 12 }}>
@@ -281,7 +283,7 @@ export function ExerciseDetailPage() {
                   if (!tile) return null
                   return (
                     <div className="stat" key={kind}>
-                      <div className="stat-value mono">—</div>
+                      <div className="stat-value mono">-</div>
                       <div className="stat-label">{tile.label}</div>
                     </div>
                   )
@@ -365,7 +367,7 @@ export function ExerciseDetailPage() {
             <div className="section-title">Set records</div>
             <p className="faint" style={{ marginBottom: 8 }}>
               Heaviest weight lifted at each rep count. These are not personal records and earn no
-              badge — together they describe a strength curve that a single 1RM estimate flattens.
+              badge so together they describe a strength curve that a single 1RM estimate flattens.
             </p>
             <div className="card set-records">
               <table className="chart-table">
@@ -502,7 +504,7 @@ export function ExerciseDetailPage() {
         title={history.length > 0 ? 'Hide this exercise?' : 'Delete this exercise?'}
         message={
           history.length > 0
-            ? 'It appears in your history, so it will be hidden from lists rather than deleted — your past workouts stay intact.'
+            ? 'It appears in your history, so it will be hidden from lists rather than deleted and your past workouts stay intact.'
             : 'This custom exercise will be removed.'
         }
         confirmLabel={history.length > 0 ? 'Hide' : 'Delete'}

@@ -124,6 +124,7 @@ export function ActiveWorkoutPage() {
     updateSet,
     updateExercise,
     setName,
+    setStartedAt,
     setNotes,
     finish,
     discard,
@@ -147,6 +148,8 @@ export function ActiveWorkoutPage() {
   const [exMenu, setExMenu] = useState<LoggedExercise | null>(null)
   const [restEditor, setRestEditor] = useState<LoggedExercise | null>(null)
   const [showNotes, setShowNotes] = useState(false)
+  const [editingStart, setEditingStart] = useState(false)
+  const [startDraft, setStartDraft] = useState('')
   // Non-null while the plate calculator sheet is open; holds the target weight.
   const [plateTarget, setPlateTarget] = useState<number | null | undefined>(undefined)
   // Holds what a swipe just removed so an Undo tap can put it back where it was.
@@ -351,7 +354,7 @@ export function ActiveWorkoutPage() {
         currentKeys.add(key)
         if (alreadySeen && !alreadySeen.has(key)) {
           newMessages.push(
-            `${exercise?.name ?? 'That exercise'} — ${kinds.map((k) => PR_LABEL[k]).join(', ')}`,
+            `Well done! New PR on ${exercise?.name ?? 'that exercise'}: ${kinds.map((k) => PR_LABEL[k].charAt(0).toLowerCase() + PR_LABEL[k].slice(1)).join(' and ')}`,
           )
         }
       }
@@ -462,7 +465,7 @@ export function ActiveWorkoutPage() {
             className="icon-btn"
             onClick={() => navigate('/')}
             aria-label="Minimise workout"
-            title="Back to app — the workout keeps running"
+            title="Back to app while the workout keeps running"
           >
             <IconMinimise />
           </button>
@@ -496,8 +499,19 @@ export function ActiveWorkoutPage() {
             background: 'transparent',
             border: 'none',
             padding: '4px 0',
+            textAlign: 'center',
           }}
         />
+        <button
+          className="start-time-btn"
+          onClick={() => {
+            setStartDraft(toLocalInput(workout.startedAt))
+            setEditingStart(true)
+          }}
+        >
+          Started {new Date(workout.startedAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+          <span className="start-time-edit">Edit</span>
+        </button>
 
         <div className="stat-grid" style={{ margin: '10px 0 4px' }}>
           <div className="stat">
@@ -706,6 +720,38 @@ export function ActiveWorkoutPage() {
           </button>
         </div>
       </div>
+
+      <Sheet
+        open={editingStart}
+        title="Start time"
+        onClose={() => setEditingStart(false)}
+        footer={
+          <button
+            className="btn btn-primary btn-block"
+            disabled={!startDraft || new Date(startDraft).getTime() > Date.now()}
+            onClick={() => {
+              setStartedAt(new Date(startDraft).getTime())
+              setEditingStart(false)
+            }}
+          >
+            Save start time
+          </button>
+        }
+      >
+        <input
+          className="input"
+          type="datetime-local"
+          value={startDraft}
+          max={toLocalInput(Date.now())}
+          onChange={(e) => setStartDraft(e.target.value)}
+          aria-label="Workout start time"
+        />
+        {startDraft && new Date(startDraft).getTime() > Date.now() && (
+          <p className="muted" style={{ marginTop: 8 }}>
+            Pick a time that has already passed.
+          </p>
+        )}
+      </Sheet>
 
       <ExercisePicker
         open={picking}
@@ -1063,4 +1109,11 @@ function RestEditorSheet({
       ))}
     </Sheet>
   )
+}
+
+/** `datetime-local` wants local wall-clock time without a zone suffix. */
+function toLocalInput(ms: number): string {
+  const d = new Date(ms)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

@@ -41,7 +41,7 @@ export function PlateCalculator({ open, targetKg, onClose }: Props) {
 
           {groups.length === 0 ? (
             <p className="muted" style={{ marginTop: 14 }}>
-              Just the bar — no plates needed.
+              Just the bar so no plates are needed.
             </p>
           ) : (
             <>
@@ -67,7 +67,7 @@ export function PlateCalculator({ open, targetKg, onClose }: Props) {
           {solution.remainderKg > 0.01 && (
             <p className="plate-warning">
               Closest loadable weight is {formatWeight(solution.achievedKg, weightUnit)}{' '}
-              {weightUnit} — {formatWeight(solution.remainderKg * 2, weightUnit)} {weightUnit} short.
+              {weightUnit} which is {formatWeight(solution.remainderKg * 2, weightUnit)} {weightUnit} short.
               Add smaller plates to your inventory in Settings if you have them.
             </p>
           )}

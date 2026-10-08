@@ -27,8 +27,8 @@
   /* Three tiers, holding their old contrast against --surface: 15.7 / 6.8 / 3.8.
      Warming them without moving those ratios is the whole point of the rotation. */
   --text: #f5f1ea;
-  --text-dim: #ab9e90;
-  --text-faint: #7d7267;
+  --text-dim: #bdb1a3;
+  --text-faint: #998d80;
 
   /* Two hues carry meaning and nothing else. Ember is "act": anything that
      starts, continues, or is live right now. Gold is "won": PRs, milestones,
@@ -179,8 +179,8 @@
   --border-strong: #c7b8a0;
 
   --text: #201a13;
-  --text-dim: #635749;
-  --text-faint: #8a7d6d;
+  --text-dim: #51463a;
+  --text-faint: #6b5f50;
 
   --accent: #b5400e;
   --accent-dim: #d9a686;
@@ -311,6 +311,20 @@ select {
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3));
 }
 
+/* The running-workout bar and the rest timer both float above the tab bar,
+   so the last row needs to clear whichever of them are showing. */
+.app-main.has-active-banner {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3) + 47px);
+}
+
+.app-main.has-rest-bar {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3) + 70px);
+}
+
+.app-main.has-active-banner.has-rest-bar {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3) + 117px);
+}
+
 .page {
   max-width: 640px;
   margin: 0 auto;
@@ -351,6 +365,12 @@ select {
 .header-title {
   flex: 1;
   min-width: 0;
+  /* A line box as tall as the icon buttons beside it, so the text centres on
+     the same line as them (a bare block sat a couple of pixels low). Kept a
+     block rather than a flex container so the ellipsis below still applies. */
+  line-height: 40px;
+  /* Glyphs sit low in their line box; this lifts them level with the icons. */
+  transform: translateY(-1px);
   font-size: var(--text-2xl);
   font-weight: 650;
   overflow: hidden;
@@ -376,8 +396,12 @@ select {
 
 .icon-btn {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+  /* Icons size from font-size (1em), so this is what makes the glyph itself
+     a comfortable 22px instead of the 16px body size. */
+  font-size: 22px;
+  line-height: 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -946,6 +970,10 @@ textarea.input {
   gap: var(--space-3);
 }
 
+.stat-grid-pairs {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .stat {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1133,7 +1161,7 @@ textarea.input {
   padding: var(--space-2) var(--space-1);
   border: 0;
   background: none;
-  color: var(--text-faint);
+  color: var(--text-dim);
   font-size: var(--text-xl);
   cursor: grab;
 }
@@ -1191,6 +1219,10 @@ textarea.input {
   text-align: center;
   vertical-align: middle;
   font-variant-numeric: tabular-nums lining-nums;
+  transition:
+    background-color 260ms var(--ease),
+    border-color 260ms var(--ease),
+    color 260ms var(--ease);
 }
 
 .set-table tbody tr:not(:last-child) td {
@@ -1204,6 +1236,15 @@ textarea.input {
   background: color-mix(in srgb, var(--success) 12%, transparent);
   border-bottom-color: color-mix(in srgb, var(--success) 20%, var(--border));
   color: var(--text-dim);
+}
+
+/* A record is gold, not green: the same settled row, in the colour the app
+   already reserves for "won" moments. Declared after .done so it takes over
+   a completed set, and before .swipe-armed so a delete drag still tints red. */
+.set-table tr.pr td {
+  background: color-mix(in srgb, var(--pr) 18%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--pr) 35%, var(--border));
+  color: var(--text);
 }
 
 /* A set row is a <tr>, so it skips the .swipe-row two-layer treatment used
@@ -1598,7 +1639,11 @@ tr.done .set-step-btn {
   background: var(--raised);
   color: var(--text-faint);
   border: 1px solid var(--border-strong);
-  transition: transform var(--dur-press) var(--ease);
+  transition:
+    transform var(--dur-press) var(--ease),
+    background-color 260ms var(--ease),
+    border-color 260ms var(--ease),
+    color 260ms var(--ease);
 }
 
 .check-btn:active {
@@ -1625,6 +1670,27 @@ tr.done .set-step-btn {
   background: var(--success);
   border-color: var(--success);
   color: #06240f;
+}
+
+tr.pr .check-btn.on {
+  background: var(--pr);
+  border-color: var(--pr);
+  color: var(--bg);
+}
+
+.check-btn.on svg {
+  animation: check-pop 320ms var(--ease-overshoot);
+}
+
+@keyframes check-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .ex-foot {
@@ -1733,7 +1799,7 @@ tr.done .set-step-btn {
 
 .rest-bar + .active-banner,
 .has-rest-bar .active-banner {
-  bottom: calc(var(--nav-h) + var(--safe-bottom) + 52px);
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 70px);
 }
 
 /* ── Update prompt ──────────────────────────────────────────────────────── */
@@ -1743,7 +1809,7 @@ tr.done .set-step-btn {
   left: 12px;
   right: 12px;
   /* Clears the tab bar, the rest timer and the workout banner at once. */
-  bottom: calc(var(--nav-h) + var(--safe-bottom) + 112px);
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 126px);
   z-index: 40;
   max-width: 616px;
   margin: 0 auto;
@@ -2635,7 +2701,28 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 /* ── Calendar heatmap ───────────────────────────────────────────────────── */
 
 .heatmap-wrap {
+  position: relative;
   margin-top: var(--space-3);
+}
+
+.heatmap-popup {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: var(--space-2) var(--space-3);
+  background: var(--raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 30%);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.heatmap-popup-date {
+  color: var(--text-dim);
+  font-size: var(--text-xs);
+  margin-bottom: 2px;
 }
 
 .heatmap-scroll {
@@ -3231,4 +3318,48 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
 .home-section-muted {
   color: var(--text-dim);
   font-weight: 500;
+}
+
+/* Quiet line under the workout name that opens the start-time editor. */
+.start-time-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) 0;
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+}
+
+.start-time-edit {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Exercise summary on a history card: name on the left, set count on the right. */
+.history-ex-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  text-align: left;
+}
+
+.history-ex-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.history-ex-list li .mono {
+  color: var(--text-dim);
+}
+
+.history-ex-list li.history-ex-more {
+  display: block;
+  color: var(--text-faint);
 }

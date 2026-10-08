@@ -22,6 +22,7 @@ import {
   IconMore,
   IconNote,
   IconPlus,
+  IconSwap,
   IconTimer,
   IconTrash,
 } from '../components/Icons'
@@ -48,6 +49,7 @@ export function RoutineEditPage() {
 
   const [picking, setPicking] = useState(false)
   const [menu, setMenu] = useState<RoutineExercise | null>(null)
+  const [replacing, setReplacing] = useState<RoutineExercise | null>(null)
   const [restEditor, setRestEditor] = useState<RoutineExercise | null>(null)
   const [typeMenu, setTypeMenu] = useState<{ exId: string; index: number } | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
@@ -291,7 +293,7 @@ export function RoutineEditPage() {
                           <td>
                             <TargetField
                               display={formatDistance(s.distanceM, fmt.distanceUnit)}
-                              placeholder="—"
+                              placeholder="-"
                               onCommit={(t) => {
                                 const n = parseNumber(t)
                                 updateTarget(re.id, i, {
@@ -306,7 +308,7 @@ export function RoutineEditPage() {
                           <td>
                             <TargetField
                               display={formatWeight(s.weight, fmt.weightUnit)}
-                              placeholder="—"
+                              placeholder="-"
                               onCommit={(t) => {
                                 const n = parseNumber(t)
                                 updateTarget(re.id, i, {
@@ -321,7 +323,7 @@ export function RoutineEditPage() {
                           <td>
                             <TargetField
                               display={s.durationSec === null ? '' : formatDuration(s.durationSec)}
-                              placeholder="—"
+                              placeholder="-"
                               onCommit={(t) => updateTarget(re.id, i, { durationSec: parseDuration(t) })}
                               ariaLabel="Target time"
                               inputMode="text"
@@ -332,7 +334,7 @@ export function RoutineEditPage() {
                           <td>
                             <TargetField
                               display={s.reps === null ? '' : String(s.reps)}
-                              placeholder="—"
+                              placeholder="-"
                               onCommit={(t) => {
                                 const n = parseNumber(t)
                                 updateTarget(re.id, i, {
@@ -385,7 +387,7 @@ export function RoutineEditPage() {
         </div>
 
         <p className="faint" style={{ margin: '14px 0 8px' }}>
-          Target weights and reps are optional — leave them blank and they show as placeholders while
+          Target weights and reps are optional so you can leave them blank and they show as placeholders while
           you log.
         </p>
 
@@ -410,6 +412,21 @@ export function RoutineEditPage() {
             })),
           ])
         }
+      />
+
+      <ExercisePicker
+        open={replacing !== null}
+        title={`Replace ${byId.get(replacing?.exerciseId ?? '')?.name ?? 'exercise'}`}
+        confirmLabel="Replace"
+        single
+        excludeId={replacing?.exerciseId}
+        onClose={() => setReplacing(null)}
+        onConfirm={(ids) => {
+          const target = replacing
+          const next = ids[0]
+          setReplacing(null)
+          if (target && next) updateItem(target.id, (x) => ({ ...x, exerciseId: next }))
+        }}
       />
 
       <Sheet open={typeMenu !== null} title="Set type" onClose={() => setTypeMenu(null)}>
@@ -489,6 +506,16 @@ export function RoutineEditPage() {
             <span className="grow">Remove from superset</span>
           </button>
         )}
+        <button
+          className="sheet-list-item"
+          onClick={() => {
+            setReplacing(menu)
+            setMenu(null)
+          }}
+        >
+          <IconSwap />
+          <span className="grow">Replace exercise</span>
+        </button>
         <button
           className="sheet-list-item"
           onClick={() => {

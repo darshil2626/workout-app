@@ -23,7 +23,7 @@ export function ActiveWorkoutBanner() {
     <div
       className="active-banner"
       // Sit above the rest bar when both are visible.
-      style={remaining !== null ? { bottom: 'calc(var(--nav-h) + var(--safe-bottom) + 52px)' } : undefined}
+      style={remaining !== null ? { bottom: 'calc(var(--nav-h) + var(--safe-bottom) + 70px)' } : undefined}
     >
       <button className="active-banner-body" onClick={() => navigate('/workout')}>
         <span className="truncate grow" style={{ textAlign: 'left' }}>

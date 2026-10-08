@@ -10,7 +10,6 @@ import type { ActiveSetTimer } from '../state/SetTimerContext'
 import { PR_LABEL, type PRKind } from '../lib/records'
 import type { SwipeToDeleteState } from '../lib/useSwipeToDelete'
 import type { LongPressState } from '../lib/useLongPress'
-import { DeltaBadge } from './DeltaBadge'
 
 /**
  * Uncontrolled-while-focused text input.
@@ -42,6 +41,10 @@ function NumberField({
       className="set-input"
       type="text"
       inputMode={inputMode}
+      enterKeyHint="done"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+      }}
       value={text}
       placeholder={placeholder}
       aria-label={ariaLabel}
@@ -136,8 +139,7 @@ export function SetRow({
     hadPrRef.current = hasPr
   }, [prs])
 
-  const prevLabel = previous ? describePrevious(previous, kind, weightUnit, distanceUnit) : '—'
-  const delta = previous ? primaryDelta(set, previous, kind, fmt) : null
+  const prevLabel = previous ? describePrevious(previous, kind, weightUnit, distanceUnit) : '-'
 
   // The previous session's numbers become placeholders, so tapping the check
   // with empty inputs is never ambiguous about what was actually lifted.
@@ -148,28 +150,12 @@ export function SetRow({
   const durationPlaceholder = previous?.durationSec != null ? formatDuration(previous.durationSec) : '0:00'
   const distancePlaceholder = previous?.distanceM != null ? formatDistance(previous.distanceM, distanceUnit) : '0'
 
-  // Steps operate directly in storage units (kg / metres) rather than
-  // display units — weightStepKg is already a physical kg increment (see
-  // Settings' "Weight increment"), and going via the formatted placeholder
-  // text for the others would just round-trip losslessly for no benefit.
-  const weightStep = fmt.settings.weightStepKg
   const repsStep = 1
-  const distanceStep = displayToMetres(0.1, distanceUnit)
 
   /** Blank inputs step off last time's number, matching the placeholder shown. */
-  function stepWeight(delta: number) {
-    const base = set.weight ?? previous?.weight ?? 0
-    onChange({ weight: round3(Math.max(0, base + delta)) })
-  }
-
   function stepReps(delta: number) {
     const base = set.reps ?? previous?.reps ?? 0
     onChange({ reps: Math.max(0, Math.round(base + delta)) })
-  }
-
-  function stepDistance(delta: number) {
-    const base = set.distanceM ?? previous?.distanceM ?? 0
-    onChange({ distanceM: round3(Math.max(0, base + delta)) })
   }
 
   // Stepper buttons sit inside a swipe/long-press-enabled row; stopping
@@ -236,7 +222,10 @@ export function SetRow({
 
   const swipeRow = swipe.rowProps(set.id)
   const longPressRow = longPress.rowProps(set.id)
-  const rowClasses = [set.completed ? 'done' : null, swipe.isArmed(set.id) ? 'swipe-armed' : null]
+  const isPr = (prs?.length ?? 0) > 0
+  // A record turns the whole row gold in place of the green of an ordinary
+  // completed set, so it reads at a glance without a separate badge.
+  const rowClasses = [set.completed ? 'done' : null, isPr ? 'pr' : null, swipe.isArmed(set.id) ? 'swipe-armed' : null]
     .filter(Boolean)
     .join(' ')
 
@@ -273,22 +262,6 @@ export function SetRow({
         ) : (
           <div className="prev-cell">{prevLabel}</div>
         )}
-        {prs && prs.length > 0 && (
-          // Label as well as colour: the gold pill never carries the meaning alone.
-          <span className="badge badge-pr" title={prs.map((k) => PR_LABEL[k]).join(', ')}>
-            PR
-          </span>
-        )}
-        {/* Only once the number actually typed in differs from last time's —
-            matching it exactly (the common case right after "Copy previous"
-            or auto-fill on tick) has nothing to compare. */}
-        {delta && (
-          <DeltaBadge
-            up={delta.value > 0}
-            text={delta.text}
-            label={`${delta.value > 0 ? 'Up' : 'Down'} ${delta.text} vs last time`}
-          />
-        )}
         {/* PRs are rare and worth interrupting for — assertive, unlike the
             rest timer's polite announcements. role="alert" implies
             aria-live="assertive" + aria-atomic; both are named explicitly
@@ -299,62 +272,22 @@ export function SetRow({
       </td>
       {f.distance && (
         <td>
-          <div className="set-stepper">
-            <button
-              type="button"
-              className="set-step-btn"
-              onPointerDown={stopForStepper}
-              onClick={() => stepDistance(-distanceStep)}
-              aria-label={`Decrease distance by 0.1 ${distanceUnit}`}
-            >
-              −
-            </button>
-            <NumberField
+          <NumberField
               display={formatDistance(set.distanceM, distanceUnit)}
               placeholder={distancePlaceholder}
               onCommit={commitDistance}
               ariaLabel="Distance"
             />
-            <button
-              type="button"
-              className="set-step-btn"
-              onPointerDown={stopForStepper}
-              onClick={() => stepDistance(distanceStep)}
-              aria-label={`Increase distance by 0.1 ${distanceUnit}`}
-            >
-              +
-            </button>
-          </div>
         </td>
       )}
       {f.weight && (
         <td>
-          <div className="set-stepper">
-            <button
-              type="button"
-              className="set-step-btn"
-              onPointerDown={stopForStepper}
-              onClick={() => stepWeight(-weightStep)}
-              aria-label={`Decrease weight by ${formatWeight(weightStep, weightUnit)} ${weightUnit}`}
-            >
-              −
-            </button>
-            <NumberField
+          <NumberField
               display={formatWeight(set.weight, weightUnit)}
               placeholder={weightPlaceholder}
               onCommit={commitWeight}
               ariaLabel="Weight"
             />
-            <button
-              type="button"
-              className="set-step-btn"
-              onPointerDown={stopForStepper}
-              onClick={() => stepWeight(weightStep)}
-              aria-label={`Increase weight by ${formatWeight(weightStep, weightUnit)} ${weightUnit}`}
-            >
-              +
-            </button>
-          </div>
         </td>
       )}
       {f.duration && (
@@ -430,7 +363,10 @@ export function SetRow({
         <button
           className={`check-btn${set.completed ? ' on' : ''}`}
           onClick={toggle}
-          aria-label={set.completed ? 'Mark set incomplete' : 'Mark set complete'}
+          aria-label={`${set.completed ? 'Mark set incomplete' : 'Mark set complete'}${
+            isPr ? `. Personal record: ${prs!.map((k) => PR_LABEL[k]).join(' and ')}` : ''
+          }`}
+          title={isPr ? `Personal record: ${prs!.map((k) => PR_LABEL[k]).join(' and ')}` : undefined}
           aria-pressed={set.completed}
         >
           <IconCheck />
@@ -462,7 +398,7 @@ function describePrevious(
   }
   if (f.duration && set.durationSec !== null) bits.push(formatDuration(set.durationSec))
   if (f.reps && set.reps !== null) bits.push(f.weight ? `× ${set.reps}` : `${set.reps}`)
-  return bits.length > 0 ? bits.join(' ') : '—'
+  return bits.length > 0 ? bits.join(' ') : '-'
 }
 
 /** Rounds converted values so lb→kg round-trips don't accumulate noise. */
@@ -470,43 +406,3 @@ function round3(v: number): number {
   return Math.round(v * 1000) / 1000
 }
 
-/**
- * This set's value against last time's, on whichever field is the primary
- * one for the exercise's kind — weight when there is one (the common case,
- * and the field the audit calls out explicitly), otherwise reps for a
- * bodyweight movement, then duration or distance for the rest. Only one
- * field is compared rather than every field the row shows, so a set that
- * matches last time's reps but adds weight gets one arrow, not a wall of
- * them.
- */
-function primaryDelta(
-  set: LoggedSet,
-  previous: LoggedSet,
-  kind: ExerciseKind,
-  fmt: Formatters,
-): { value: number; text: string } | null {
-  const f = fieldsFor(kind)
-  const sign = (v: number) => (v > 0 ? '+' : '−')
-
-  if (f.weight && set.weight !== null && previous.weight !== null) {
-    const value = set.weight - previous.weight
-    if (value === 0) return null
-    return { value, text: `${sign(value)}${formatWeight(Math.abs(value), fmt.weightUnit)}` }
-  }
-  if (f.reps && set.reps !== null && previous.reps !== null) {
-    const value = set.reps - previous.reps
-    if (value === 0) return null
-    return { value, text: `${sign(value)}${Math.abs(value)}` }
-  }
-  if (f.duration && set.durationSec !== null && previous.durationSec !== null) {
-    const value = set.durationSec - previous.durationSec
-    if (value === 0) return null
-    return { value, text: `${sign(value)}${formatDuration(Math.abs(value))}` }
-  }
-  if (f.distance && set.distanceM !== null && previous.distanceM !== null) {
-    const value = set.distanceM - previous.distanceM
-    if (value === 0) return null
-    return { value, text: `${sign(value)}${formatDistance(Math.abs(value), fmt.distanceUnit)}` }
-  }
-  return null
-}

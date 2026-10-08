@@ -204,13 +204,15 @@ export function muscleDistribution(
   return [...map.values()].sort((a, b) => b.sets - a.sets)
 }
 
-export type ProgressMetric = 'heaviest' | 'oneRm' | 'volume' | 'reps' | 'duration' | 'distance'
+export type ProgressMetric = 'heaviest' | 'oneRm' | 'volume' | 'reps' | 'maxReps' | 'sets' | 'duration' | 'distance'
 
 export const PROGRESS_METRIC_LABEL: Record<ProgressMetric, string> = {
   heaviest: 'Heaviest weight',
   oneRm: 'Estimated 1RM',
   volume: 'Session volume',
   reps: 'Total reps',
+  maxReps: 'Most reps in a set',
+  sets: 'Working sets',
   duration: 'Best time',
   distance: 'Best distance',
 }
@@ -220,7 +222,9 @@ export const PROGRESS_METRIC_SHORT: Record<ProgressMetric, string> = {
   heaviest: 'Heaviest',
   oneRm: 'Est. 1RM',
   volume: 'Volume',
-  reps: 'Reps',
+  reps: 'Total reps',
+  maxReps: 'Best set',
+  sets: 'Sets',
   duration: 'Time',
   distance: 'Distance',
 }
@@ -239,7 +243,8 @@ export function metricsFor(kind: ExerciseKind): ProgressMetric[] {
   if (loadIsMeasurable) metrics.push('heaviest')
   if (loadIsMeasurable && f.reps) metrics.push('oneRm', 'volume')
   if (f.duration) metrics.push('duration')
-  if (f.reps) metrics.push('reps')
+  if (f.reps) metrics.push('reps', 'maxReps')
+  metrics.push('sets')
   return metrics
 }
 
@@ -282,6 +287,12 @@ export function exerciseProgress(
           break
         case 'reps':
           value += s.reps ?? 0
+          break
+        case 'maxReps':
+          value = Math.max(value, s.reps ?? 0)
+          break
+        case 'sets':
+          value += 1
           break
         case 'duration':
           value = Math.max(value, s.durationSec ?? 0)

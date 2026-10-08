@@ -43,8 +43,36 @@ export function syntheticHeatCells(days: number, now = Date.now()): HeatCell[] {
 }
 
 export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
-  const [active, setActive] = useState<HeatCell | null>(null)
+  // The tapped day and where to float its card, measured against the wrapper.
+  const [active, setActive] = useState<{ cell: HeatCell; x: number; y: number } | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)
+  const wrap = useRef<HTMLDivElement | null>(null)
+
+  function show(cell: HeatCell, target: HTMLElement) {
+    const w = wrap.current
+    if (!w) return
+    const r = target.getBoundingClientRect()
+    const wr = w.getBoundingClientRect()
+    // Clamped so the card never hangs off either edge of the chart.
+    const x = Math.min(Math.max(r.left - wr.left + r.width / 2, 80), Math.max(80, wr.width - 80))
+    setActive({ cell, x, y: r.top - wr.top })
+  }
+
+  // The card is dismissed by tapping anywhere that isn't a day, or by scrolling.
+  useEffect(() => {
+    if (!active) return
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest('.heatmap-cell')) setActive(null)
+    }
+    const el = scroller.current
+    const onScroll = () => setActive(null)
+    document.addEventListener('pointerdown', onDown)
+    el?.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      el?.removeEventListener('scroll', onScroll)
+    }
+  }, [active])
 
   // Open on the most recent weeks — that is what the user came to look at.
   useEffect(() => {
@@ -75,7 +103,7 @@ export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
   for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7))
 
   return (
-    <div className="heatmap-wrap">
+    <div className="heatmap-wrap" ref={wrap}>
       <div className="heatmap-scroll" ref={scroller}>
         <div className="heatmap">
           <div className="heatmap-days">
@@ -96,9 +124,7 @@ export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
                     key={di}
                     className="heatmap-cell"
                     style={{ background: bin < 0 ? 'var(--heat-0)' : RAMP[bin] }}
-                    onPointerEnter={() => setActive(cell)}
-                    onPointerDown={() => setActive(cell)}
-                    onPointerLeave={() => setActive(null)}
+                    onClick={(e) => show(cell, e.currentTarget)}
                     aria-label={`${new Date(cell.day).toDateString()}: ${
                       cell.workouts === 0 ? 'rest day' : formatValue(cell.value)
                     }`}
@@ -110,23 +136,27 @@ export function Heatmap({ cells, firstDayOfWeek, formatValue }: Props) {
         </div>
       </div>
 
-      <div className="heatmap-foot">
-        <span className="faint">{active ? new Date(active.day).toDateString() : 'Less'}</span>
-        {active ? (
-          <span className="muted mono">
-            {active.workouts === 0
+      {active && (
+        // Floats above the tapped day, where a thumb on the day never covers it.
+        <div className="heatmap-popup" role="status" style={{ left: active.x, top: active.y }}>
+          <div className="heatmap-popup-date">{new Date(active.cell.day).toDateString()}</div>
+          <div className="mono">
+            {active.cell.workouts === 0
               ? 'Rest day'
-              : `${formatValue(active.value)} · ${active.workouts} workout${active.workouts > 1 ? 's' : ''}`}
-          </span>
-        ) : (
-          <div className="heatmap-legend">
-            <span className="heatmap-cell" style={{ background: 'var(--heat-0)' }} />
-            {RAMP.map((c) => (
-              <span key={c} className="heatmap-cell" style={{ background: c }} />
-            ))}
+              : `${formatValue(active.cell.value)} in ${active.cell.workouts} workout${active.cell.workouts > 1 ? 's' : ''}`}
           </div>
-        )}
-        {!active && <span className="faint">More</span>}
+        </div>
+      )}
+
+      <div className="heatmap-foot">
+        <span className="faint">Less</span>
+        <div className="heatmap-legend">
+          <span className="heatmap-cell" style={{ background: 'var(--heat-0)' }} />
+          {RAMP.map((c) => (
+            <span key={c} className="heatmap-cell" style={{ background: c }} />
+          ))}
+        </div>
+        <span className="faint">More</span>
       </div>
     </div>
   )

@@ -45,6 +45,8 @@ interface ActiveWorkoutValue {
   updateSet: (loggedExerciseId: string, setId: string, patch: Partial<LoggedSet>) => void
   updateExercise: (loggedExerciseId: string, patch: Partial<Omit<LoggedExercise, 'sets' | 'id'>>) => void
   setName: (name: string) => void
+  /** Moves the session's start, for when the workout began before the app was opened. */
+  setStartedAt: (startedAt: number) => void
   setNotes: (notes: string) => void
   /** Persists totals, marks the session done, and returns its id. */
   finish: (rating?: SessionRating) => Promise<string | null>
@@ -319,6 +321,10 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
   )
 
   const setName = useCallback((name: string) => mutate((w) => ({ ...w, name })), [mutate])
+  const setStartedAt = useCallback(
+    (startedAt: number) => mutate((w) => ({ ...w, startedAt: Math.min(startedAt, Date.now()) })),
+    [mutate],
+  )
   const setNotes = useCallback((notes: string) => mutate((w) => ({ ...w, notes })), [mutate])
 
   const finish = useCallback(async (rating?: SessionRating) => {
@@ -395,6 +401,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       updateSet,
       updateExercise,
       setName,
+      setStartedAt,
       setNotes,
       finish,
       discard,
@@ -415,6 +422,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       updateSet,
       updateExercise,
       setName,
+      setStartedAt,
       setNotes,
       finish,
       discard,

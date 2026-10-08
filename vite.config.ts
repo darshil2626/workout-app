@@ -34,7 +34,7 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'IronLog — Gym Tracker',
+        name: 'IronLog Gym Tracker',
         short_name: 'IronLog',
         description:
           'Offline-first strength log: routines, set-by-set logging, rest timer, personal records, muscle recovery and progress charts.',

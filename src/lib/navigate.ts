@@ -8,6 +8,19 @@ export function isFullscreenRoute(pathname: string): boolean {
   return FULLSCREEN_ROUTES.some((p) => pathname.startsWith(p)) || pathname.endsWith('/edit')
 }
 
+let backIntent = false
+
+/**
+ * True once after a path-based navigation that was flagged as going back, so
+ * the shell can restore the scroll position of the screen being returned to
+ * even though the router sees it as an ordinary push.
+ */
+export function consumeBackIntent(): boolean {
+  const v = backIntent
+  backIntent = false
+  return v
+}
+
 function pathnameOf(to: To): string {
   return typeof to === 'string' ? to.split(/[?#]/)[0] : (to.pathname ?? '')
 }
@@ -56,6 +69,7 @@ export function useNavigate() {
       forcedDirection ??
       (toFullscreen && !fromFullscreen ? 'modal-in' : !toFullscreen && fromFullscreen ? 'modal-out' : 'forward')
     document.documentElement.dataset.navDirection = direction
+    backIntent = direction === 'back'
 
     navigate(to, { ...routerOptions, viewTransition: true })
   }

@@ -28,6 +28,8 @@ interface DragState {
   id: string
   fromIndex: number
   startY: number
+  /** Page scroll at drag start, so autoscroll counts toward the drag distance. */
+  startScroll: number
   /** Row tops and heights at drag start, in document order. */
   rows: { id: string; top: number; height: number }[]
 }
@@ -56,6 +58,7 @@ export function useSortable(
   // handler itself — targetIndexRef only catches up on the next render, which
   // lags behind pointermove's own firing rate.
   const lastSwapIndexRef = useRef<number | null>(null)
+  const lastClientY = useRef(0)
 
   const registerRef = useCallback(
     (id: string) => (el: HTMLElement | null) => {
@@ -82,7 +85,8 @@ export function useSortable(
 
       e.preventDefault()
       e.currentTarget.setPointerCapture(e.pointerId)
-      drag.current = { id, fromIndex, startY: e.clientY, rows }
+      drag.current = { id, fromIndex, startY: e.clientY, startScroll: window.scrollY, rows }
+      lastClientY.current = e.clientY
       lastSwapIndexRef.current = fromIndex
       setDraggingId(id)
       setTargetIndex(fromIndex)
@@ -94,10 +98,10 @@ export function useSortable(
   useEffect(() => {
     if (!draggingId) return
 
-    function move(e: PointerEvent) {
+    function update() {
       const d = drag.current
       if (!d) return
-      const delta = e.clientY - d.startY
+      const delta = lastClientY.current - d.startY + (window.scrollY - d.startScroll)
       setDy(delta)
 
       // The slot is simply how many other rows the dragged row's centre now
@@ -117,6 +121,31 @@ export function useSortable(
       setTargetIndex(next)
     }
 
+    function move(e: PointerEvent) {
+      lastClientY.current = e.clientY
+      update()
+    }
+
+    // Dragging near the top or bottom edge scrolls the page, faster the closer
+    // the finger gets, so a card can be carried the whole way to either end.
+    const EDGE = 110
+    const MAX_SPEED = 18
+    let raf = 0
+    function autoscroll() {
+      const y = lastClientY.current
+      const h = window.innerHeight
+      let speed = 0
+      if (y < EDGE) speed = -MAX_SPEED * Math.min(1, (EDGE - y) / EDGE)
+      else if (y > h - EDGE) speed = MAX_SPEED * Math.min(1, (y - (h - EDGE)) / EDGE)
+      if (speed !== 0) {
+        const before = window.scrollY
+        window.scrollBy(0, speed)
+        if (window.scrollY !== before) update()
+      }
+      raf = requestAnimationFrame(autoscroll)
+    }
+    raf = requestAnimationFrame(autoscroll)
+
     function end() {
       const d = drag.current
       const to = targetIndexRef.current
@@ -135,6 +164,7 @@ export function useSortable(
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
     return () => {
+      cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)

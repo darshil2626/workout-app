@@ -275,7 +275,7 @@ const folderState = await page.evaluate(
       }
     }),
 )
-check('deleting a folder removes only the folder', folderState.folders === 0 && folderState.routines === 8 && folderState.r1Folder === null, JSON.stringify(folderState))
+check('deleting a folder removes only the folder', folderState.folders === 0 && folderState.routines === 9 && folderState.r1Folder === null, JSON.stringify(folderState))
 
 // ── Settings: haptic option, timer test and "use N a week" are gone (problem 3) ─
 await page.goto(`${BASE}/settings`)

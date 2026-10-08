@@ -1,5 +1,5 @@
 {
-  "anchor": "2026-10-08T22:28:50.484Z",
+  "anchor": "2026-10-08T23:42:13.672Z",
   "routineLabels": {
     "R1 Stale stamp ran via routine": {
       "lastDone": "3d ago",
@@ -28,6 +28,10 @@
     "R7 Empty": {
       "lastDone": null,
       "why": "an empty routine is never derived as performed"
+    },
+    "R9 Matched by name": {
+      "lastDone": "6d ago",
+      "why": "no link and different exercises, but a session carries the routine name"
     }
   },
   "historyCards": {

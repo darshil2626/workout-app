@@ -106,20 +106,23 @@ export function HomePage() {
   const folderList = useMemo(() => folders ?? [], [folders])
   const exerciseList = useMemo(() => exercises ?? [], [exercises])
   const workoutList = useMemo(() => sessions ?? [], [sessions])
-  // A routine counts as done when a session was started from it, or when a
-  // finished session covered all of its exercises (a freeform workout that
-  // repeated the routine). The stored stamp alone misses both, which left
-  // routines labelled "never done" after they had been done.
+  // A routine counts as done when a session was started from it, when a
+  // finished session carries its name (imports and repeats keep the name but
+  // not the link), or when a finished session covered all of its exercises. The
+  // stored stamp alone misses all three, which left routines labelled "never
+  // done" after they had been done.
   const routineList = useMemo(
     () =>
       (routines ?? []).map((r) => {
         let last = r.lastPerformedAt ?? null
         const wanted = new Set(r.exercises.map((e) => e.exerciseId))
+        const routineName = r.name.trim().toLowerCase()
         for (const w of workoutList) {
           const at = w.finishedAt ?? w.startedAt
           if (last !== null && at <= last) continue
           const covers =
             w.routineId === r.id ||
+            (routineName !== '' && w.name.trim().toLowerCase() === routineName) ||
             (wanted.size > 0 &&
               (() => {
                 const done = new Set(w.exercises.map((e) => e.exerciseId))

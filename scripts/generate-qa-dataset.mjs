@@ -24,11 +24,14 @@ const DAY = 86400000
 const NOW = Date.now()
 const id = () => randomUUID()
 
-/** Local 18:00 on the day `n` days ago, so "n days ago" is exact either side of midnight. */
-function daysAgo(n, hour = 18) {
-  const d = new Date(NOW)
-  d.setHours(hour, 0, 0, 0)
-  return d.getTime() - n * DAY
+/**
+ * `n` whole days (plus three hours, so a session that ends later still reads as n days) before the moment the script ran, so the
+ * app's "n days ago" is exact whatever time of day this is. Anchoring to a
+ * fixed clock hour broke whenever the run happened before that hour. The
+ * second argument is kept only so call sites read as before.
+ */
+function daysAgo(n, _hour = 0) {
+  return NOW - n * DAY - 3 * 3600000
 }
 
 // ── Sets and sessions ───────────────────────────────────────────────────
@@ -123,7 +126,8 @@ const R8 = routine(
     'push-up', 'crunch', 'seal-row', 'farmers-walk', 'assisted-pull-up',
   ],
 )
-const routines = [R1, R2, R3, R4, R5, R6, R7, R8]
+const R9 = routine('R9 Matched by name', 8, ['crunch', 'cable-crunch'])
+const routines = [R1, R2, R3, R4, R5, R6, R7, R8, R9]
 
 // ── Workouts ────────────────────────────────────────────────────────────
 const workouts = []
@@ -206,6 +210,12 @@ workouts.push(
   }),
 )
 
+// R9: a session with the routine's name but no link and different exercises,
+// the way an import or a repeated session arrives. 6 days ago.
+workouts.push(
+  workout({ name: 'R9 Matched by name', ago: 6, exercises: [block('squat-barbell', [S(90, 5), S(90, 5)])] }),
+)
+
 // History layout cases.
 workouts.push(
   workout({
@@ -285,6 +295,7 @@ const expected = {
     [R5.name]: { lastDone: '1w ago', why: 'the stored stamp (10 days ago) is kept when no session is newer' },
     [R6.name]: { lastDone: '2d ago', why: 'a session 2 days ago beats the 20 day old stamp' },
     [R7.name]: { lastDone: null, why: 'an empty routine is never derived as performed' },
+    [R9.name]: { lastDone: '6d ago', why: 'no link and different exercises, but a session carries the routine name' },
   },
   historyCards: {
     'History eight exercises': { rows: 5, more: '+3 more', firstRow: ['Bench Press (Barbell)', '2 sets'] },

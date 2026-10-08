@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { db, initDb } from './db/db'
 import { applyTheme, resolveTheme } from './lib/theme'
-import { maybeSeedSyntheticData } from './dev/seedSynthetic'
+import { maybeLoadQaDataset, maybeSeedSyntheticData } from './dev/seedSynthetic'
 import './index.css'
 
 const root = createRoot(document.getElementById('root')!)
@@ -18,7 +18,8 @@ applyTheme(resolveTheme('system'))
 // own one-shot starter-routine seed below checks routines/workouts counts —
 // running initDb first would seed that routine, make those counts non-zero,
 // and permanently block the synthetic dataset from ever loading afterward.
-maybeSeedSyntheticData()
+maybeLoadQaDataset()
+  .then(() => maybeSeedSyntheticData())
   .catch((err: unknown) => {
     console.error('Synthetic dev data seed failed', err)
   })

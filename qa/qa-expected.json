@@ -1,0 +1,102 @@
+{
+  "anchor": "2026-10-08T22:28:50.484Z",
+  "routineLabels": {
+    "R1 Stale stamp ran via routine": {
+      "lastDone": "3d ago",
+      "why": "stamp is null but a session ran from this routine 3 days ago"
+    },
+    "R2 Freeform covers all": {
+      "lastDone": "5d ago",
+      "why": "no routineId but a session covered all 3 exercises 5 days ago"
+    },
+    "R3 Partially covered": {
+      "lastDone": null,
+      "why": "sessions cover pull-up and plank but never inverted-row, and none ran from it"
+    },
+    "R4 Never done": {
+      "lastDone": null,
+      "why": "nothing touches it"
+    },
+    "R5 Stamp only": {
+      "lastDone": "1w ago",
+      "why": "the stored stamp (10 days ago) is kept when no session is newer"
+    },
+    "R6 Stamp older than session": {
+      "lastDone": "2d ago",
+      "why": "a session 2 days ago beats the 20 day old stamp"
+    },
+    "R7 Empty": {
+      "lastDone": null,
+      "why": "an empty routine is never derived as performed"
+    }
+  },
+  "historyCards": {
+    "History eight exercises": {
+      "rows": 5,
+      "more": "+3 more",
+      "firstRow": [
+        "Bench Press (Barbell)",
+        "2 sets"
+      ]
+    },
+    "History one set": {
+      "rows": 1,
+      "firstRow": [
+        "Bench Press (Barbell)",
+        "1 set"
+      ]
+    },
+    "History empty": {
+      "text": "No exercises logged"
+    }
+  },
+  "exerciseMetricChips": {
+    "bench-press-barbell": [
+      "Heaviest",
+      "Est. 1RM",
+      "Volume",
+      "Total reps",
+      "Best set",
+      "Sets"
+    ],
+    "pull-up": [
+      "Heaviest",
+      "Est. 1RM",
+      "Volume",
+      "Total reps",
+      "Best set",
+      "Sets"
+    ],
+    "assisted-pull-up": [
+      "Total reps",
+      "Best set",
+      "Sets"
+    ],
+    "plank": [
+      "Time",
+      "Sets"
+    ],
+    "rowing-machine": [
+      "Distance",
+      "Time",
+      "Sets"
+    ],
+    "farmers-walk": [
+      "Heaviest",
+      "Time",
+      "Sets"
+    ]
+  },
+  "benchPr": {
+    "baseline": {
+      "heaviestKg": 100,
+      "bestSet": "100 x 5",
+      "estOneRmKg": 116.7
+    },
+    "mustBadge": "a 102.5 kg x 5 set",
+    "mustNotBadge": "a 100 kg x 5 set (equal) or any 20 kg warm-up"
+  },
+  "warmupsExcluded": "Bench session volume for the first week is 70*5*3 = 1050 kg, not 1050 + 200",
+  "statsTiles": "four small tiles render 2x2 (training age present)",
+  "measurements": "bodyweight 13 points ending today, waist 3 points, none in the future"
+}

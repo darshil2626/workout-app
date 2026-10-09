@@ -172,3 +172,9 @@ The permanent fix is to add the following to `/etc/wsl.conf` and run
 [automount]
 options = "metadata"
 ```
+
+## Licence
+
+The code is released under the [GNU AGPL-3.0](LICENSE). The exercise illustrations in
+`public/exercise-art/` are separate work under CC BY-SA 4.0; see the licence file in that
+folder.

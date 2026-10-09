@@ -13,7 +13,7 @@ const onWindowsMount = process.cwd().startsWith('/mnt/')
 
 // 'staging' marks a build meant for trying changes on a real phone before they
 // reach the installed app. It is renamed so the two icons are told apart, and
-// the deploy workflow gives it no analytics key.
+// scripts/stage.mjs gives it no analytics key.
 const channel = process.env.BUILD_CHANNEL
 const nameSuffix = channel === 'staging' ? ' Staging' : ''
 

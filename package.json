@@ -2,6 +2,7 @@
   "name": "trana",
   "private": true,
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "_comment": "Scripts call binaries by path rather than name so they work on Windows-mounted drives in WSL, where npm cannot create node_modules/.bin links.",
   "scripts": {
@@ -12,6 +13,7 @@
     "lint": "node node_modules/eslint/bin/eslint.js .",
     "format": "node node_modules/prettier/bin/prettier.cjs --write .",
     "format:check": "node node_modules/prettier/bin/prettier.cjs --check .",
+    "stage": "node scripts/stage.mjs",
     "icons": "node scripts/make-icons.mjs",
     "art": "node scripts/match-exercise-illustrations.mjs",
     "test:unit": "node node_modules/vitest/vitest.mjs run",

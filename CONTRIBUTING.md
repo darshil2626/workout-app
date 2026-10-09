@@ -18,13 +18,14 @@ Useful on their own: `npm run lint`, `npm run format` (rewrites files),
 
 ## Trying a change on a phone first (staging)
 
-Run **Actions -> Deploy staging** and pick a branch. It publishes a build to a
-separate GitHub Pages site (default `<owner>/<repo>-staging`), labelled
-"Staging" on the home screen and in Settings, with analytics off. Because it is
-a different origin its storage is separate, so you can install it next to the
-real app, import a backup into it, and watch a schema change upgrade real data
-without touching the install you train with. One-time setup is described at the
-top of `.github/workflows/staging.yml`.
+`npm run stage` builds a copy labelled "Staging" (analytics off) and serves it on
+your local network. Open the address it prints on your phone, then use
+**Settings → Import backup** with a recent export of your real data and click
+through. It is a different origin from the live site, so its storage is
+separate and the installed app cannot be touched. Because it is plain http
+there is no service worker and no install; that still exercises every screen
+and any IndexedDB schema upgrade. Allow Node through the Windows firewall
+prompt the first time.
 
 ## Things that matter here
 

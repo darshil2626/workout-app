@@ -1,4 +1,5 @@
 dist/
+dist-staging/
 dev-dist/
 node_modules/
 coverage/

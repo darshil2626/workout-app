@@ -109,3 +109,27 @@ test('discard clears the session', async ({ page }) => {
   // /workout with no session falls back to the "No workout in progress" screen or home.
   await expect(page.locator('.active-banner')).toHaveCount(0)
 })
+
+test('reloading mid-workout does not re-announce a PR that was already set', async ({ page }) => {
+  await startWithBench(page)
+  await logSet(page, 0, '72.5', '6') // the first-ever set of a lift is a PR
+  await waitForWorkoutSaved(page, (w) => w.exercises[0]?.sets[0]?.weight === 72.5)
+
+  // Runs in the reloaded document, before the app starts, so any haptic it
+  // fires is recorded instead of reaching the browser.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __vibes: unknown[] }
+    w.__vibes = []
+    navigator.vibrate = (pattern) => {
+      w.__vibes.push(pattern)
+      return true
+    }
+  })
+  await page.reload()
+  await expect(page.locator('.set-table tbody tr').first()).toBeVisible()
+  // Long enough for the exercise library and the record scan to both land.
+  await page.waitForTimeout(1500)
+
+  await expect(page.locator('.celebration-banner')).toHaveCount(0)
+  expect(await page.evaluate(() => (window as unknown as { __vibes: unknown[] }).__vibes)).toEqual([])
+})

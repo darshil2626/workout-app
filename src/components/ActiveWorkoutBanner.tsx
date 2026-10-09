@@ -30,7 +30,7 @@ export function ActiveWorkoutBanner() {
           {workout.name}
         </span>
         <span className="mono">{formatDuration(elapsed)}</span>
-        <span style={{ opacity: 0.85, fontSize: '0.85rem' }}>Resume →</span>
+        <span style={{ fontSize: '0.85rem' }}>Resume →</span>
       </button>
     </div>
   )

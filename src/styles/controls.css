@@ -56,7 +56,7 @@
 }
 
 .btn-accent-soft {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   color: var(--accent);
 }
@@ -207,15 +207,17 @@ textarea.input {
 }
 
 .chip.active {
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--accent);
 }
 
-/* The light theme's accent on an 18% tint of itself measures about 3.7:1, short
-   of the 4.5:1 WCAG AA asks of 13px text. A lighter tint and slightly deeper
-   text clear it on every surface the chips sit on. */
-:root[data-theme='light'] .chip.active {
+/* Accent text on a tint of itself falls short of the 4.5:1 WCAG AA asks of small
+   text: about 3.7:1 in the light theme at the old 18% tint, and 4.4:1 in the dark
+   one. A lighter tint everywhere, plus slightly deeper text in the light theme,
+   clears it on every surface these sit on. */
+:root[data-theme='light'] .chip.active,
+:root[data-theme='light'] .btn-accent-soft {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: color-mix(in srgb, var(--accent) 85%, #000);
 }

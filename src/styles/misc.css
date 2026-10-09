@@ -24,6 +24,13 @@
   border: 1px solid color-mix(in srgb, var(--pr) 45%, transparent);
 }
 
+/* The light theme's gold is dark enough to read as gold, not as text: 3.8:1 on
+   its own tint. Deeper text on a lighter tint reaches 4.5:1 and still reads gold. */
+:root[data-theme='light'] .badge-pr {
+  background: color-mix(in srgb, var(--pr) 14%, transparent);
+  color: color-mix(in srgb, var(--pr) 70%, #000);
+}
+
 /* A set's (or a session's) number against a fixed comparison point — see
    DeltaBadge.tsx. Same up/down convention as `.home-trend-delta`: an
    increase is gold, a decrease stays a dim neutral rather than `--danger`,

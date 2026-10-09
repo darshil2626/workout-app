@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, initDb, DEFAULT_SETTINGS } from '../../src/db/db'
 import { SEED_EXERCISES, SEED_VERSION } from '../../src/db/seed'
-import { APP_MARKER, BACKUP_VERSION, buildBackup, parseBackup, restoreBackup, wipeAllData } from '../../src/lib/backup'
+import {
+  APP_MARKER,
+  BACKUP_VERSION,
+  buildBackup,
+  getRestoreSnapshot,
+  parseBackup,
+  restoreBackup,
+  undoRestore,
+  wipeAllData,
+} from '../../src/lib/backup'
 import { detectFormat } from '../../src/lib/importers/detect'
 import { logged, readFixture, resetDb, set, snapshot, workout } from './helpers'
 
@@ -267,5 +276,126 @@ describe('large fixtures', () => {
     const b = await buildBackup()
     expect('meta' in b).toBe(false)
     expect((await db.meta.get('seedVersion'))?.value).toBe(SEED_VERSION)
+  })
+})
+
+describe('backup validation', () => {
+  async function goodBackup() {
+    await populate()
+    return buildBackup()
+  }
+
+  it('accepts a real backup', async () => {
+    const text = JSON.stringify(await goodBackup())
+    expect(() => parseBackup(text)).not.toThrow()
+  })
+
+  it('refuses rows missing what the app dereferences, naming where', async () => {
+    const b = await goodBackup()
+    ;(b.workouts[0] as unknown as Record<string, unknown>).startedAt = 'yesterday'
+    ;(b.workouts[0].exercises[0] as unknown as Record<string, unknown>).sets = 'nope'
+    expect(() => parseBackup(JSON.stringify(b))).toThrow(
+      /workouts\[0\]\.startedAt.*workouts\[0\]\.exercises\[0\]\.sets/,
+    )
+  })
+
+  it('refuses an unknown exercise type, a non-object row and a bad measurement', async () => {
+    const b = await goodBackup()
+    ;(b.exercises[0] as unknown as Record<string, unknown>).kind = 'telepathy'
+    ;(b.folders as unknown[])[0] = 'oops'
+    ;(b.measurements as unknown as Record<string, unknown>[])[0].value = null
+    const err = (() => {
+      try {
+        parseBackup(JSON.stringify(b))
+      } catch (e) {
+        return String(e)
+      }
+    })()
+    expect(err).toMatch(/exercises\[0\]\.kind/)
+    expect(err).toMatch(/folders\[0\] should be an object/)
+    expect(err).toMatch(/measurements\[0\]\.value/)
+  })
+
+  it('caps the report so a wholly broken file stays readable', async () => {
+    const b = await goodBackup()
+    b.workouts = Array.from({ length: 50 }, () => ({}) as never)
+    const msg = (() => {
+      try {
+        parseBackup(JSON.stringify(b))
+      } catch (e) {
+        return (e as Error).message
+      }
+      return ''
+    })()
+    expect(msg.split(';').length).toBeLessThanOrEqual(5)
+  })
+
+  it('a refused file changes nothing', async () => {
+    const b = await goodBackup()
+    const before = await snapshot()
+    ;(b.workouts[0] as unknown as Record<string, unknown>).status = 'maybe'
+    await expect(restoreBackup(JSON.stringify(b))).rejects.toThrow(/damaged entries/)
+    expect(await snapshot()).toEqual(before)
+    expect(await getRestoreSnapshot()).toBeNull()
+  })
+})
+
+describe('restore snapshot and undo', () => {
+  async function otherBackupText(): Promise<string> {
+    await resetDb()
+    await initDb()
+    await db.workouts.put(workout({ id: 'other', startedAt: 9000, exercises: [] }))
+    const text = JSON.stringify(await buildBackup())
+    await resetDb()
+    return text
+  }
+
+  it('keeps what a restore replaced and brings it back on undo', async () => {
+    const other = await otherBackupText()
+    await populate()
+    const before = await snapshot()
+
+    await restoreBackup(other)
+    expect((await db.workouts.toArray()).map((w) => w.id)).toEqual(['other'])
+    const info = await getRestoreSnapshot()
+    expect(info?.workouts).toBe(2)
+
+    const summary = await undoRestore()
+    expect(summary.workouts).toBe(2)
+    expect(await snapshot()).toEqual(before)
+  })
+
+  it('undo is itself undoable (swaps with the current data)', async () => {
+    const other = await otherBackupText()
+    await populate()
+    await restoreBackup(other)
+    const afterRestore = await snapshot()
+
+    await undoRestore()
+    await undoRestore()
+    expect(await snapshot()).toEqual(afterRestore)
+  })
+
+  it('takes no snapshot when the device holds nothing of the user', async () => {
+    const other = await otherBackupText()
+    await restoreBackup(other) // resetDb left the database truly empty
+    expect(await getRestoreSnapshot()).toBeNull()
+    await expect(undoRestore()).rejects.toThrow(/nothing to undo/)
+  })
+
+  it('does not put the snapshot into exported backups', async () => {
+    const other = await otherBackupText()
+    await populate()
+    await restoreBackup(other)
+    const exported = JSON.parse(JSON.stringify(await buildBackup())) as Record<string, unknown>
+    expect(Object.keys(exported)).not.toContain('snapshots')
+  })
+
+  it('delete-all removes the snapshot too', async () => {
+    const other = await otherBackupText()
+    await populate()
+    await restoreBackup(other)
+    await wipeAllData()
+    expect(await getRestoreSnapshot()).toBeNull()
   })
 })

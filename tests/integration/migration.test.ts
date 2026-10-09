@@ -14,6 +14,7 @@ const V1_STORES = {
   settings: 'id',
 }
 const V2_STORES = { measurements: 'id, type, takenAt, [type+takenAt]' }
+const V3_STORES = { meta: 'key' }
 
 const exA: Exercise = {
   id: 'my-custom',
@@ -63,19 +64,20 @@ const routine: Routine = {
 const oldSettings = { id: 1, weightUnit: 'lb', distanceUnit: 'mi', defaultRestSeconds: 120 }
 
 /** Closes the app db, wipes it, and builds a raw database of an older schema under the same name. */
-async function makeOld(version: 1 | 2): Promise<void> {
+async function makeOld(version: 1 | 2 | 3): Promise<void> {
   db.close()
   await db.delete()
   const raw = new Dexie('trana')
   raw.version(1).stores(V1_STORES)
-  if (version === 2) raw.version(2).stores(V2_STORES)
+  if (version >= 2) raw.version(2).stores(V2_STORES)
+  if (version >= 3) raw.version(3).stores(V3_STORES)
   await raw.open()
   await raw.table('exercises').bulkPut([exA])
   await raw.table('workouts').bulkPut([w1, w2])
   await raw.table('routines').put(routine)
   await raw.table('folders').put({ id: 'f1', name: 'Upper', order: 0, createdAt: 3 })
   await raw.table('settings').put(oldSettings)
-  if (version === 2) {
+  if (version >= 2) {
     const ms: Measurement[] = [
       { id: 'm1', type: 'bodyweight', value: 80, takenAt: 100 },
       { id: 'm2', type: 'bodyweight', value: 79, takenAt: 200 },
@@ -92,7 +94,7 @@ describe('schema upgrades keep installed data', () => {
   it('v1 -> current: every row survives unchanged and indexes work', async () => {
     await makeOld(1)
     await db.open()
-    expect(db.verno).toBe(3)
+    expect(db.verno).toBe(4)
     expect(await db.exercises.get('my-custom')).toEqual(exA)
     expect(await db.workouts.get('w1')).toEqual(w1)
     expect(await db.workouts.get('w2')).toEqual(w2)
@@ -110,6 +112,16 @@ describe('schema upgrades keep installed data', () => {
     expect((await db.exercises.where('muscleGroup').equals('Quadriceps').toArray()).map((e) => e.id)).toEqual([
       'my-custom',
     ])
+  })
+
+  it('v3 -> current: gains an empty snapshots table and keeps everything else', async () => {
+    await makeOld(3)
+    await db.open()
+    expect(db.verno).toBe(4)
+    expect(await db.snapshots.count()).toBe(0)
+    expect(await db.workouts.count()).toBe(2)
+    expect(await db.measurements.count()).toBe(3)
+    expect(await db.exercises.get('my-custom')).toEqual(exA)
   })
 
   it('v2 -> current: measurements and compound index survive', async () => {

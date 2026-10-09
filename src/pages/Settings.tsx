@@ -6,9 +6,17 @@ import type { DistanceUnit, Exercise, LengthUnit, Theme, WeightUnit, Workout } f
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
-import { formatDuration } from '../lib/time'
+import { formatDuration, formatRelative } from '../lib/time'
 import { displayToKg, formatWeight, parseNumber } from '../lib/units'
-import { downloadBackup, parseBackup, restoreBackup, wipeAllData, type ImportSummary } from '../lib/backup'
+import {
+  downloadBackup,
+  getRestoreSnapshot,
+  parseBackup,
+  restoreBackup,
+  undoRestore,
+  wipeAllData,
+  type ImportSummary,
+} from '../lib/backup'
 import { BAR_PRESETS_KG, PLATE_PRESETS } from '../lib/plates'
 import { measurementWeightUnit } from '../lib/measurements'
 import { suggestedWeeklyGoal } from '../lib/home'
@@ -122,6 +130,9 @@ export function SettingsPage() {
   const [bodyweight, setBodyweight] = useState<string | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [pendingImport, setPendingImport] = useState<string | null>(null)
+  const [confirmUndo, setConfirmUndo] = useState(false)
+  // What the last restore replaced, while it can still be put back.
+  const restoreSnapshot = useLiveQuery(() => getRestoreSnapshot(), [], null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Set while a bulk rewrite of stored history is in flight.
@@ -234,7 +245,7 @@ export function SettingsPage() {
     try {
       const summary: ImportSummary = await restoreBackup(pendingImport)
       setMessage(
-        `Restored ${summary.workouts} workouts, ${summary.routines} routines, ${summary.exercises} exercises and ${summary.measurements} measurements.`,
+        `Restored ${summary.workouts} workouts, ${summary.routines} routines, ${summary.exercises} exercises and ${summary.measurements} measurements. What was here before is kept, so Undo last restore can bring it back.`,
       )
       setError(null)
       track('backup_imported')
@@ -242,6 +253,18 @@ export function SettingsPage() {
       setError(e instanceof Error ? e.message : 'Import failed.')
     } finally {
       setPendingImport(null)
+    }
+  }
+
+  async function doUndoRestore() {
+    setConfirmUndo(false)
+    try {
+      const summary = await undoRestore()
+      setMessage(`Put back ${summary.workouts} workouts and ${summary.routines} routines from before the last restore.`)
+      setError(null)
+      track('backup_restore_undone')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not undo the restore.')
     }
   }
 
@@ -655,6 +678,11 @@ export function SettingsPage() {
             <button className="btn btn-ghost btn-block" onClick={() => fileRef.current?.click()}>
               Import backup or CSV
             </button>
+            {restoreSnapshot && (
+              <button className="btn btn-ghost btn-block" onClick={() => setConfirmUndo(true)}>
+                Undo last restore
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"
@@ -822,6 +850,20 @@ export function SettingsPage() {
         destructive
         onConfirm={() => void doImport()}
         onCancel={() => setPendingImport(null)}
+      />
+
+      <ConfirmSheet
+        open={confirmUndo}
+        title="Undo the last restore?"
+        message={
+          restoreSnapshot
+            ? `This puts back the ${restoreSnapshot.workouts} workouts and ${restoreSnapshot.routines} routines that were on this device before the restore (${formatRelative(restoreSnapshot.createdAt)}), replacing what is here now. What is here now is kept, so you can undo again.`
+            : undefined
+        }
+        confirmLabel="Undo restore"
+        destructive
+        onConfirm={() => void doUndoRestore()}
+        onCancel={() => setConfirmUndo(false)}
       />
 
       <Sheet

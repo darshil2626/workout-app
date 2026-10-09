@@ -6,6 +6,7 @@ import { SetTimerProvider } from './state/SetTimerContext'
 import { useSettings } from './lib/useSettings'
 import { applyTheme, resolveTheme } from './lib/theme'
 import { consumeBackIntent, isFullscreenRoute } from './lib/navigate'
+import './lib/install' // registers the install-prompt listener before first paint
 import { detectPlatform, isStandalonePwa, syncAnalyticsConsent, track, trackPageview } from './lib/analytics'
 import { BottomNav } from './components/BottomNav'
 import { useRestTimer } from './state/RestTimerContext'
@@ -123,22 +124,6 @@ function Shell() {
   useEffect(() => {
     trackPageview(location.pathname)
   }, [location.pathname])
-
-  // Chrome/Android only — iOS Safari has no programmatic hook for "Add to
-  // Home Screen", so there the install funnel is only ever visible as a
-  // later app_opened with is_pwa: true. Left un-prevented so the browser's
-  // own install UI still shows; this only observes it.
-  useEffect(() => {
-    const onPrompt = (e: Event) => {
-      track('pwa_install_prompt_shown')
-      const choiceEvent = e as Event & { userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
-      void choiceEvent.userChoice.then(({ outcome }) => {
-        track(outcome === 'accepted' ? 'pwa_install_accepted' : 'pwa_install_dismissed')
-      })
-    }
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
-  }, [])
 
   // Re-applies whenever the setting changes (main.tsx only covers the first
   // paint), and stays live for 'system' — flipping the OS theme updates the

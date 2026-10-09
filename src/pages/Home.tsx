@@ -29,6 +29,7 @@ import { RecoveryCard } from '../components/home/RecoveryCard'
 import { RoutinesSection } from '../components/home/RoutinesSection'
 import { StrengthTrend } from '../components/home/StrengthTrend'
 import { Skeleton } from '../components/Skeleton'
+import { InstallBanner } from '../components/InstallBanner'
 
 /**
  * How many finished sessions are scanned for personal records.
@@ -350,6 +351,7 @@ export function HomePage() {
       />
 
       <div className="page">
+        {loaded && <InstallBanner />}
         {!loaded ? (
           <HomeSkeleton />
         ) : firstRun ? (

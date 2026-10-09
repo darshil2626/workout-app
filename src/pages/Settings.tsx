@@ -33,6 +33,8 @@ import {
 } from '../lib/exerciseRepair'
 import type { ParsedImport } from '../lib/importers/shared'
 import { track } from '../lib/analytics'
+import { InstallSteps } from '../components/InstallSteps'
+import { useInstall } from '../lib/install'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const STEP_PRESETS_KG = [0.5, 1, 1.25, 2.5, 5]
@@ -116,6 +118,7 @@ function describeRepair(issues: HistoryIssues): string {
 }
 
 export function SettingsPage() {
+  const { installed } = useInstall()
   const settings = useSettings()
   const restTimer = useRestTimer()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -719,9 +722,16 @@ export function SettingsPage() {
             Trana is an offline-first workout tracker. Add it to your home screen and it behaves
             like a native app and needs no account or subscription or internet.
           </p>
-          <p className="faint" style={{ marginTop: 10 }}>
-            iPhone: Share → Add to Home Screen. Android: menu → Install app.
-          </p>
+          {installed ? (
+            <p className="faint" style={{ marginTop: 10 }}>
+              Installed. You're running Trana as an app.
+            </p>
+          ) : (
+            <>
+              <div className="section-title" style={{ marginTop: 14 }}>Install</div>
+              <InstallSteps />
+            </>
+          )}
           <p className="faint mono" style={{ marginTop: 10 }}>
             Build {__BUILD_ID__}
           </p>

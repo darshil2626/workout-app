@@ -77,7 +77,7 @@ internally, so switching never rewrites your history.
 In your browser's IndexedDB, on your device only. There is no server and no account,
 and your workouts are never uploaded. The app does send anonymous usage analytics
 (which screens get opened, no workout data) to help improve it; switch it off any
-time in **Settings**.
+time in **Settings**. [PRIVACY.md](PRIVACY.md) lists exactly what is sent.
 
 The trade-off is that **clearing your browser data or deleting the app erases your
 history**. Use **Settings → Export backup** now and then; it saves a `.json` file you

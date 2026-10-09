@@ -19,6 +19,7 @@ function ensureInit() {
     capture_pageview: false,
     disable_session_recording: true,
     persistence: 'localStorage',
+    sanitize_properties: (properties) => sanitizeEventProperties(properties),
   })
   initialized = true
 }
@@ -36,8 +37,38 @@ export function track(event: string, properties?: Record<string, string | number
   posthog.capture(event, properties)
 }
 
+/**
+ * The route a path matched, with ids swapped for placeholders. A raw path like
+ * /history/<workout-id> or /exercises/bench-press-barbell would say which
+ * session or lift someone opened, which is exactly the content this module
+ * promises never to send. Works on a bare path or a full URL, and on a path
+ * under a base such as /workout-app/.
+ */
+export function routePattern(path: string): string {
+  return path
+    .replace(/\/history\/[^/?#]+\/edit(?=$|[?#])/, '/history/:id/edit')
+    .replace(/\/history\/[^/?#]+(?=$|[?#])/, '/history/:id')
+    .replace(/\/exercises\/[^/?#]+(?=$|[?#])/, '/exercises/:id')
+    .replace(/\/routines\/[^/?#]+(?=$|[?#])/, '/routines/:id')
+}
+
+/** PostHog adds the page's real URL to every event under these names. */
+const URL_PROPERTIES = ['$current_url', '$pathname', '$initial_current_url', '$initial_pathname']
+
+/**
+ * Runs on every event just before it is sent, so no event can carry an id in
+ * its URL, whichever call produced it or whatever PostHog attaches by default.
+ */
+export function sanitizeEventProperties(properties: Record<string, unknown>): Record<string, unknown> {
+  for (const key of URL_PROPERTIES) {
+    const value = properties[key]
+    if (typeof value === 'string') properties[key] = routePattern(value)
+  }
+  return properties
+}
+
 export function trackPageview(path: string): void {
-  track('$pageview', { $current_url: path })
+  track('$pageview', { $current_url: routePattern(path) })
 }
 
 export function isStandalonePwa(): boolean {

@@ -11,6 +11,10 @@ export function InstallSteps() {
   if (platform === 'ios') {
     return (
       <div className="install-steps">
+        <p className="install-note">
+          Do this before you log anything you would mind losing: on iPhone, Safari can delete a website’s saved data
+          after about a week of not opening it, but an app added to the Home Screen is kept.
+        </p>
         {!isIosSafari() && (
           <p className="install-note">
             This only works from Safari. Open this page in Safari first, then follow the steps.

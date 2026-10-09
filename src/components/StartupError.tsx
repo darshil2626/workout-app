@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { eraseLocalDatabase } from '../db/repo'
 import { downloadBackup } from '../lib/backup'
+import { recordRecentError } from '../lib/debugInfo'
+import { CopyDebugInfo } from './CopyDebugInfo'
 
 /**
  * Shown instead of the app when the local database cannot be opened or
@@ -16,11 +18,16 @@ export function StartupError({ error }: { error: unknown }) {
 
   const detail = error instanceof Error ? error.name : 'UnknownError'
 
+  // So the debug report says why the app could not start.
+  useEffect(() => recordRecentError('startup_error', error), [error])
+
   async function saveBackup() {
     setBusy(true)
     try {
-      await downloadBackup()
-      setStatus('Backup downloaded. Keep that file safe before doing anything else.')
+      const outcome = await downloadBackup()
+      if (outcome !== 'cancelled') {
+        setStatus('Backup saved. Keep that file safe before doing anything else.')
+      }
     } catch {
       setStatus('Could not read your data to back it up. It has not been changed.')
     } finally {
@@ -56,6 +63,7 @@ export function StartupError({ error }: { error: unknown }) {
             <button className="btn" onClick={() => void saveBackup()} disabled={busy}>
               Save a backup
             </button>
+            <CopyDebugInfo />
             {confirmingErase ? (
               <>
                 <p className="muted">This permanently deletes all workouts and settings on this device.</p>

@@ -10,11 +10,17 @@ browser's IndexedDB. They are never uploaded. Clearing your browser data or
 deleting the app erases them, so use **Settings → Export backup** now and then.
 A backup is a file you save yourself; nothing sends it anywhere.
 
-## What is sent: anonymous usage analytics
+## What is sent: anonymous usage analytics, only if you say yes
 
-The app sends usage events to [PostHog](https://posthog.com) (its US cloud) so I
-can see which features get used. You can switch this off at any time in
-**Settings**; the choice is remembered and takes effect immediately.
+The first time you open the app it asks whether you are happy to share anonymous
+usage data with [PostHog](https://posthog.com) (its US cloud), so I can see which
+features get used. **The answer starts as "no".** Until you tap Share, PostHog is
+not started, nothing is sent, and nothing is stored in your browser for it.
+
+You can change your mind at any time in **Settings → Privacy**. Switching it off
+stops sending immediately and discards the random identifier described below.
+The answer belongs to the device: restoring a backup from another phone does not
+change it.
 
 Events are about the app, not your training:
 
@@ -39,9 +45,17 @@ attaches by default is scrubbed of ids as well.
 PostHog also records the usual details a web request carries: browser, operating
 system, screen size, language and time zone.
 
-PostHog assigns a random identifier, kept in your browser's local storage, to
+If you say yes, PostHog assigns a random identifier, kept in your browser's local storage, to
 group your events together. It is not linked to your name or email. Like any web
 service, PostHog sees the IP address a request comes from.
+
+## Debug info
+
+**Settings → Help → Copy debug info** puts a short report on your clipboard: app and
+database versions, how many workouts and routines you have, your browser, how much storage
+is used, and the names of the last few failures (such as `TypeError`, never the message).
+It is built on your device and goes nowhere until you choose to paste it into a message. The
+list of recent failures is kept in your browser's local storage and is never sent by the app.
 
 ## Hosting
 

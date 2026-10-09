@@ -428,3 +428,25 @@ describe('backup bookkeeping', () => {
     expect(JSON.stringify(await buildBackup())).not.toContain('lastBackupAt')
   })
 })
+
+describe('analytics consent is per device', () => {
+  it('a restored backup neither grants nor withdraws it', async () => {
+    await initDb()
+    await db.settings.put({ ...DEFAULT_SETTINGS, analyticsEnabled: true, analyticsConsentAt: 111 })
+    const mine = JSON.stringify({
+      ...(await buildBackup()),
+      settings: { ...DEFAULT_SETTINGS, analyticsEnabled: false, analyticsConsentAt: null },
+    })
+    await restoreBackup(mine)
+    expect(await db.settings.get(1)).toMatchObject({ analyticsEnabled: true, analyticsConsentAt: 111 })
+
+    // And the other way round: a backup that says yes does not switch it on here.
+    await db.settings.put({ ...DEFAULT_SETTINGS, analyticsEnabled: false, analyticsConsentAt: null })
+    const theirs = JSON.stringify({
+      ...(await buildBackup()),
+      settings: { ...DEFAULT_SETTINGS, analyticsEnabled: true, analyticsConsentAt: 999 },
+    })
+    await restoreBackup(theirs)
+    expect(await db.settings.get(1)).toMatchObject({ analyticsEnabled: false, analyticsConsentAt: null })
+  })
+})

@@ -26,8 +26,9 @@ export function BackupReminder() {
       <button
         className="btn btn-sm btn-primary"
         onClick={() => {
-          void downloadBackup()
-          track('backup_exported', { source: 'reminder' })
+          void downloadBackup().then((outcome) => {
+            if (outcome !== 'cancelled') track('backup_exported', { source: 'reminder' })
+          })
         }}
       >
         Back up

@@ -1,0 +1,23 @@
+name: Bug report
+description: Something did not work, or looked wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: In the app, go to Settings, then Help, then Copy debug info, and paste it here. It holds versions and counts, nothing from your workouts.
+      render: text
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Your data
+      options:
+        - label: I understand I should keep a backup (Settings, Export backup) before trying fixes

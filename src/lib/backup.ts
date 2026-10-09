@@ -1,6 +1,7 @@
 import { db, DEFAULT_SETTINGS } from '../db/db'
 import { findBackupProblems } from './backupSchema'
 import { recordBackup } from './backupReminder'
+import { detectInstallPlatform } from './platform'
 import type { Exercise, Folder, Measurement, Routine, Settings, Workout } from '../db/types'
 
 /** v2 added `measurements`; v1 files still import, they just have none. */
@@ -50,21 +51,58 @@ export async function buildBackup(): Promise<BackupFile> {
   }
 }
 
-export async function downloadBackup(): Promise<void> {
+/** What happened to an export, so callers only record or announce a real one. */
+export type ExportOutcome = 'downloaded' | 'shared' | 'cancelled'
+
+/**
+ * Hands the person their backup file.
+ *
+ * Most browsers save a Blob link as a download. iOS does not reliably do that
+ * from a Home Screen app, and the backup is the only protection against losing
+ * a history, so there the system share sheet (Save to Files, AirDrop, Mail) is
+ * used where it can take a file, with the download as the fallback. Dismissing
+ * the sheet is reported as 'cancelled' and is not counted as a backup.
+ */
+export async function downloadBackup(): Promise<ExportOutcome> {
   const backup = await buildBackup()
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+  const json = JSON.stringify(backup, null, 2)
+  const stamp = new Date(backup.exportedAt).toISOString().slice(0, 10)
+  const filename = `trana-backup-${stamp}.json`
+
+  const outcome = (await shareFile(json, filename)) ?? saveAsDownload(json, filename)
+  if (outcome !== 'cancelled') {
+    // Bookkeeping for the reminder; a failure here must not undo a good export.
+    await recordBackup(backup.exportedAt).catch(() => {})
+  }
+  return outcome
+}
+
+/** Null means "not available here, use a download instead". */
+async function shareFile(json: string, filename: string): Promise<ExportOutcome | null> {
+  if (detectInstallPlatform() !== 'ios') return null
+  try {
+    const file = new File([json], filename, { type: 'application/json' })
+    if (!navigator.canShare?.({ files: [file] })) return null
+    await navigator.share({ files: [file], title: filename })
+    return 'shared'
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return 'cancelled'
+    return null
+  }
+}
+
+function saveAsDownload(json: string, filename: string): ExportOutcome {
+  const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  const stamp = new Date(backup.exportedAt).toISOString().slice(0, 10)
   a.href = url
-  a.download = `trana-backup-${stamp}.json`
+  a.download = filename
   document.body.appendChild(a)
   a.click()
   a.remove()
   // Revoking immediately can cancel the download in some mobile browsers.
   setTimeout(() => URL.revokeObjectURL(url), 4000)
-  // Bookkeeping for the reminder; a failure here must not undo a good export.
-  await recordBackup(backup.exportedAt).catch(() => {})
+  return 'downloaded'
 }
 
 export interface ImportSummary {
@@ -140,7 +178,18 @@ async function replaceAll(data: BackupFile): Promise<void> {
   await db.routines.bulkPut(data.routines)
   await db.folders.bulkPut(data.folders)
   await db.measurements.bulkPut(data.measurements ?? [])
-  if (data.settings) await db.settings.put({ ...DEFAULT_SETTINGS, ...data.settings, id: 1 })
+  if (data.settings) {
+    // Consent belongs to this device and its owner's answer, not to the file: a
+    // backup from elsewhere must not switch analytics on, or off, here.
+    const mine = await db.settings.get(1)
+    await db.settings.put({
+      ...DEFAULT_SETTINGS,
+      ...data.settings,
+      analyticsEnabled: mine?.analyticsEnabled ?? DEFAULT_SETTINGS.analyticsEnabled,
+      analyticsConsentAt: mine?.analyticsConsentAt ?? DEFAULT_SETTINGS.analyticsConsentAt,
+      id: 1,
+    })
+  }
 }
 
 function summarise(data: BackupFile): ImportSummary {

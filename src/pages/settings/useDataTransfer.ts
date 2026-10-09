@@ -27,6 +27,7 @@ import {
 import { applyExerciseFixes, hasActiveWorkout, scanExerciseFixes, type ExerciseFix } from '../../lib/exerciseRepair'
 import type { ParsedImport } from '../../lib/importers/shared'
 import { track } from '../../lib/analytics'
+import { downloadBackup } from '../../lib/backup'
 import { useRestTimer } from '../../state/RestTimerContext'
 
 /** What a CSV import would actually do, worked out before the user commits to it. */
@@ -132,6 +133,22 @@ export function useDataTransfer({ setMessage, setError }: DataReporter) {
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null)
   const [historyIssues, setHistoryIssues] = useState<HistoryIssues | null>(null)
   const [exerciseFixes, setExerciseFixes] = useState<ExerciseFix[] | null>(null)
+
+  async function exportBackup() {
+    setError(null)
+    try {
+      const outcome = await downloadBackup()
+      if (outcome === 'cancelled') return
+      track('backup_exported')
+      setMessage(
+        outcome === 'shared'
+          ? 'Backup ready. Choose Save to Files (or send it to yourself) so it is kept somewhere other than this phone.'
+          : 'Backup saved to your downloads.',
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not make a backup.')
+    }
+  }
 
   async function onFilePicked(file: File | undefined) {
     if (!file) return
@@ -353,6 +370,7 @@ export function useDataTransfer({ setMessage, setError }: DataReporter) {
     setHistoryIssues,
     exerciseFixes,
     setExerciseFixes,
+    exportBackup,
     onFilePicked,
     confirmStrongUnits,
     doImport,

@@ -13,6 +13,8 @@ import { measurementWeightUnit } from '../lib/measurements'
 import { suggestedWeeklyGoal } from '../lib/home'
 import { recomputeAllWorkoutTotals } from '../lib/dedupe'
 import { track } from '../lib/analytics'
+import { ISSUES_URL, PRIVACY_URL } from '../lib/links'
+import { CopyDebugInfo } from '../components/CopyDebugInfo'
 import { InstallSteps } from '../components/InstallSteps'
 import { useInstall } from '../lib/install'
 import { DataDialogs, DataSection } from './settings/DataSection'
@@ -343,16 +345,35 @@ export function SettingsPage() {
               <span>Share anonymous usage data</span>
               <span className="faint">
                 Which screens and features get used, and whether the app gets reopened but never your workouts,
-                routines, weights or measurements. Helps me improve Trana while it's early.
+                routines, weights or measurements. Helps me improve Trana while it's early. Off until you say yes.{' '}
+                <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+                  Privacy policy
+                </a>
               </span>
             </div>
             <button
-              className={`switch${settings.analyticsEnabled ? ' on' : ''}`}
+              className={`switch${settings.analyticsEnabled && settings.analyticsConsentAt !== null ? ' on' : ''}`}
               role="switch"
-              aria-checked={settings.analyticsEnabled}
+              aria-checked={settings.analyticsEnabled && settings.analyticsConsentAt !== null}
               aria-label="Share anonymous usage data"
-              onClick={() => void updateSettings({ analyticsEnabled: !settings.analyticsEnabled })}
+              onClick={() =>
+                void updateSettings({ analyticsEnabled: !settings.analyticsEnabled, analyticsConsentAt: Date.now() })
+              }
             />
+          </div>
+        </div>
+
+        <div className="section-title">Help</div>
+        <div className="card">
+          <p className="faint" style={{ marginBottom: 12 }}>
+            Found a bug, or want something changed? Tell me. If something broke, copy the debug info first and paste it
+            into your message. It holds versions and counts, nothing from your workouts.
+          </p>
+          <div className="list">
+            <a className="btn btn-ghost btn-block" href={ISSUES_URL} target="_blank" rel="noopener noreferrer">
+              Send feedback or report a bug
+            </a>
+            <CopyDebugInfo className="btn btn-ghost btn-block" />
           </div>
         </div>
 
@@ -361,6 +382,11 @@ export function SettingsPage() {
           <p className="muted">
             Trana is an offline-first workout tracker. Add it to your home screen and it behaves like a native app and
             needs no account or subscription or internet.
+          </p>
+          <p className="faint" style={{ marginTop: 10 }}>
+            Trana is a place to record your training. It is not medical or coaching advice, and its suggestions (such as
+            which routine is most rested) are a guide, not a prescription. If you have a health condition or an injury,
+            check with a professional before changing how you train.
           </p>
           {installed ? (
             <p className="faint" style={{ marginTop: 10 }}>

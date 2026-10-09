@@ -2,9 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { countDoneWorkouts, countExercises, countRoutines } from '../../db/repo'
 import type { DistanceUnit, WeightUnit } from '../../db/types'
 import { ConfirmSheet, Sheet } from '../../components/Sheet'
-import { downloadBackup } from '../../lib/backup'
 import { formatRelative } from '../../lib/time'
-import { track } from '../../lib/analytics'
 import { describeCsvPreview, describeExerciseFixes, describeHistoryIssues, type DataTransfer } from './useDataTransfer'
 
 /** The "Your data" card: counts, backup, import, cleanup and delete-all. */
@@ -18,6 +16,7 @@ export function DataSection({ data }: { data: DataTransfer }) {
     onFilePicked,
     scanHistory,
     scanExercises,
+    exportBackup,
   } = data
   const workoutCount = useLiveQuery(() => countDoneWorkouts(), [], 0)
   const exerciseCount = useLiveQuery(() => countExercises(), [], 0)
@@ -51,13 +50,7 @@ export function DataSection({ data }: { data: DataTransfer }) {
           </strong>
         </p>
         <div className="list">
-          <button
-            className="btn btn-ghost btn-block"
-            onClick={() => {
-              void downloadBackup()
-              track('backup_exported')
-            }}
-          >
+          <button className="btn btn-ghost btn-block" onClick={() => void exportBackup()}>
             Export backup (.json)
           </button>
           <button className="btn btn-ghost btn-block" onClick={() => fileRef.current?.click()}>

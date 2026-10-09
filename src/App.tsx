@@ -7,7 +7,14 @@ import { useSettings } from './lib/useSettings'
 import { applyTheme, resolveTheme } from './lib/theme'
 import { consumeBackIntent, isFullscreenRoute } from './lib/navigate'
 import './lib/install' // registers the install-prompt listener before first paint
-import { detectPlatform, isStandalonePwa, syncAnalyticsConsent, track, trackPageview } from './lib/analytics'
+import {
+  analyticsAllowed,
+  detectPlatform,
+  isStandalonePwa,
+  syncAnalyticsConsent,
+  track,
+  trackPageview,
+} from './lib/analytics'
 import { BottomNav } from './components/BottomNav'
 import { useRestTimer } from './state/RestTimerContext'
 import { RestTimerBar } from './components/RestTimerBar'
@@ -17,6 +24,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { PageSkeleton } from './components/Skeleton'
 import { Toast } from './components/Toast'
 import { QUOTA_EVENT } from './lib/storage'
+import { DB_UPGRADED_EVENT } from './db/db'
 
 // Route-level code splitting: each page becomes its own chunk, fetched on
 // first visit rather than bundled into the initial payload. The Suspense
@@ -35,7 +43,8 @@ const EditWorkoutPage = lazy(() => import('./pages/EditWorkout').then((m) => ({ 
 
 function Shell() {
   const location = useLocation()
-  const { theme, analyticsEnabled } = useSettings()
+  const { theme, ...analyticsSettings } = useSettings()
+  const analyticsOn = analyticsAllowed(analyticsSettings)
   const fullscreen = isFullscreenRoute(location.pathname)
 
   const navigationType = useNavigationType()
@@ -118,21 +127,34 @@ function Shell() {
     return () => window.removeEventListener(QUOTA_EVENT, onFull)
   }, [])
 
-  // Must run before the pageview/app_opened effects below so PostHog is
-  // initialized (or opted out) before anything tries to capture.
+  // Another tab upgraded the database, so this one is running old code.
+  const [dbUpgraded, setDbUpgraded] = useState(false)
   useEffect(() => {
-    syncAnalyticsConsent(analyticsEnabled)
-  }, [analyticsEnabled])
+    const onUpgraded = () => setDbUpgraded(true)
+    window.addEventListener(DB_UPGRADED_EVENT, onUpgraded)
+    return () => window.removeEventListener(DB_UPGRADED_EVENT, onUpgraded)
+  }, [])
 
+  // Must run before the pageview/app_opened effects below so PostHog is
+  // started (only on a yes) or stopped before anything tries to capture.
   useEffect(() => {
+    syncAnalyticsConsent(analyticsOn)
+  }, [analyticsOn])
+
+  // Once per session, and only after analytics is allowed: the answer arrives
+  // after first paint, and an event sent before it would be an event without consent.
+  const openedTracked = useRef(false)
+  useEffect(() => {
+    if (!analyticsOn || openedTracked.current) return
+    openedTracked.current = true
     const firstOpen = window.localStorage.getItem('trana_opened') === null
     window.localStorage.setItem('trana_opened', '1')
     track('app_opened', { is_pwa: isStandalonePwa(), platform: detectPlatform(), first_open: firstOpen })
-  }, [])
+  }, [analyticsOn])
 
   useEffect(() => {
     trackPageview(location.pathname)
-  }, [location.pathname])
+  }, [location.pathname, analyticsOn])
 
   // Re-applies whenever the setting changes (main.tsx only covers the first
   // paint), and stays live for 'system' — flipping the OS theme updates the
@@ -175,6 +197,13 @@ function Shell() {
       <RestTimerBar />
       {!fullscreen && <BottomNav />}
       <UpdatePrompt />
+      <Toast
+        message={dbUpgraded ? 'Trana was updated in another window. Reload to keep going.' : null}
+        actionLabel="Reload"
+        onAction={() => window.location.reload()}
+        onDismiss={() => setDbUpgraded(false)}
+        duration={60000}
+      />
       <Toast
         message={
           storageFull ? 'Your device is out of storage, so your last change was not saved. Free up space.' : null

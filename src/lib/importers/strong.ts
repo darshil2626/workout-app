@@ -12,17 +12,11 @@ import {
   isSecondsHeader,
   parseClockDuration,
   parseFloatOrNull,
+  parseImportDate,
   setTypeFromStrongOrder,
   type ParsedImport,
   type RowShape,
 } from './shared'
-
-function parseStrongDate(s: string): number | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(s.trim())
-  if (!m) return null
-  const [, y, mo, d, h, mi, se] = m
-  return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se)).getTime()
-}
 
 function headerRow(text: string): { headers: string[]; delimiter: string } {
   const firstLine = text.split(/\r?\n/)[0] ?? ''
@@ -127,7 +121,7 @@ export function parseStrongCsv(
       warnings.push('Skipped a row missing a date or exercise name.')
       continue
     }
-    const startedAt = parseStrongDate(dateStr)
+    const startedAt = parseImportDate(dateStr)
     if (startedAt === null) {
       warnings.push(`Skipped a row with an unreadable date: "${dateStr}".`)
       continue

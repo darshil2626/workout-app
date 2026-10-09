@@ -44,7 +44,9 @@ export const DEFAULT_SETTINGS: Settings = {
   // this app shipped with until now — an install on a light-mode device will
   // see that the moment this build lands, before ever opening Settings.
   theme: 'system',
-  analyticsEnabled: true,
+  // Off until the person says yes (see Settings.analyticsConsentAt).
+  analyticsEnabled: false,
+  analyticsConsentAt: null,
 }
 
 /**
@@ -96,6 +98,19 @@ class TranaDB extends Dexie {
 }
 
 export const db = new TranaDB()
+
+/** Fired when another tab or window has upgraded the database under this one. */
+export const DB_UPGRADED_EVENT = 'trana:db-upgraded'
+
+// Dexie already closes this connection so the other tab's upgrade can proceed,
+// and reopens on demand. What it cannot do is tell the person: this tab is still
+// running the old code against a newer database, which is fine for an additive
+// change but not in general. A prompt to reload puts it back in step.
+if (typeof window !== 'undefined') {
+  db.on('versionchange', (event) => {
+    if ((event.newVersion ?? 0) > event.oldVersion) window.dispatchEvent(new Event(DB_UPGRADED_EVENT))
+  })
+}
 
 function sameGroups(a: MuscleGroup[] = [], b: MuscleGroup[] = []): boolean {
   return a.length === b.length && a.every((g, i) => g === b[i])

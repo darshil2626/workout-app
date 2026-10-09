@@ -1,5 +1,5 @@
 import { db } from './db'
-import type { Exercise, Folder, Measurement, Routine, Workout } from './types'
+import type { Exercise, Folder, Measurement, Routine, Settings, Workout } from './types'
 
 /**
  * The questions and changes the screens make of the database, by name.
@@ -36,6 +36,9 @@ export const findActiveWorkout = (): Promise<Workout | undefined> =>
 export const listRoutines = (): Promise<Routine[]> => db.routines.toArray()
 export const getRoutine = (id: string): Promise<Routine | undefined> => db.routines.get(id)
 export const countRoutines = (): Promise<number> => db.routines.count()
+
+/** The settings row, or undefined until the database has answered. */
+export const getSettings = (): Promise<Settings | undefined> => db.settings.get(1)
 
 export const listFolders = (): Promise<Folder[]> => db.folders.toArray()
 export const listMeasurements = (): Promise<Measurement[]> => db.measurements.toArray()

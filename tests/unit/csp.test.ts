@@ -20,6 +20,11 @@ describe('inlineScriptHashes', () => {
     expect(inlineScriptHashes(PAGE)).toEqual([sha('window.a = 1'), sha('\n  setTimeout(function () {}, 10)\n')])
   })
 
+  it('recognises an end tag with whitespace or attributes', () => {
+    const html = '<script>a()</script ><script>b()</script foo="x"><script src="/x.js"></script >'
+    expect(inlineScriptHashes(html)).toEqual([sha('a()'), sha('b()')])
+  })
+
   it('changes when the script changes, so the policy cannot go stale', () => {
     const edited = PAGE.replace('window.a = 1', 'window.a = 2')
     expect(inlineScriptHashes(edited)[0]).not.toBe(inlineScriptHashes(PAGE)[0])

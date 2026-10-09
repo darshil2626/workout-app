@@ -24,7 +24,8 @@ const ANALYTICS_ASSETS = 'https://us-assets.i.posthog.com'
 /** SHA-256 CSP source for each inline <script> (those without a src). */
 export function inlineScriptHashes(html: string): string[] {
   const hashes: string[] = []
-  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi
+  // The end tag may carry whitespace or attributes (`</script >`); HTML parsers accept them.
+  const re = /<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi
   let match: RegExpExecArray | null
   while ((match = re.exec(html)) !== null) {
     if (/\bsrc\s*=/.test(match[1])) continue

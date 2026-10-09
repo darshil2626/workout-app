@@ -6,9 +6,21 @@ import { applyTheme, resolveTheme } from './lib/theme'
 import { dismissSplash } from './lib/splash'
 import { maybeLoadQaDataset, maybeSeedSyntheticData } from './dev/seedSynthetic'
 import { migrateLegacyDatabase, migrateLegacyStorage } from './db/legacyMigration'
+import { StartupError } from './components/StartupError'
+import { installGlobalErrorHandlers } from './lib/errorReporting'
+import { QUOTA_EVENT, requestPersistentStorage } from './lib/storage'
 import './index.css'
 
 const root = createRoot(document.getElementById('root')!)
+
+// Before anything async, so a failure during startup is seen too. A full disk
+// is announced to the shell (App.tsx), which owns the toast.
+installGlobalErrorHandlers(() => window.dispatchEvent(new Event(QUOTA_EVENT)))
+
+// Set when the database cannot be opened. Rendering the app over it would
+// leave every screen reading from nothing, so the finally block below shows a
+// recovery screen instead.
+let startupError: unknown = null
 
 // Carries an install's data across from the app's previous name. Storage keys
 // first and synchronously, so nothing reads one before it has been moved.
@@ -39,18 +51,17 @@ migrateLegacyDatabase(db)
   .then(() =>
     initDb().catch((err: unknown) => {
       console.error('Database initialisation failed', err)
+      startupError = err
     }),
   )
-  .then(() => db.settings.get(1))
+  .then(() => (startupError === null ? db.settings.get(1) : undefined))
   .then((settings) => {
     if (settings) applyTheme(resolveTheme(settings.theme))
   })
   .catch(() => {})
   .finally(() => {
-    root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>,
-    )
+    root.render(<StrictMode>{startupError === null ? <App /> : <StartupError error={startupError} />}</StrictMode>)
     dismissSplash()
+    // After first paint, so the permission check never delays opening the app.
+    if (startupError === null) void requestPersistentStorage()
   })

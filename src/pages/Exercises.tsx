@@ -109,7 +109,7 @@ export function ExercisesPage() {
         title="Exercises"
         back
         right={
-          <button className="header-action" onClick={() => setCreating(true)}>
+          <button className="header-action" aria-label="New exercise" onClick={() => setCreating(true)}>
             <IconPlus />
           </button>
         }

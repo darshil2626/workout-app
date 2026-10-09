@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom'
 import { ActiveWorkoutProvider, useActiveWorkout } from './state/ActiveWorkoutContext'
 import { RestTimerProvider } from './state/RestTimerContext'
@@ -15,6 +15,8 @@ import { ActiveWorkoutBanner } from './components/ActiveWorkoutBanner'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { PageSkeleton } from './components/Skeleton'
+import { Toast } from './components/Toast'
+import { QUOTA_EVENT } from './lib/storage'
 
 // Route-level code splitting: each page becomes its own chunk, fetched on
 // first visit rather than bundled into the initial payload. The Suspense
@@ -107,6 +109,15 @@ function Shell() {
     return () => document.removeEventListener('click', onClick)
   }, [])
 
+  // A write failed because the device is out of space (see errorReporting.ts).
+  // The change that triggered it was not saved, which the person needs to know.
+  const [storageFull, setStorageFull] = useState(false)
+  useEffect(() => {
+    const onFull = () => setStorageFull(true)
+    window.addEventListener(QUOTA_EVENT, onFull)
+    return () => window.removeEventListener(QUOTA_EVENT, onFull)
+  }, [])
+
   // Must run before the pageview/app_opened effects below so PostHog is
   // initialized (or opted out) before anything tries to capture.
   useEffect(() => {
@@ -164,6 +175,13 @@ function Shell() {
       <RestTimerBar />
       {!fullscreen && <BottomNav />}
       <UpdatePrompt />
+      <Toast
+        message={
+          storageFull ? 'Your device is out of storage, so your last change was not saved. Free up space.' : null
+        }
+        onDismiss={() => setStorageFull(false)}
+        duration={10000}
+      />
     </div>
   )
 }

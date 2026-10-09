@@ -635,7 +635,10 @@ button.card {
 }
 
 .month-title:first-child {
-  padding-top: var(--space-1);
+  /* Every month title is the first child of its own wrapper, so this is the
+     padding actually in effect. Matches the bottom padding so the label sits
+     in the vertical centre of the pinned bar. */
+  padding-top: var(--space-2);
 }
 
 /* The history page's totals describe the list below rather than joining it,

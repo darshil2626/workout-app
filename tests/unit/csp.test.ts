@@ -42,12 +42,12 @@ describe('contentSecurityPolicy', () => {
     expect(script).not.toContain('unsafe-inline')
     expect(script).not.toContain('unsafe-eval')
     expect(script).not.toContain('*')
-    // The only foreign host is the analytics assets host.
-    expect(script.match(/https?:\/\/[^ ]+/g)).toEqual(['https://us-assets.i.posthog.com'])
+    // No foreign host may supply script at all.
+    expect(script.match(/https?:\/\/[^ ]+/g)).toBeNull()
   })
 
-  it('limits network calls to this origin and the analytics hosts', () => {
-    expect(directive('connect-src')).toBe("connect-src 'self' https://us.i.posthog.com https://us-assets.i.posthog.com")
+  it('limits network calls to this origin and the analytics host', () => {
+    expect(directive('connect-src')).toBe("connect-src 'self' https://us.i.posthog.com")
   })
 
   it('blocks plugins and base-tag hijacking', () => {

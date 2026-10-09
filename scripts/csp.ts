@@ -17,9 +17,8 @@ import { createHash } from 'node:crypto'
  * - Dev builds get no policy, because the dev server injects inline scripts.
  */
 
-/** Events go to the first; PostHog can lazy-load helper scripts from the second. */
+/** Where events are sent. No scripts are loaded from PostHog (disable_external_dependency_loading). */
 const ANALYTICS_API = 'https://us.i.posthog.com'
-const ANALYTICS_ASSETS = 'https://us-assets.i.posthog.com'
 
 /** SHA-256 CSP source for each inline <script> (those without a src). */
 export function inlineScriptHashes(html: string): string[] {
@@ -37,11 +36,11 @@ export function inlineScriptHashes(html: string): string[] {
 export function contentSecurityPolicy(html: string): string {
   const directives: Record<string, string[]> = {
     'default-src': ["'self'"],
-    'script-src': ["'self'", ...inlineScriptHashes(html), ANALYTICS_ASSETS],
+    'script-src': ["'self'", ...inlineScriptHashes(html)],
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:'],
     'font-src': ["'self'", 'data:'],
-    'connect-src': ["'self'", ANALYTICS_API, ANALYTICS_ASSETS],
+    'connect-src': ["'self'", ANALYTICS_API],
     'manifest-src': ["'self'"],
     'worker-src': ["'self'"],
     'object-src': ["'none'"],

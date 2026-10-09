@@ -55,6 +55,29 @@ describe('consent gates everything', () => {
     expect(ph.capture).toHaveBeenCalledWith('workout_completed', undefined)
   })
 
+  it('starts the library with every feature that raises its own events switched off', async () => {
+    const a = await load()
+    a.syncAnalyticsConsent(true)
+    await vi.waitFor(() => expect(ph.init).toHaveBeenCalled())
+    const options = ph.init.mock.calls[0][1]
+    expect(options).toMatchObject({
+      autocapture: false,
+      capture_pageview: false,
+      capture_dead_clicks: false,
+      capture_heatmaps: false,
+      capture_exceptions: false,
+      capture_performance: false,
+      rageclick: false,
+      disable_session_recording: true,
+      disable_surveys: true,
+      disable_external_dependency_loading: true,
+      advanced_disable_flags: true,
+      person_profiles: 'never',
+    })
+    // And the backstop that drops anything else.
+    expect(options.before_send({ event: '$dead_click', properties: {} })).toBeNull()
+  })
+
   it('a no while the library is still downloading means it never starts', async () => {
     const a = await load()
     a.syncAnalyticsConsent(true)

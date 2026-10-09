@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { withCsp } from './scripts/csp'
 
 // `base` matters when hosting on GitHub Pages under /<repo>/.
 // Set BASE_PATH=/your-repo-name/ at build time; defaults to root for local dev.
@@ -31,6 +32,12 @@ export default defineConfig({
   server: onWindowsMount ? { watch: { usePolling: true, interval: 300 } } : undefined,
   plugins: [
     react(),
+    {
+      // Production only: the dev server injects inline scripts a policy would block.
+      name: 'content-security-policy',
+      apply: 'build',
+      transformIndexHtml: { order: 'post', handler: (html: string) => withCsp(html) },
+    },
     {
       // iOS names the home-screen icon from this tag, not from the manifest.
       name: 'channel-title',

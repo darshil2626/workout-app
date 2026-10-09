@@ -1,3 +1,4 @@
+import { inlineScriptHashes } from '../../scripts/csp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
@@ -89,6 +90,17 @@ describe.each(BASES)('production build with base $base', ({ base, name }) => {
       expect(existsSync(file), `${u} exists`).toBe(true)
     }
     expect(html).toMatch(/rel="manifest"/)
+  })
+
+  it('ships a Content-Security-Policy that covers every inline script by hash', () => {
+    const html = readFileSync(join(dir(), 'index.html'), 'utf8')
+    const meta = /<meta http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(html)
+    expect(meta, 'CSP meta tag in dist/index.html').not.toBeNull()
+    const scriptSrc = meta![1].split('; ').find((d) => d.startsWith('script-src ')) ?? ''
+    expect(scriptSrc).not.toContain('unsafe-inline')
+    const hashes = inlineScriptHashes(html)
+    expect(hashes.length).toBeGreaterThan(0)
+    for (const h of hashes) expect(scriptSrc).toContain(h)
   })
 
   it('leaves dev-only seed hooks out of the production bundle', () => {

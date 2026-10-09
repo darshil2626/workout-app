@@ -26,7 +26,13 @@ export function DeltaBadge({
   className?: string
 }) {
   return (
-    <span className={`delta-badge${up ? ' up' : ' down'}${className ? ` ${className}` : ''}`} aria-label={label}>
+    // role="img" is what lets aria-label apply: on a plain span it is prohibited and
+    // ignored, which left a screen reader nothing to say (the visible text is hidden).
+    <span
+      className={`delta-badge${up ? ' up' : ' down'}${className ? ` ${className}` : ''}`}
+      role="img"
+      aria-label={label}
+    >
       {up ? <IconTriangleUp /> : <IconTriangleDown />}
       <span aria-hidden="true">{text}</span>
     </span>

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { test, expect, seed, waitForApp, logSet } from './helpers/fixtures'
+import { test, expect, seed, waitForApp, logSet, readStore } from './helpers/fixtures'
 
 /**
  * The screens and sheets people spend the most time in once they are logging, which
@@ -42,7 +42,13 @@ for (const scheme of ['light', 'dark'] as const) {
       await startWorkoutWithBench(page)
       await expectNoViolations(page)
 
+      // Name it after a session already in history, so the screen has something to compare
+      // against and shows its up/down badge. The default name depends on the time of day,
+      // which used to make this coverage come and go.
+      const [previous] = (await readStore(page, 'workouts')).filter((w) => w.status === 'done')
+      await page.getByLabel('Workout name').fill(previous.name)
       await logSet(page, 0, '72.5', '6')
+      await expect(page.locator('.delta-badge').first()).toBeVisible()
       await expectNoViolations(page)
 
       // The set menu opened from the set number.

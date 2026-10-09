@@ -86,16 +86,6 @@ export function RoutinesSection({
     return map
   }, [routines])
 
-  function summary(routine: Routine): string {
-    if (routine.exercises.length === 0) return 'No exercises yet'
-    return routine.exercises
-      .map((re) => {
-        const name = exerciseById.get(re.exerciseId)?.name ?? 'Unknown'
-        return `${re.sets.length} × ${name}`
-      })
-      .join(', ')
-  }
-
   const loose = byFolder.get(null) ?? []
 
   return (
@@ -163,7 +153,7 @@ export function RoutinesSection({
                     <RoutineCard
                       key={r.id}
                       routine={r}
-                      summary={summary(r)}
+                      exerciseById={exerciseById}
                       onStart={() => onStart(r)}
                       onMenu={() => onMenu(r)}
                       swipe={swipe}
@@ -183,7 +173,7 @@ export function RoutinesSection({
               <RoutineCard
                 key={r.id}
                 routine={r}
-                summary={summary(r)}
+                exerciseById={exerciseById}
                 onStart={() => onStart(r)}
                 onMenu={() => onMenu(r)}
                 swipe={swipe}
@@ -198,18 +188,19 @@ export function RoutinesSection({
 
 function RoutineCard({
   routine,
-  summary,
+  exerciseById,
   onStart,
   onMenu,
   swipe,
 }: {
   routine: Routine
-  summary: string
+  exerciseById: Map<string, Exercise>
   onStart: () => void
   onMenu: () => void
   swipe: ReturnType<typeof useSwipeToDelete>
 }) {
   const swipeRow = swipe.rowProps(routine.id)
+  const totalSets = routine.exercises.reduce((n, re) => n + re.sets.length, 0)
   return (
     <div className="swipe-row">
       <div className="swipe-row-action">
@@ -217,17 +208,43 @@ function RoutineCard({
         Delete
       </div>
       <div className="card swipe-row-content" style={swipeRow.style} onPointerDown={swipeRow.onPointerDown}>
-        <div className="row-between" style={{ alignItems: 'flex-start' }}>
-          <button className="stack grow" style={{ textAlign: 'left' }} onClick={onMenu}>
-            <span style={{ fontWeight: 650 }}>{routine.name}</span>
-            <span className="faint" style={{ lineHeight: 1.4 }}>
-              {summary}
+        <button className="stack" style={{ textAlign: 'left', width: '100%', gap: 0 }} onClick={onMenu}>
+          <div className="row-between" style={{ width: '100%' }}>
+            <span style={{ fontWeight: 650 }} className="truncate">
+              {routine.name}
             </span>
             {routine.lastPerformedAt ? (
-              <span className="faint">Last done {formatRelative(routine.lastPerformedAt)}</span>
+              <span className="faint" style={{ flexShrink: 0 }}>
+                {formatRelative(routine.lastPerformedAt)}
+              </span>
             ) : null}
-          </button>
-        </div>
+          </div>
+          <div className="row" style={{ gap: 14, marginTop: 6 }}>
+            <span className="muted mono">
+              {routine.exercises.length} {routine.exercises.length === 1 ? 'exercise' : 'exercises'}
+            </span>
+            <span className="muted mono">{totalSets} sets</span>
+          </div>
+          {routine.exercises.length === 0 ? (
+            <div className="card-exercises" style={{ marginTop: 6 }}>
+              No exercises yet
+            </div>
+          ) : (
+            <ul className="history-ex-list" style={{ width: '100%' }}>
+              {routine.exercises.slice(0, 3).map((re) => (
+                <li key={re.id}>
+                  <span className="truncate">{exerciseById.get(re.exerciseId)?.name ?? 'Unknown'}</span>
+                  <span className="mono">
+                    {re.sets.length} {re.sets.length === 1 ? 'set' : 'sets'}
+                  </span>
+                </li>
+              ))}
+              {routine.exercises.length > 3 && (
+                <li className="history-ex-more">+{routine.exercises.length - 3} more</li>
+              )}
+            </ul>
+          )}
+        </button>
         <button
           className="btn btn-primary btn-sm btn-block"
           style={{ marginTop: 10 }}

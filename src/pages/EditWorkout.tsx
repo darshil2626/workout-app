@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { listExercises, getWorkout, saveWorkout } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../db/db'
+import { newId } from '../db/db'
 import type { Exercise, LoggedExercise, LoggedSet, SetType, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { SetRow } from '../components/SetRow'
@@ -36,8 +37,8 @@ export function EditWorkoutPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const stored = useLiveQuery(async () => (id ? ((await db.workouts.get(id)) ?? null) : null), [id])
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const stored = useLiveQuery(async () => (id ? ((await getWorkout(id)) ?? null) : null), [id])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
   const [name, setName] = useState('')
@@ -123,7 +124,7 @@ export function EditWorkoutPage() {
       totalSets: totals.totalSets,
       totalReps: totals.totalReps,
     }
-    await db.workouts.put(updated)
+    await saveWorkout(updated)
     navigate(`/history/${updated.id}`, { replace: true })
   }
 

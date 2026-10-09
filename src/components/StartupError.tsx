@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db } from '../db/db'
+import { eraseLocalDatabase } from '../db/repo'
 import { downloadBackup } from '../lib/backup'
 
 /**
@@ -31,8 +31,7 @@ export function StartupError({ error }: { error: unknown }) {
   async function erase() {
     setBusy(true)
     try {
-      db.close()
-      await db.delete()
+      await eraseLocalDatabase()
       window.location.reload()
     } catch {
       setStatus('Could not erase the data. Try closing other tabs of Trana, then reload.')

@@ -1,7 +1,8 @@
 import { EXERCISE_ART_ENABLED } from '../lib/features'
+import { listExercises, countExercises, listDoneWorkouts, countDoneWorkouts, countRoutines } from '../db/repo'
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, initDb } from '../db/db'
+import { initDb } from '../db/db'
 import type { DistanceUnit, Exercise, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -147,14 +148,14 @@ export function SettingsPage() {
   const [historyIssues, setHistoryIssues] = useState<HistoryIssues | null>(null)
   const [exerciseFixes, setExerciseFixes] = useState<ExerciseFix[] | null>(null)
 
-  const workoutCount = useLiveQuery(() => db.workouts.where('status').equals('done').count(), [], 0)
-  const exerciseCount = useLiveQuery(() => db.exercises.count(), [], 0)
-  const routineCount = useLiveQuery(() => db.routines.count(), [], 0)
+  const workoutCount = useLiveQuery(() => countDoneWorkouts(), [], 0)
+  const exerciseCount = useLiveQuery(() => countExercises(), [], 0)
+  const routineCount = useLiveQuery(() => countRoutines(), [], 0)
 
   // Only the session timestamps are needed, but Dexie has no projection, so
   // this pulls the rows. It is the same read the Stats page already does, and
   // it only runs while Settings is open.
-  const doneWorkouts = useLiveQuery(() => db.workouts.where('status').equals('done').toArray(), [], [] as Workout[])
+  const doneWorkouts = useLiveQuery(() => listDoneWorkouts(), [], [] as Workout[])
   const suggestedGoal = suggestedWeeklyGoal(doneWorkouts, settings.firstDayOfWeek)
 
   async function onFilePicked(file: File | undefined) {
@@ -204,7 +205,7 @@ export function SettingsPage() {
 
   async function previewCsv(build: (existing: Exercise[]) => ParsedImport) {
     try {
-      const existing = await db.exercises.toArray()
+      const existing = await listExercises()
       const parsed = build(existing)
       if (parsed.workouts.length === 0) {
         setError('No workouts were found in that file.')

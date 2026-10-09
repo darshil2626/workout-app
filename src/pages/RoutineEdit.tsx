@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { listExercises, getRoutine, countRoutines, listFolders, saveRoutine } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../db/db'
+import { newId } from '../db/db'
 import type { Exercise, Folder, Routine, RoutineExercise, RoutineSetTarget, SetType } from '../db/types'
 import { Header } from '../components/Header'
 import { ExercisePicker } from '../components/ExercisePicker'
@@ -37,10 +38,10 @@ export function RoutineEditPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const folders = useLiveQuery(() => db.folders.toArray(), [], [] as Folder[])
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const folders = useLiveQuery(() => listFolders(), [], [] as Folder[])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
-  const existing = useLiveQuery(async () => (isNew ? null : ((await db.routines.get(id!)) ?? null)), [id, isNew])
+  const existing = useLiveQuery(async () => (isNew ? null : ((await getRoutine(id!)) ?? null)), [id, isNew])
 
   const [name, setName] = useState('')
   const [folderId, setFolderId] = useState<string | null>(null)
@@ -85,12 +86,12 @@ export function RoutineEditPage() {
       name: name.trim(),
       folderId,
       exercises: items,
-      order: existing?.order ?? (await db.routines.count()),
+      order: existing?.order ?? (await countRoutines()),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       lastPerformedAt: existing?.lastPerformedAt ?? null,
     }
-    await db.routines.put(record)
+    await saveRoutine(record)
     if (isNew) track('routine_created', { exercise_count: items.length })
     navigate('/', { replace: true })
   }

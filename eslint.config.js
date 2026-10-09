@@ -31,6 +31,25 @@ export default tseslint.config(
     ...jsxA11y.flatConfigs.recommended,
   },
   {
+    // Screens and components ask for data by name (src/db/repo.ts) instead of
+    // reaching into Dexie, so what they may do to stored data is in one place.
+    files: ['src/pages/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/db/db'],
+              importNames: ['db'],
+              message: 'Use a named query or change from src/db/repo.ts instead of the raw database handle.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['tests/**/*.ts', 'scripts/**/*.mjs', '*.config.{js,ts}'],
     languageOptions: { globals: globals.node },
     rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-irregular-whitespace': 'off' },

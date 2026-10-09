@@ -1,8 +1,8 @@
 import { useMemo, useState, type CSSProperties } from 'react'
+import { getExercise, saveExercise, deleteExercise } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
@@ -101,10 +101,10 @@ export function ExerciseDetailPage() {
   const [metric, setMetric] = useState<ProgressMetric | null>(null)
   const [range, setRange] = useState<TimeRangeKey>('6m')
 
-  const exercise = useLiveQuery(async () => (id ? ((await db.exercises.get(id)) ?? null) : null), [id])
+  const exercise = useLiveQuery(async () => (id ? ((await getExercise(id)) ?? null) : null), [id])
   const history = useLiveQuery(async () => (id ? await getExerciseHistory(id) : []), [id], [])
   const mergeTarget = useLiveQuery(
-    async () => (mergeTargetId ? ((await db.exercises.get(mergeTargetId)) ?? null) : null),
+    async () => (mergeTargetId ? ((await getExercise(mergeTargetId)) ?? null) : null),
     [mergeTargetId],
   )
 
@@ -200,9 +200,9 @@ export function ExerciseDetailPage() {
     // Deleting an exercise that appears in history would leave dangling
     // references, so those get archived instead of removed.
     if (history.length > 0) {
-      await db.exercises.put({ ...exercise!, archived: true })
+      await saveExercise({ ...exercise!, archived: true })
     } else {
-      await db.exercises.delete(exercise!.id)
+      await deleteExercise(exercise!.id)
     }
     setConfirmDelete(false)
     navigate('/exercises', { replace: true })

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type RefObject } from 'react'
+import { listExercises, listDoneWorkouts, listMeasurements } from '../db/repo'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { Exercise, Measurement, MeasurementType, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ChartCard } from '../components/charts/ChartCard'
@@ -61,11 +61,11 @@ export function StatsPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const workouts = useLiveQuery(() => db.workouts.where('status').equals('done').toArray(), [], [] as Workout[])
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const workouts = useLiveQuery(() => listDoneWorkouts(), [], [] as Workout[])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
-  const measurementRows = useLiveQuery(() => db.measurements.toArray(), [], [] as Measurement[])
+  const measurementRows = useLiveQuery(() => listMeasurements(), [], [] as Measurement[])
   const measurementsByType = useMemo(() => {
     const map = new Map<MeasurementType, Measurement[]>()
     for (const m of measurementRows) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { db, newId } from '../db/db'
+import { findExerciseNameClash, saveExercise } from '../db/repo'
+import { newId } from '../db/db'
 import type { Equipment, Exercise, ExerciseKind, MuscleGroup } from '../db/types'
 import { Sheet } from './Sheet'
 
@@ -79,9 +80,7 @@ export function ExerciseFormSheet({ open, exercise, onClose, onSaved }: Props) {
       setError('Give the exercise a name.')
       return
     }
-    const clash = await db.exercises
-      .filter((e) => e.id !== exercise?.id && e.name.toLowerCase() === trimmed.toLowerCase())
-      .first()
+    const clash = await findExerciseNameClash(trimmed, exercise?.id)
     if (clash) {
       setError(
         'An exercise with that name already exists. To combine the two, use “Merge into…” on the exercise instead.',
@@ -103,7 +102,7 @@ export function ExerciseFormSheet({ open, exercise, onClose, onSaved }: Props) {
       archived: exercise?.archived,
       createdAt: exercise?.createdAt ?? Date.now(),
     }
-    await db.exercises.put(record)
+    await saveExercise(record)
     onSaved?.(record.id)
     onClose()
   }

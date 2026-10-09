@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
+import { listMeasurements, saveMeasurement as putMeasurement, deleteMeasurement } from '../db/repo'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { LengthUnit, Measurement, MeasurementType, WeightUnit } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -42,7 +42,7 @@ export function MeasurementsPage() {
   const [open, setOpen] = useState<MeasurementType | null>(null)
   const [detail, setDetail] = useState<MeasurementType | null>(null)
 
-  const rows = useLiveQuery(() => db.measurements.toArray(), [], [] as Measurement[])
+  const rows = useLiveQuery(() => listMeasurements(), [], [] as Measurement[])
 
   const byType = useMemo(() => {
     const map = new Map<MeasurementType, Measurement[]>()
@@ -342,7 +342,7 @@ function HistorySheet({
         message={undoEntry ? `Deleted ${formatMeasurement(undoEntry.value, spec.kind, settings)} ${unit} entry` : null}
         actionLabel="Undo"
         onAction={() => {
-          if (undoEntry) void db.measurements.put(undoEntry)
+          if (undoEntry) void putMeasurement(undoEntry)
         }}
         onDismiss={() => setUndoEntry(null)}
       />
@@ -351,5 +351,5 @@ function HistorySheet({
 }
 
 async function removeMeasurement(id: string) {
-  await db.measurements.delete(id)
+  await deleteMeasurement(id)
 }

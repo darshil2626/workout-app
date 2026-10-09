@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { listExercises, countDoneWorkouts } from '../db/repo'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { Exercise, LoggedExercise, LoggedSet, SetType } from '../db/types'
 import { useActiveWorkout, type SessionRating } from '../state/ActiveWorkoutContext'
 import { useRestTimer } from '../state/RestTimerContext'
@@ -167,7 +167,7 @@ export function ActiveWorkoutPage() {
   // Undefined until the library loads. Defaulting to [] here would make every
   // exercise look unknown for a tick, which silently suppresses PR badges and
   // shows the wrong input columns for anything that is not weight × reps.
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], undefined)
+  const exercises = useLiveQuery(() => listExercises(), [], undefined)
   const byId = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
   const previous = usePreviousPerformances(workout?.exerciseIds ?? [], workout?.id)
   const baselines = useRecordBaselines(
@@ -969,11 +969,7 @@ export function ActiveWorkoutPage() {
           // Counted once, right as the finish flow starts, rather than kept
           // live for the whole session — this only ever needs to know the
           // number this session is about to become on the summary sheet.
-          void db.workouts
-            .where('status')
-            .equals('done')
-            .count()
-            .then((n) => setWorkoutNumber(n + 1))
+          void countDoneWorkouts().then((n) => setWorkoutNumber(n + 1))
           setRating(true)
         }}
         onCancel={() => setConfirmFinish(false)}

@@ -1,47 +1,32 @@
 # Trana
 
-An offline-first gym tracker in the mould of Strong — routines, set-by-set logging,
-rest timer, history and personal records — with every feature free.
+**A free, no-nonsense gym tracker that lives on your phone.** Log every set in a
+couple of taps, see your lifts climb, and know what to train next. No account, no
+subscription, no paywalled features, and it works with no signal in the basement gym.
 
-It is a **PWA** (progressive web app): a website that installs to your phone's home
-screen and then behaves like a native app. That choice is deliberate. Publishing a
-real native app costs $99/year for iOS plus $25 once for Android, and building for
-iOS requires a Mac. A PWA installs on both platforms from a single URL, runs with no
-internet connection, and hosts free forever on GitHub Pages.
+**[Open Trana → darshil2626.github.io/workout-app](https://darshil2626.github.io/workout-app/)**
 
-## Running it on your computer
+## Get it on your phone (30 seconds)
 
-```bash
-npm install
-npm run dev
-```
+There is nothing to download from an app store and **no account to make**. Just open
+the link above on your phone and install it from the browser:
 
-Then open the printed `http://localhost:5173/` address.
+- **iPhone** (use Safari): tap Share → *Add to Home Screen*.
+- **Android** (Chrome): tap the menu → *Install app*.
 
-To try it on your phone while both devices are on the same Wi-Fi, open the
-**Network** address that `npm run dev` prints (e.g. `http://192.168.1.20:5173/`).
+It gets its own icon, opens full-screen without browser chrome, and keeps working in
+aeroplane mode. Updates arrive automatically; the app offers a reload when a new
+version is ready, never mid-set.
 
-## Putting it on your phone for real
+## Why you'll like it
 
-1. Create a GitHub account and a new **public** repository.
-2. Push this folder to it:
-   ```bash
-   git init
-   git add .
-   git commit -m "Trana"
-   git branch -M main
-   git remote add origin https://github.com/<you>/<repo>.git
-   git push -u origin main
-   ```
-3. In the repository, go to **Settings → Pages** and set **Source** to
-   **GitHub Actions**.
-4. The included workflow builds and publishes on every push. After a minute your app
-   is live at `https://<you>.github.io/<repo>/`.
-5. Open that URL on your phone:
-   - **iPhone** (must be Safari): Share → *Add to Home Screen*.
-   - **Android** (Chrome): menu → *Install app*.
-
-It now has its own icon, opens without browser chrome, and works in aeroplane mode.
+- **Fast where it counts.** Last session's numbers sit beside every set, so repeating a
+  workout is one tap per set. Finish a set and the rest timer starts itself.
+- **Everything is free.** Routines, folders, supersets, PRs, charts, measurements,
+  backups. Nothing is held back.
+- **Private by default.** Your history lives on your device, not on someone's server.
+- **Works offline.** Fully functional with no connection after the first load.
+- **Smart suggestions.** Home recommends the routine whose muscles are most rested.
 
 ## What it does
 
@@ -89,12 +74,15 @@ internally, so switching never rewrites your history.
 
 ## Where your data lives
 
-In your browser's IndexedDB, on your device only. There is no server, no account and
-nothing is uploaded anywhere.
+In your browser's IndexedDB, on your device only. There is no server and no account,
+and your workouts are never uploaded. The app does send anonymous usage analytics
+(which screens get opened, no workout data) to help improve it; switch it off any
+time in **Settings**.
 
 The trade-off is that **clearing your browser data or deleting the app erases your
 history**. Use **Settings → Export backup** now and then; it saves a `.json` file you
-can re-import on any device.
+can re-import on any device. You can also bring your history over from another workout
+app by importing its CSV export.
 
 ## Known limits of the PWA approach
 
@@ -102,6 +90,30 @@ can re-import on any device.
 - On iOS the rest-timer chime only sounds while the app is open; iOS does not allow
   background notifications for home-screen web apps. Android is unrestricted.
 - Vibration on timer completion works on Android only.
+
+---
+
+# For developers
+
+Trana is a React + TypeScript + Vite **PWA** with Dexie (IndexedDB) storage, deployed
+to GitHub Pages by the included Actions workflow. A PWA installs on iOS and Android
+from a single URL, with no $99/year Apple fee and no Mac required.
+
+## Running it locally
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the printed `http://localhost:5173/` address. To try it on a phone on the
+same Wi-Fi, open the **Network** address that `npm run dev` prints.
+
+## Hosting your own copy
+
+Fork the repo, then in **Settings → Pages** set **Source** to **GitHub Actions**.
+Every push to `main` builds, tests and publishes to `https://<you>.github.io/<repo>/`.
+(Only people who want their own copy need a GitHub account; users of the app don't.)
 
 ## Project layout
 
@@ -128,6 +140,8 @@ timestamps in epoch milliseconds — conversion happens only at the UI edge.
 | `npm run build` | Type-check and build to `dist/` |
 | `npm run preview` | Serve the built app locally |
 | `npm run typecheck` | Type-check only |
+| `npm run test:unit` | Unit tests (Vitest) |
+| `npm run test:e2e` | End-to-end tests (Playwright) |
 | `npm run icons` | Regenerate the app icons |
 | `npm run art` | Re-match exercises to illustrations and download any new frames |
 

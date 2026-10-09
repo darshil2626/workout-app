@@ -119,12 +119,15 @@
   --space-8: 48px;
 
   /* Height of the sticky app header, which sub-bars stick beneath: History's
-     month labels and the exercise filter row. Two values because a header
-     carrying a 36px icon button is taller than one with only a title —
-     52px min-height + 1px border, against 36 + 2x10 padding + 1. Change these
-     with .header-row or the sub-bars will part company with the header. */
-  --header-h: 53px;
-  --header-h-action: 57px;
+     month labels and the exercise filter row. Measured, not derived: the row is
+     12px padding top and bottom around the 40px title line / icon button, plus
+     the 1px border, which is ~64.8px. Kept a hair under it so a sub-bar tucks
+     slightly beneath the header instead of leaving a gap the list shows
+     through. Too small and the sub-bar's top is hidden behind the header, which
+     is how the month label ended up half cut off. Change these with .header-row
+     or the sub-bars will part company with the header. */
+  --header-h: 64px;
+  --header-h-action: 64px;
 
   --nav-h: 60px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -151,8 +154,7 @@
 
   /* Cards are lifted, not outlined: a tight contact shadow, a wider ambient one,
      and a 1px inner top highlight standing in for a lit top edge. */
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.22),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.05);
 
   color-scheme: dark;
 }
@@ -453,7 +455,9 @@ select {
   font-size: var(--text-2xs);
   font-weight: 600;
   letter-spacing: 0.02em;
-  transition: color var(--dur) var(--ease), opacity var(--dur-press) var(--ease);
+  transition:
+    color var(--dur) var(--ease),
+    opacity var(--dur-press) var(--ease);
 }
 
 .nav-item:active {
@@ -504,7 +508,9 @@ button.card {
 /* -webkit-tap-highlight-color is off globally, so the press has to be felt in
    geometry: the card gives under the thumb and springs back. */
 .card-tappable {
-  transition: transform var(--dur-press) var(--ease), background-color var(--dur) var(--ease);
+  transition:
+    transform var(--dur-press) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .card-tappable:active {
@@ -676,8 +682,11 @@ button.card {
   font-weight: 600;
   font-size: var(--text-md);
   border: 1px solid var(--border-strong);
-  transition: transform var(--dur-press) var(--ease), background-color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition:
+    transform var(--dur-press) var(--ease),
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
 
 .btn:active {
@@ -860,7 +869,9 @@ textarea.input {
   font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
-  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
     color var(--dur) var(--ease);
 }
 
@@ -868,6 +879,14 @@ textarea.input {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   color: var(--accent);
+}
+
+/* The light theme's accent on an 18% tint of itself measures about 3.7:1, short
+   of the 4.5:1 WCAG AA asks of 13px text. A lighter tint and slightly deeper
+   text clear it on every surface the chips sit on. */
+:root[data-theme='light'] .chip.active {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: color-mix(in srgb, var(--accent) 85%, #000);
 }
 
 .chip:active {
@@ -940,7 +959,9 @@ textarea.input {
   font-size: var(--text-base);
   font-weight: 650;
   color: var(--text-dim);
-  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition:
+    background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
 
 .segmented button.active {
@@ -1163,8 +1184,7 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-1)) calc(-1 * var(--space-2))
-    calc(-1 * var(--space-2));
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
   padding: var(--space-2) var(--space-1);
   border: 0;
   background: none;
@@ -1621,9 +1641,9 @@ tr.done .set-step-btn {
 }
 
 /* A m:ss value needs five characters; one step down in size keeps "10:00"
-   whole beside the stopwatch button even in a narrow shared column. */
+   whole beside the stopwatch button even in a narrow shared column. Never below 16px: iOS zooms the page on focus under that. */
 .set-duration-cell .set-input {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
 }
 
 .set-timer-btn {
@@ -1765,7 +1785,7 @@ tr.pr .check-btn.on {
   padding: var(--space-2) var(--space-3);
   margin: 0 var(--space-4) var(--space-3);
   width: calc(100% - (var(--space-4) * 2));
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   color: var(--text);
 }
 
@@ -2139,7 +2159,9 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   animation: slide-up 0.18s var(--ease);
   /* Cast upward: the sheet has to look like it is in front of the page it
      covers, not merely drawn on top of it. */
-  box-shadow: 0 -10px 34px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.05);
+  box-shadow:
+    0 -10px 34px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
 /* Same keyframe, played backwards, rather than a separate slide-down —
@@ -2722,7 +2744,9 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
   padding: 3px 2px;
   width: 100%;
   cursor: pointer;
-  transition: transform var(--dur-press) var(--ease), background-color var(--dur) var(--ease);
+  transition:
+    transform var(--dur-press) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .bar-row.tappable:active {
@@ -2865,12 +2889,7 @@ html[data-nav-direction='modal-out']::view-transition-new(root) {
    zeroes every animation's duration, so the pulse simply stops there rather
    than needing its own override. */
 .skeleton {
-  background: linear-gradient(
-    100deg,
-    var(--surface-2) 30%,
-    var(--border-strong) 50%,
-    var(--surface-2) 70%
-  );
+  background: linear-gradient(100deg, var(--surface-2) 30%, var(--border-strong) 50%, var(--surface-2) 70%);
   background-size: 300% 100%;
   animation: skeleton-pulse 1.6s ease-in-out infinite;
 }

@@ -974,6 +974,13 @@ textarea.input {
   grid-template-columns: repeat(2, 1fr);
 }
 
+/* The four Stats-page pair tiles get larger figures than the generic .stat. */
+.stat-grid-pairs .stat-value {
+  font-size: clamp(var(--text-2xl), 7vw, var(--text-3xl));
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
 .stat {
   background: var(--surface);
   border: 1px solid var(--border);

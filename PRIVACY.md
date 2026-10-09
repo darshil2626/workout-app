@@ -49,6 +49,14 @@ If you say yes, PostHog assigns a random identifier, kept in your browser's loca
 group your events together. It is not linked to your name or email. Like any web
 service, PostHog sees the IP address a request comes from.
 
+## Debug info
+
+**Settings → Help → Copy debug info** puts a short report on your clipboard: app and
+database versions, how many workouts and routines you have, your browser, how much storage
+is used, and the names of the last few failures (such as `TypeError`, never the message).
+It is built on your device and goes nowhere until you choose to paste it into a message. The
+list of recent failures is kept in your browser's local storage and is never sent by the app.
+
 ## Hosting
 
 The app is served by GitHub Pages, which keeps its own ordinary access logs.

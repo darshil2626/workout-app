@@ -1,5 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { track } from '../lib/analytics'
+import { recordRecentError } from '../lib/debugInfo'
+import { CopyDebugInfo } from './CopyDebugInfo'
 
 interface Props {
   children: ReactNode
@@ -33,6 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Usage analytics only — no message/stack, which could contain workout
     // content interpolated into an error string.
     track('render_error')
+    recordRecentError('render_error', error)
   }
 
   render() {
@@ -51,6 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => window.location.reload()}>
               Reload
             </button>
+            <CopyDebugInfo />
           </div>
         </main>
       </div>

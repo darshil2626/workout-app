@@ -1,5 +1,6 @@
 import { track } from './analytics'
 import { isQuotaError } from './storage'
+import { recordRecentError } from './debugInfo'
 
 /** Browsers fire this for harmless layout feedback loops; it is not a bug in the app. */
 const IGNORED = /ResizeObserver loop/i
@@ -29,6 +30,7 @@ export function installGlobalErrorHandlers(onQuotaExceeded?: () => void): void {
     if (message && IGNORED.test(message)) return
     if (isQuotaError(reason)) onQuotaExceeded?.()
     console.error(`Unhandled ${kind}`, reason)
+    recordRecentError(kind, reason)
     if (reported >= MAX_REPORTS) return
     reported += 1
     track('unhandled_error', { kind, quota: isQuotaError(reason) })

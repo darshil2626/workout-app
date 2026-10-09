@@ -13,7 +13,8 @@ import { measurementWeightUnit } from '../lib/measurements'
 import { suggestedWeeklyGoal } from '../lib/home'
 import { recomputeAllWorkoutTotals } from '../lib/dedupe'
 import { track } from '../lib/analytics'
-import { PRIVACY_URL } from '../lib/links'
+import { ISSUES_URL, PRIVACY_URL } from '../lib/links'
+import { CopyDebugInfo } from '../components/CopyDebugInfo'
 import { InstallSteps } from '../components/InstallSteps'
 import { useInstall } from '../lib/install'
 import { DataDialogs, DataSection } from './settings/DataSection'
@@ -359,6 +360,20 @@ export function SettingsPage() {
                 void updateSettings({ analyticsEnabled: !settings.analyticsEnabled, analyticsConsentAt: Date.now() })
               }
             />
+          </div>
+        </div>
+
+        <div className="section-title">Help</div>
+        <div className="card">
+          <p className="faint" style={{ marginBottom: 12 }}>
+            Found a bug, or want something changed? Tell me. If something broke, copy the debug info first and paste it
+            into your message. It holds versions and counts, nothing from your workouts.
+          </p>
+          <div className="list">
+            <a className="btn btn-ghost btn-block" href={ISSUES_URL} target="_blank" rel="noopener noreferrer">
+              Send feedback or report a bug
+            </a>
+            <CopyDebugInfo className="btn btn-ghost btn-block" />
           </div>
         </div>
 

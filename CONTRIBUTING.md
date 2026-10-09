@@ -27,6 +27,12 @@ there is no service worker and no install; that still exercises every screen
 and any IndexedDB schema upgrade. Allow Node through the Windows firewall
 prompt the first time.
 
+## Running it
+
+[docs/RELEASING.md](docs/RELEASING.md) covers how a change reaches users and what to do when one
+goes wrong; [docs/OPERATIONS.md](docs/OPERATIONS.md) covers what to watch and how to handle a
+report; [docs/DOMAIN.md](docs/DOMAIN.md) covers moving to a custom domain.
+
 ## Things that matter here
 
 - **Stored data is precious.** The real history lives on people's phones. Any

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { listExercises, listDoneWorkoutsNewestFirst } from '../db/repo'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -8,6 +8,15 @@ import { useFormatters } from '../lib/useSettings'
 import { elapsedSeconds } from '../lib/workout'
 import { formatDateLabel, formatDurationShort, formatTimeOfDay } from '../lib/time'
 import { feelingFor } from '../components/FinishSheet'
+
+/** Sessions drawn at a time. A decade of training is thousands of cards, and drawing them all at once froze the page. */
+const PAGE_SIZE = 60
+
+/**
+ * How far down the list this visit had got, kept for the session so coming back
+ * from a workout lands where you left off instead of at the first page.
+ */
+let rememberedVisible = PAGE_SIZE
 
 export function HistoryPage() {
   const navigate = useNavigate()
@@ -22,13 +31,40 @@ export function HistoryPage() {
   const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
+  const [visible, setVisible] = useState(rememberedVisible)
+  const showMore = () =>
+    setVisible((v) => {
+      rememberedVisible = v + PAGE_SIZE
+      return rememberedVisible
+    })
+  const shown = useMemo(() => workouts.slice(0, visible), [workouts, visible])
+  const hasMore = shown.length < workouts.length
+
+  // Loads the next page as the end of the list nears the screen. The button
+  // below does the same for anyone without scroll events or IntersectionObserver.
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = sentinel.current
+    if (!hasMore || !el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) showMore()
+      },
+      { rootMargin: '600px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, visible])
+
   // Group by calendar month so long histories stay scannable.
   const months = useMemo(() => {
     const groups = new Map<string, Workout[]>()
-    for (const w of workouts) {
+    for (const w of shown) {
       const d = new Date(w.startedAt)
       const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`
-      groups.set(key, [...(groups.get(key) ?? []), w])
+      const list = groups.get(key)
+      if (list) list.push(w)
+      else groups.set(key, [w])
     }
     return [...groups.entries()].map(([key, list]) => ({
       key,
@@ -38,7 +74,7 @@ export function HistoryPage() {
       }),
       list,
     }))
-  }, [workouts])
+  }, [shown])
 
   const totalVolume = workouts.reduce((sum, w) => sum + w.totalVolumeKg, 0)
 
@@ -136,6 +172,15 @@ export function HistoryPage() {
                 </div>
               </div>
             ))}
+
+            {hasMore && (
+              <>
+                <div ref={sentinel} aria-hidden="true" />
+                <button className="btn btn-ghost btn-block" style={{ marginTop: 12 }} onClick={showMore}>
+                  Show earlier workouts ({workouts.length - shown.length} more)
+                </button>
+              </>
+            )}
           </>
         )}
       </div>

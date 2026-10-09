@@ -161,7 +161,7 @@ export function HomePage() {
   const totals = useMemo(() => overallTotals(workoutList), [workoutList])
   const milestone = useMemo(() => nextMilestone(totals), [totals])
   const habit = useMemo(() => habitWindow(workoutList), [workoutList])
-  const suggestion = useMemo(() => suggestNextRoutine(routineList), [routineList])
+  const suggestion = useMemo(() => suggestNextRoutine(routineList, workoutList), [routineList, workoutList])
   const hasHistory = workoutList.length > 0
   // Not memoised, deliberately: it is a date lookup and four comparisons, and
   // recomputing it every render is what keeps the weekday correct on a PWA
@@ -367,7 +367,7 @@ export function HomePage() {
               routineCount={routineList.length}
               habit={habit}
               onResume={() => navigate('/workout')}
-              onStartSuggested={() => suggestion && void start(suggestion)}
+              onStartSuggested={() => suggestion && void start(suggestion.routine)}
               onStartEmpty={() => void start()}
               onChoose={scrollToRoutines}
             />

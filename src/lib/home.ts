@@ -136,25 +136,66 @@ export function suggestedWeeklyGoal(
 }
 
 /**
- * The single routine the user is most "due" for: never-performed routines are
- * always more due than anything with a history, since "never" is older than
- * any timestamp. Ties (including two never-performed routines) fall back to
- * `order`, matching how routines are listed everywhere else.
+ * A routine made up entirely of never-trained exercises scores as this many
+ * days stale, so brand-new routines still get suggested.
  */
-// `now` takes no part in the ordering (there's no time-based decay to compute
-// here) but is kept, defaulted and unused, purely so every exported function
-// in this module has the same deterministic-clock signature as stats.ts.
-export function suggestNextRoutine(routines: Routine[], _now = Date.now()): Routine | null {
-  if (routines.length === 0) return null
-  const sorted = [...routines].sort((a, b) => {
-    const aNever = a.lastPerformedAt == null
-    const bNever = b.lastPerformedAt == null
-    if (aNever !== bNever) return aNever ? -1 : 1
-    if (aNever && bNever) return a.order - b.order
-    const diff = (a.lastPerformedAt as number) - (b.lastPerformedAt as number)
-    return diff !== 0 ? diff : a.order - b.order
+const ALL_NEW_DAYS = 28
+
+export interface RoutineSuggestion {
+  routine: Routine
+  /** Mean days since each of the routine's exercises was last trained, over
+   *  the ones that have been. Null when none of them ever has. */
+  avgDaysSince: number | null
+  /** Exercises in the routine with no completed set anywhere in history. */
+  newCount: number
+}
+
+/** When each exercise last had a completed set in a finished workout. */
+function exerciseLastTrained(workouts: Workout[]): Map<string, number> {
+  const last = new Map<string, number>()
+  for (const w of doneWorkouts(workouts)) {
+    const at = w.finishedAt ?? w.startedAt
+    for (const le of w.exercises) {
+      if (!le.sets.some((s) => s.completed)) continue
+      if (at > (last.get(le.exerciseId) ?? 0)) last.set(le.exerciseId, at)
+    }
+  }
+  return last
+}
+
+/**
+ * The routine whose exercises are, on average, the most rested. Judged per
+ * exercise rather than per routine, so two routines that share most of their
+ * lifts do not both look "due" the day after you did one of them: the shared
+ * exercises are fresh in both. Routines with no exercises are never
+ * suggested, and exercises never trained are left out of the average. Ties
+ * fall back to `order`, matching how routines are listed.
+ */
+export function suggestNextRoutine(
+  routines: Routine[],
+  workouts: Workout[],
+  now = Date.now(),
+): RoutineSuggestion | null {
+  const candidates = routines.filter((r) => r.exercises.length > 0)
+  if (candidates.length === 0) return null
+  const last = exerciseLastTrained(workouts)
+  const scored = candidates.map((routine) => {
+    const days: number[] = []
+    let newCount = 0
+    for (const re of routine.exercises) {
+      const at = last.get(re.exerciseId)
+      if (at === undefined) newCount++
+      else days.push(Math.max(0, (now - at) / DAY_MS))
+    }
+    const avgDaysSince = days.length ? days.reduce((a, d) => a + d, 0) / days.length : null
+    // Never-trained exercises are ignored unless that is all there is, so a
+    // couple of new lifts cannot outweigh a routine's overlap with a recent session.
+    const staleness = avgDaysSince ?? ALL_NEW_DAYS
+    return { routine, avgDaysSince, newCount, staleness }
   })
-  return sorted[0]
+  scored.sort((a, b) => b.staleness - a.staleness || a.routine.order - b.routine.order)
+  const { routine, avgDaysSince, newCount } = scored[0]
+  return { routine, avgDaysSince, newCount }
 }
 
 export interface MuscleRecovery {

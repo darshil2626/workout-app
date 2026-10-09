@@ -1,13 +1,14 @@
-import type { Routine, Workout } from '../../db/types'
+import type { Workout } from '../../db/types'
+import type { RoutineSuggestion } from '../../lib/home'
 import { IconPlay, IconPlus } from '../Icons'
 import { useNow } from '../../lib/useNow'
 import { elapsedSeconds } from '../../lib/workout'
-import { formatDuration, formatRelative } from '../../lib/time'
+import { formatDuration } from '../../lib/time'
 
 interface Props {
   /** The running session, if any. It outranks every other action on the page. */
   activeWorkout: Workout | null
-  suggestion: Routine | null
+  suggestion: RoutineSuggestion | null
   routineCount: number
   /** `habitWindow`'s phrase, or null — which is most of the time, by design. */
   habit: string | null
@@ -42,9 +43,9 @@ export function PrimaryAction({
         <>
           <button className="btn btn-primary btn-lg btn-block home-start" onClick={onStartSuggested}>
             <IconPlay />
-            <span className="truncate">Start {suggestion.name}</span>
+            <span className="truncate">Start {suggestion.routine.name}</span>
           </button>
-          <p className="home-start-sub">{describeRoutine(suggestion)}</p>
+          <p className="home-start-sub">{describeSuggestion(suggestion)}</p>
           <div className="home-secondary">
             <button className="btn btn-ghost btn-sm grow" onClick={onStartEmpty}>
               Empty workout
@@ -84,9 +85,9 @@ function ResumeBlock({ workout, onResume }: { workout: Workout; onResume: () => 
   )
 }
 
-function describeRoutine(routine: Routine): string {
-  const count = routine.exercises.length
-  const exercises = count === 0 ? 'No exercises yet' : `${count} exercise${count === 1 ? '' : 's'}`
-  if (routine.lastPerformedAt == null) return `${exercises} · never done`
-  return `${exercises} · last done ${formatRelative(routine.lastPerformedAt)}`
+function describeSuggestion({ avgDaysSince }: RoutineSuggestion): string {
+  if (avgDaysSince === null) return 'Not trained yet'
+  const days = Math.round(avgDaysSince)
+  if (days < 1) return 'Trained today'
+  return `Last trained ${days} ${days === 1 ? 'day' : 'days'} ago`
 }

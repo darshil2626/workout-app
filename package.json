@@ -21,20 +21,20 @@
     "test": "npm run lint && npm run format:check && npm run typecheck && npm run test:unit && npm run build && npm run test:e2e"
   },
   "dependencies": {
-    "dexie": "^4.0.11",
+    "dexie": "^4.4.6",
     "dexie-react-hooks": "^1.1.7",
-    "posthog-js": "^1.434.14",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "posthog-js": "^1.438.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.64.0",
-    "@types/node": "^26.1.2",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^4.6.0",
     "eslint": "^9.39.5",
     "eslint-plugin-jsx-a11y": "^6.10.2",

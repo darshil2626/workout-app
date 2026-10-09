@@ -17,6 +17,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { PageSkeleton } from './components/Skeleton'
 import { Toast } from './components/Toast'
 import { QUOTA_EVENT } from './lib/storage'
+import { DB_UPGRADED_EVENT } from './db/db'
 
 // Route-level code splitting: each page becomes its own chunk, fetched on
 // first visit rather than bundled into the initial payload. The Suspense
@@ -118,6 +119,14 @@ function Shell() {
     return () => window.removeEventListener(QUOTA_EVENT, onFull)
   }, [])
 
+  // Another tab upgraded the database, so this one is running old code.
+  const [dbUpgraded, setDbUpgraded] = useState(false)
+  useEffect(() => {
+    const onUpgraded = () => setDbUpgraded(true)
+    window.addEventListener(DB_UPGRADED_EVENT, onUpgraded)
+    return () => window.removeEventListener(DB_UPGRADED_EVENT, onUpgraded)
+  }, [])
+
   // Must run before the pageview/app_opened effects below so PostHog is
   // initialized (or opted out) before anything tries to capture.
   useEffect(() => {
@@ -175,6 +184,13 @@ function Shell() {
       <RestTimerBar />
       {!fullscreen && <BottomNav />}
       <UpdatePrompt />
+      <Toast
+        message={dbUpgraded ? 'Trana was updated in another window. Reload to keep going.' : null}
+        actionLabel="Reload"
+        onAction={() => window.location.reload()}
+        onDismiss={() => setDbUpgraded(false)}
+        duration={60000}
+      />
       <Toast
         message={
           storageFull ? 'Your device is out of storage, so your last change was not saved. Free up space.' : null

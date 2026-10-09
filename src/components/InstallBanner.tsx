@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { detectInstallPlatform, isInstallSnoozed, snoozeInstall, useInstall } from '../lib/install'
+import {
+  detectInstallPlatform,
+  isInstallSnoozed,
+  snoozeInstall,
+  uninstalledDataAtRisk,
+  useInstall,
+} from '../lib/install'
 import { Sheet } from './Sheet'
 import { InstallSteps } from './InstallSteps'
 import { IconClose } from './Icons'
@@ -15,6 +21,7 @@ export function InstallBanner() {
   const [snoozed, setSnoozed] = useState(isInstallSnoozed)
   const [stepsOpen, setStepsOpen] = useState(false)
 
+  const atRisk = uninstalledDataAtRisk(installed)
   if (installed || snoozed) return null
   if (detectInstallPlatform() === 'desktop' && !canPromptNatively) return null
 
@@ -32,8 +39,14 @@ export function InstallBanner() {
     <>
       <div className="install-banner" role="region" aria-label="Install Trana">
         <div className="grow">
-          <div className="install-banner-title">Install Trana</div>
-          <div className="faint">Works offline and opens like a native app.</div>
+          <div className="install-banner-title">
+            {atRisk ? 'Add to Home Screen to keep your data' : 'Install Trana'}
+          </div>
+          <div className="faint">
+            {atRisk
+              ? 'Safari can delete a website’s data after about a week unused. An installed app is kept.'
+              : 'Works offline and opens like a native app.'}
+          </div>
         </div>
         <button className="btn btn-sm btn-primary" onClick={onInstall}>
           {canPromptNatively ? 'Install' : 'How'}

@@ -1,7 +1,10 @@
 import { useSyncExternalStore } from 'react'
 import { isStandalonePwa, track } from './analytics'
 
-export type InstallPlatform = 'ios' | 'android' | 'desktop'
+import { detectInstallPlatform } from './platform'
+
+export { detectInstallPlatform }
+export type { InstallPlatform } from './platform'
 
 /** Chrome's `beforeinstallprompt` event, which lib.dom doesn't type. */
 interface BeforeInstallPromptEvent extends Event {
@@ -16,7 +19,7 @@ interface InstallState {
 }
 
 const DISMISS_KEY = 'trana_install_dismissed'
-const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
 
 let state: InstallState = { prompt: null, installed: isStandalonePwa() }
 const listeners = new Set<() => void>()
@@ -39,15 +42,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('appinstalled', () => {
     setState({ prompt: null, installed: true })
   })
-}
-
-export function detectInstallPlatform(): InstallPlatform {
-  const ua = window.navigator.userAgent
-  if (/iPhone|iPad|iPod/.test(ua)) return 'ios'
-  // iPadOS 13+ identifies as a Mac; touch points are what give it away.
-  if (/Macintosh/.test(ua) && window.navigator.maxTouchPoints > 1) return 'ios'
-  if (/Android/.test(ua)) return 'android'
-  return 'desktop'
 }
 
 /**
@@ -84,10 +78,29 @@ export function useInstall() {
   return { installed, canPromptNatively: prompt !== null, install }
 }
 
+/**
+ * On iOS an uninstalled copy is at risk of losing its data (see
+ * `uninstalledDataAtRisk`), so the prompt comes back after a day rather than three.
+ */
+function snoozeMs(): number {
+  return (detectInstallPlatform() === 'ios' ? 1 : 3) * DAY_MS
+}
+
+/**
+ * Safari (and every other iOS browser, which all use its engine) may clear a
+ * website's stored data after about a week without the person opening it in a
+ * browser tab. Apps added to the Home Screen are exempt. Trana keeps everything in
+ * that storage, so an uninstalled iPhone user can lose their whole history
+ * without ever being told. Worth re-checking against current WebKit policy.
+ */
+export function uninstalledDataAtRisk(installed: boolean): boolean {
+  return detectInstallPlatform() === 'ios' && !installed
+}
+
 export function isInstallSnoozed(): boolean {
   try {
     const at = Number(window.localStorage.getItem(DISMISS_KEY))
-    return at > 0 && Date.now() - at < SNOOZE_MS
+    return at > 0 && Date.now() - at < snoozeMs()
   } catch {
     return false
   }

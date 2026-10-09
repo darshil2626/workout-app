@@ -19,8 +19,10 @@ export function StartupError({ error }: { error: unknown }) {
   async function saveBackup() {
     setBusy(true)
     try {
-      await downloadBackup()
-      setStatus('Backup downloaded. Keep that file safe before doing anything else.')
+      const outcome = await downloadBackup()
+      if (outcome !== 'cancelled') {
+        setStatus('Backup saved. Keep that file safe before doing anything else.')
+      }
     } catch {
       setStatus('Could not read your data to back it up. It has not been changed.')
     } finally {

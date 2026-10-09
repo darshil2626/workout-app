@@ -1,0 +1,91 @@
+/* ── Screen transitions ─────────────────────────────────────────────────── */
+
+/* Direction is set on <html> by lib/navigate.ts's useNavigate before every
+   path-based navigation (numeric-delta calls, i.e. the header Back button,
+   can't carry a View Transition — see that file's comment — so there is no
+   'back' direction here, only the ones a forward navigate can produce).
+   Replaces the browser's default cross-fade with a push/reveal that matches
+   the rest of the app's motion language. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-nav);
+  animation-timing-function: var(--ease);
+}
+
+html[data-nav-direction='forward']::view-transition-old(root) {
+  animation-name: nav-out-left;
+}
+html[data-nav-direction='forward']::view-transition-new(root) {
+  animation-name: nav-in-right;
+}
+
+/* Mirror of 'forward' — used where a call site knows it's logically
+   backward even though the target path alone doesn't say so (see
+   AppNavigateOptions.direction in lib/navigate.ts). */
+html[data-nav-direction='back']::view-transition-old(root) {
+  animation-name: nav-out-right;
+}
+html[data-nav-direction='back']::view-transition-new(root) {
+  animation-name: nav-in-left;
+}
+
+/* Entering a fullscreen route (starting a workout, opening a routine to
+   edit): the page underneath dims like it's sliding behind a sheet, the new
+   screen rises to cover it — echoes .sheet's own slide-up. */
+html[data-nav-direction='modal-in']::view-transition-old(root) {
+  animation-name: nav-dim;
+}
+html[data-nav-direction='modal-in']::view-transition-new(root) {
+  animation-name: nav-in-up;
+}
+
+/* Leaving one: reverse of the above. */
+html[data-nav-direction='modal-out']::view-transition-old(root) {
+  animation-name: nav-out-down;
+}
+html[data-nav-direction='modal-out']::view-transition-new(root) {
+  animation-name: nav-undim;
+}
+
+@keyframes nav-out-left {
+  to {
+    transform: translateX(-20%);
+    opacity: 0.4;
+  }
+}
+@keyframes nav-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes nav-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes nav-in-left {
+  from {
+    transform: translateX(-20%);
+    opacity: 0.4;
+  }
+}
+@keyframes nav-dim {
+  to {
+    opacity: 0.5;
+  }
+}
+@keyframes nav-in-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes nav-out-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes nav-undim {
+  from {
+    opacity: 0.5;
+  }
+}

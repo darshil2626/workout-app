@@ -12,7 +12,7 @@ const ART_DIR = join(ROOT, 'public', 'exercise-art')
 const REPO = 'https://raw.githubusercontent.com/bryllim/workout-guide/main/packages/workout-guide'
 const MANIFEST_URL = `${REPO}/manifest.json`
 
-// Matches --text in src/index.css. The source art is pure white, which is
+// Matches --text in src/styles/base.css. The source art is pure white, which is
 // harsher than anything else on the app's surfaces.
 const FIGURE = '#eef1f6'
 

@@ -3,7 +3,7 @@ import type { Theme } from '../db/types'
 export type ResolvedTheme = 'light' | 'dark'
 
 /**
- * Must track `--bg` in index.css for each theme — same convention already
+ * Must track `--bg` in src/styles for each theme — same convention already
  * used for the PWA manifest's `theme_color` in vite.config.ts, which can't be
  * changed at runtime and so stays on the dark value. This one backs the live
  * `<meta name="theme-color">` tag instead, which can.

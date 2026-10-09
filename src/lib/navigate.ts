@@ -40,7 +40,7 @@ export interface AppNavigateOptions extends NavigateOptions {
 /**
  * Wraps React Router's `useNavigate` so every path-based navigation requests
  * a View Transition, and tags its direction on `<html>` first so CSS can
- * animate accordingly (see the `::view-transition-*` rules in index.css) —
+ * animate accordingly (see the `::view-transition-*` rules in src/styles) —
  * inferred from where the navigation is headed relative to where it started,
  * unless a call site knows better (see `AppNavigateOptions.direction`).
  *

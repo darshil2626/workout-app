@@ -14,7 +14,7 @@ interface SheetProps {
 /** Bottom sheet used for pickers, menus and confirmations. */
 export function Sheet({ open, title, onClose, children, footer, hideClose }: SheetProps) {
   // Stays mounted a beat after `open` goes false so the reverse animation
-  // (see .sheet-backdrop.closing / .sheet.closing in index.css) can play —
+  // (see .sheet-backdrop.closing / .sheet.closing in src/styles) can play —
   // the backdrop's own animationend is what actually unmounts it, rather
   // than a setTimeout duplicating the CSS duration as a second number.
   const [rendered, setRendered] = useState(open)

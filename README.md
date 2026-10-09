@@ -122,9 +122,11 @@ src/
   db/                  Dexie (IndexedDB) schema, types, seeded exercise library
   lib/                 Units, time, workout maths, stats, records, plates, backup
   state/               Active-workout and rest-timer React contexts
+  db/repo.ts           Named reads and changes; screens use this, never raw Dexie
   components/          Reusable UI: set rows, sheets, pickers, nav
   components/charts/   SVG line/column/bar/heatmap primitives, each with a table twin
   pages/               One file per screen
+  styles/              Stylesheets by feature, imported in order from src/index.css
 public/exercise-art/   Exercise illustrations, three frames each (CC BY-SA 4.0)
 scripts/               Icon generator (no image dependencies), illustration matcher
 ```

@@ -18,7 +18,7 @@ import { useCallback, useRef, useState, type CSSProperties, type PointerEvent as
  * a fixed 80px would be nearly the whole row on a narrow screen) releasing
  * calls `onDelete` immediately; short of it, the row springs back. Both the
  * live drag and the spring-back are plain CSS transform/transition, so the
- * app's global prefers-reduced-motion switch (index.css) already flattens
+ * app's global prefers-reduced-motion switch (src/styles) already flattens
  * the spring-back to an instant snap without any extra handling here.
  *
  * This hook only tracks the gesture and reports it — it does not remove

@@ -6,7 +6,7 @@ import { IconTriangleDown, IconTriangleUp } from './Icons'
  * session's running total against the last time this workout was done.
  *
  * Colour follows the same rule the home screen's strength trend already
- * uses (see `.home-trend-delta` in index.css): an increase gets the gold
+ * uses (see `.home-trend-delta` in src/styles): an increase gets the gold
  * "reward" hue, and a decrease stays a neutral dim tone rather than
  * `--danger` — a lighter set is a deload or an off day, not a failure, so it
  * never reads as an error state. `text` carries the number so the colour is

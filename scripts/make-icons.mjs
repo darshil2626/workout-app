@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 
-// These mirror the light theme's --accent and --bg in src/index.css: the icon
+// These mirror the light theme's --accent and --bg in src/styles/base.css: the icon
 // is the accent colour with the glyph cut out in the page colour. Nothing
 // enforces that, so they have to be changed by hand when the palette moves —
 // they were missed when the app went from blue to ember, which left a blue icon

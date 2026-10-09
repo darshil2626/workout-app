@@ -1,0 +1,300 @@
+:root {
+  /* Surfaces climb from bg → raised as elements come forward. The ladder is the
+     old one rotated off blue-grey toward red/yellow at matched lightness, so the
+     shell reads as charcoal under an ember accent instead of as cold slate.
+     Tonal elevation, dark palette only (light theme's hierarchy works the
+     opposite direction and is tuned separately below): each rung sits
+     roughly 3% lightness above the one before, since a shadow alone barely
+     reads against near-black. In role order rather than token order —
+     --bg (~5% L, the page) → nav (header/bottom-nav: a translucent tint of
+     --surface, blurred over whatever scrolls beneath — chrome distinguishes
+     itself by blur+border rather than a flat step) → --surface (~9% L,
+     .card, the resting content surface) → --surface-2 (~12% L, .sheet — a
+     full step above .card so a sheet sliding over the page actually reads as
+     coming forward, not just gaining a shadow no one can see) → --raised
+     (~15% L, controls plus the topmost floating bits: .chart-tooltip,
+     .toast/.update-toast). --surface-2 doing double duty as both "sheet
+     background" and "recessed input well" is intentional, not a collision:
+     the two roles never overlap on screen except once (Settings' Strong-
+     units sheet), where the shared tone still reads fine off its border. */
+  --bg: #0f0d0b;
+  --surface: #191714;
+  --surface-2: #221f1b;
+  --raised: #2b2721;
+  --border: #35302a;
+  --border-strong: #463f36;
+
+  /* Three tiers, holding their old contrast against --surface: 15.7 / 6.8 / 3.8.
+     Warming them without moving those ratios is the whole point of the rotation. */
+  --text: #f5f1ea;
+  --text-dim: #bdb1a3;
+  --text-faint: #998d80;
+
+  /* Two hues carry meaning and nothing else. Ember is "act": anything that
+     starts, continues, or is live right now. Gold is "won": PRs, milestones,
+     streaks. Warm hues reliably raise self-reported urgency and effort in gym
+     contexts, and orange carries a learned "effort zone" association — we lean
+     on that for salience and reward, not for any claim about performance. */
+  --accent: #ff6a2b;
+  /* Muted ember for disabled and soft states. 2.5:1 on --surface: enough to
+     read as a deliberate edge, never enough to pass for a live control. */
+  --accent-dim: #8a4324;
+  --gold: #ffc43d;
+  /* Green stays reserved for "set completed" and is never repurposed. */
+  --success: #2fbf71;
+  /* Warn had to move. The old #e8a33d sat six degrees off the new gold, which
+     would have made a warmup badge read as a PR. Pulled round toward mustard
+     and dropped a fifth in value so "note" and "reward" never trade places. */
+  --warn: #bfa63a;
+  --danger: #f2555a;
+  /* An alias, not a duplicate: every existing .badge-pr / .finish-prs rule
+     follows the new gold without a rename. */
+  --pr: var(--gold);
+
+  /* Chart chrome. Gridlines sit one step off the card surface so they recede;
+     the sequential ramp below is the warm re-cut of the validated scale
+     (monotone lightness, adjacent gaps >= 0.06, light end clears 2:1).
+     It deliberately stops short of white and of pale yellow: a near-white top
+     bin blew out against the dark card and read as a hole rather than as the
+     heaviest day, and a pale-yellow one would be mistaken for --gold.
+     Approx L*: rest 10, then 34 / 48 / 61 / 76 — even steps the eye can rank,
+     with the first lit bin 2.1:1 against a rest cell so "trained" is
+     unmistakable. Rest stays a shade lighter than --surface for the same reason
+     the top bin stops short: a rest day must read as absent, not as a hole
+     punched in the card. */
+  --chart-series: #ff6a2b;
+  --chart-series-hi: #ffa855;
+  --chart-grid: #2b2721;
+  --chart-axis: #463f36;
+  --heat-0: #201b17;
+  --heat-1: #8d3315;
+  --heat-2: #c44e11;
+  --heat-3: #f16e20;
+  --heat-4: #ffa855;
+
+  /* Radius by role (Stripe-style): controls stay tight so a button or chip
+     reads as a precise target, cards get enough curve to feel like a
+     surface, sheets get the most so a full-bleed panel doesn't feel like a
+     hard box. --radius / --radius-sm / --radius-lg are kept as aliases so
+     every existing call site keeps its old name under the new, clearer
+     meaning; only the handful of call sites that had the wrong role
+     (.btn, .search-wrap) were moved to the token that actually matches them. */
+  --radius-control: 4px;
+  --radius-card: 8px;
+  --radius-sheet: 16px;
+  --radius: var(--radius-card);
+  --radius-sm: var(--radius-control);
+  --radius-lg: var(--radius-sheet);
+
+  /* Type scale. The 35 hand-tuned font-size values the audit found are
+     collapsed into these fixed steps; every rule below references one of
+     them instead of a bespoke rem value. Small steps stay tight (chart
+     ticks, badges, nav labels); the top of the scale is used once each, for
+     the figures the app is actually about. */
+  --text-3xs: 0.5rem; /* 8px  — calendar weekday initials */
+  --text-2xs: 0.6875rem; /* 11px — chart ticks/end-labels, badges, nav labels */
+  --text-xs: 0.75rem; /* 12px — section titles, small labels */
+  --text-sm: 0.8125rem; /* 13px — secondary body text, chips */
+  --text-base: 0.875rem; /* 14px — default small body text */
+  --text-md: 0.9375rem; /* 15px — buttons, header actions */
+  --text-lg: 1rem; /* 16px — form inputs, sub-headings */
+  --text-xl: 1.125rem; /* 18px — grip glyph, flexed tile figures */
+  --text-2xl: 1.25rem; /* 20px — h2, header title, emoji chips */
+  --text-3xl: 1.5rem; /* 24px — h1, ring value, headline figure */
+  --text-4xl: 1.875rem; /* 30px — plate calculator target */
+  --text-5xl: 2.25rem; /* 36px — empty-state icon */
+  --text-6xl: 3rem; /* 48px — the hero figure */
+
+  /* 8pt spacing scale, 4px half-steps where the grid needs finer control.
+     Margins, paddings and gaps across the file snap to the nearest step.
+     Sub-4px values (1–3px) are hairline/optical nudges, not rhythm, and stay
+     literal on purpose. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+
+  /* Height of the sticky app header, which sub-bars stick beneath: History's
+     month labels and the exercise filter row. Measured, not derived: the row is
+     12px padding top and bottom around the 40px title line / icon button, plus
+     the 1px border, which is ~64.8px. Kept a hair under it so a sub-bar tucks
+     slightly beneath the header instead of leaving a gap the list shows
+     through. Too small and the sub-bar's top is hidden behind the header, which
+     is how the month label ended up half cut off. Change these with .header-row
+     or the sub-bars will part company with the header. */
+  --header-h: 64px;
+  --header-h-action: 64px;
+
+  --nav-h: 60px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* One curve for every state change: leaves fast, settles slow. Durations stay
+     inside 120–180ms, long enough to be felt and short enough that a fast
+     tapper never waits on one. */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A slight overshoot, reserved for moments worth celebrating (a PR, a
+     milestone) rather than the app's routine state changes and screen
+     transitions above, which all use `--ease`. */
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur: 150ms;
+  /* The press-down half of a tap: snappier than a settle, so the "give" reads
+     as instant. Named rather than left as a bare 130ms in four places. */
+  --dur-press: 130ms;
+  /* A full-screen navigation reads better a touch slower than a UI element's
+     150ms — same curve, more distance to cover. */
+  --dur-nav: 240ms;
+
+  /* Cards are lifted, not outlined: a tight contact shadow, a wider ambient one,
+     and a 1px inner top highlight standing in for a lit top edge. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.05);
+
+  color-scheme: dark;
+}
+
+/*
+ * Light theme, opted into via `[data-theme='light']` (see src/lib/theme.ts).
+ * Same structure as the dark palette above — surfaces still "climb" as
+ * elements come forward, just toward white instead of away from black — and
+ * the same two hues carry the same meaning (ember = act, gold = won).
+ * Saturated hues that read fine as backgrounds against black need to be
+ * deepened to still pass as *text* against a near-white surface, so --accent,
+ * --gold, --success, --warn and --danger are each darkened from their dark-
+ * mode value rather than reused verbatim — hand-checked against --surface
+ * for ~4.5:1+ (text tiers land close to the dark palette's own 15.7 / 6.8 /
+ * 3.8 ratios), but treat this as a first pass to eyeball on a real screen
+ * rather than a finished palette.
+ */
+:root[data-theme='light'] {
+  --bg: #f2ece2;
+  --surface: #f8f4ec;
+  --surface-2: #fbf8f2;
+  --raised: #ffffff;
+  --border: #ddd2c0;
+  --border-strong: #c7b8a0;
+
+  --text: #201a13;
+  --text-dim: #51463a;
+  --text-faint: #6b5f50;
+
+  --accent: #b5400e;
+  --accent-dim: #d9a686;
+  --gold: #8a6200;
+  --success: #187a45;
+  --warn: #7a6110;
+  --danger: #b3282e;
+  --pr: var(--gold);
+
+  --chart-series: #b5400e;
+  --chart-series-hi: #d1551d;
+  --chart-grid: #e6ddd0;
+  --chart-axis: #c7b8a0;
+  /* Climbs toward more saturated/darker ember as "more volume", the inverse
+     direction of the dark ramp's climb toward brighter — in both cases "more"
+     reads as further from the empty-cell background. */
+  --heat-0: #efe6d8;
+  --heat-1: #e3ab7e;
+  --heat-2: #cf7a3d;
+  --heat-3: #b5400e;
+  --heat-4: #7a2b09;
+
+  /* Shadows carry the elevation cue instead of a lit top edge, which doesn't
+     read against a white card the way it did against a dark one. */
+  --shadow-card: 0 1px 2px rgb(40 30 15 / 0.07), 0 6px 16px rgb(40 30 15 / 0.09);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+  /* Prevents iOS bounce revealing white behind the app shell. */
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Headings carry the confidence; body text stays quiet. Tighter tracking at the
+   top of the scale keeps a long exercise name from reading as loose. */
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+}
+
+h1 {
+  font-size: var(--text-3xl);
+  line-height: 1.2;
+}
+h2 {
+  font-size: var(--text-2xl);
+  line-height: 1.25;
+}
+h3 {
+  font-size: var(--text-lg);
+  letter-spacing: -0.012em;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+/* iOS zooms on focus for anything under 16px. */
+input,
+textarea,
+select {
+  font-size: max(16px, var(--text-lg));
+}

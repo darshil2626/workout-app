@@ -1,0 +1,466 @@
+/* ── Home ───────────────────────────────────────────────────────────────── */
+
+/* Home-screen rules live here, after the reduced-motion switch above so every
+   animation below is already covered by it — the switch uses `*` and
+   `!important`, so nothing here needs its own reduce rule.
+
+   The vocabulary above does most of the work: these are the few things a
+   dashboard needs that a list of cards did not. */
+
+/* Blocks that follow a paragraph or a button rather than another card, where
+   `.card + .card`'s 10px does not apply and the block would sit flush. */
+.home-block {
+  margin-top: var(--space-4);
+}
+
+/* A folder's header doubles as its collapse/expand toggle, so it needs the
+   same tap affordances a button gets elsewhere — a full-width hit area
+   (buttons are inline-sized by default) and a press state, on top of what
+   `.section-title.row` already gives it for text/layout. */
+.folder-head {
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.folder-toggle {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  transition: opacity var(--dur-press) var(--ease);
+}
+
+.folder-toggle:active {
+  opacity: 0.6;
+}
+
+.folder-toggle-chevron {
+  flex-shrink: 0;
+  transition: transform var(--dur-press) var(--ease);
+  /* IconMinimise points down by default (its other use, collapsing the
+     active workout screen); rotated to point at the folder's contents
+     until expanded, when it settles into its natural down-pointing shape. */
+  transform: rotate(-90deg);
+}
+
+.folder-toggle-chevron.open {
+  transform: rotate(0deg);
+}
+
+/* A 2:1 split with the streak column beside it — `flex-basis: 0%` makes both
+   sides ignore their content size and divide the row purely by these ratios,
+   so the calendar's fixed-size cells (which can only shrink to scroll
+   internally on narrow screens, never grow to fill leftover space) don't
+   throw off the proportion. */
+.consistency-chart {
+  flex: 2 1 0%;
+  min-width: 0;
+}
+
+/* Sits beside the consistency calendar rather than below it: two tiles
+   stacked read better here than two tiles squeezed side by side. Takes the
+   other third of the row (see `.consistency-chart`), wide enough for the
+   figures to breathe without crowding out the calendar. */
+.consistency-streaks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1 1 0%;
+  min-width: 96px;
+}
+
+/* Each titled block is its own <section>, which makes its heading a
+   :first-child — and `.section-title:first-child` drops the 22px that gives
+   the page its rhythm. Carry that gap on the section instead, so the heading
+   keeps its air wherever the block happens to land. */
+.home-sect {
+  margin-top: var(--space-5);
+}
+
+.home-sect > .section-title:first-child {
+  margin-top: 0;
+}
+
+/* The wins block is the one part of the page that arrives after first paint —
+   scanning for records is a trip through history — so it fades in rather than
+   appearing as a jolt under the thumb. Reuses the existing `fade` keyframe,
+   and the reduced-motion switch above already flattens it. */
+.home-appear {
+  animation: fade 320ms var(--ease) both;
+}
+
+/* The routine name has to be allowed to shrink: a flex child defaults to
+   min-width:auto, so `.truncate` inside a button otherwise pushes the button
+   wider than the screen instead of ellipsising. */
+.home-start > span {
+  min-width: 0;
+}
+
+/* The header line. Smaller and lighter than a page title, because it is a
+   status rather than a name — and it has to share a 390px bar with two icon
+   buttons, so the weekday leads and the fact after the separator is the part
+   that ellipsises away first. `.header-title` already clips it. */
+.home-status {
+  font-size: var(--text-md);
+  font-weight: 650;
+}
+
+.home-status-fact {
+  color: var(--text-dim);
+  font-weight: 550;
+}
+
+/* Attached to the button above it, not floating between blocks. */
+.home-start-sub {
+  margin-top: var(--space-2);
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--text-base);
+}
+
+.home-secondary {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* A guess about the user's routine, so it whispers. Centred under the primary
+   action to read as a caption on it rather than as a separate claim. */
+.home-habit {
+  margin-top: var(--space-3);
+  text-align: center;
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+/* ── Weekly goal ring ───────────────────────────────────────────────────── */
+
+.home-goal {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.goal-ring {
+  flex-shrink: 0;
+}
+
+.goal-ring-track {
+  fill: none;
+  stroke: var(--surface-2);
+}
+
+/* Ember while the week is still something to act on; gold the moment it is
+   won. The two hues never overlap: one is the task, the other is the trophy. */
+.goal-ring-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  /* --ring-c is the circumference, set inline where it is computed. Animating
+     from a full offset draws the arc on once, in the direction it fills. */
+  animation: home-ring-fill 620ms var(--ease) both;
+}
+
+.goal-ring-arc.hit {
+  stroke: var(--gold);
+}
+
+@keyframes home-ring-fill {
+  from {
+    stroke-dashoffset: var(--ring-c);
+  }
+}
+
+.goal-ring-value {
+  fill: var(--text);
+  font-size: var(--text-3xl);
+  font-weight: 760;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* "of 4 this week" is the ring's label, so it sits at label weight while the
+   numeral inside the ring carries the emphasis. */
+.goal-of {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The supporting line has to carry the state, because the arc cannot: a ring
+   at 1-of-8 and one at 3-of-4 are both "partly ember" at a glance. At risk
+   leans on --warn rather than --danger — the week is still recoverable, and
+   red for "you haven't trained yet" reads as a telling-off rather than a
+   nudge, which is the one thing this line must never do. */
+.goal-note {
+  color: var(--text-dim);
+}
+
+.goal-note.at-risk {
+  color: var(--warn);
+}
+
+.goal-note.hit {
+  color: var(--gold);
+}
+
+/* ── Strength trend ─────────────────────────────────────────────────────── */
+
+/* Name and delta on the left, the line in the middle, the current estimate on
+   the right — the sparkline keeps a fixed column so three lifts of different
+   name lengths still align into one readable chart stack. */
+.home-trend {
+  display: grid;
+  grid-template-columns: 1fr 64px auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.home-trend + .home-trend {
+  border-top: 1px solid var(--border);
+}
+
+.home-trend-delta {
+  font-size: var(--text-sm);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+  /* Dim, never --danger: a fall is a deload or a bad fortnight, not a failure.
+     See the note in StrengthTrend.tsx. */
+  color: var(--text-dim);
+}
+
+/* Gold, because a 1RM that has gone up is something won rather than something
+   to act on — the same rule that colours records and milestones. Ember would
+   read as a button and green belongs to a completed set. */
+.home-trend-delta.up {
+  color: var(--gold);
+}
+
+.home-spark {
+  display: block;
+  width: 100%;
+  height: 26px;
+  /* The stroke is drawn in unit space and rendered at a fixed width, so its
+     outer half sits a hair outside the box at a peak. */
+  overflow: visible;
+}
+
+.home-spark polyline {
+  fill: none;
+  stroke: var(--chart-series);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.home-trend-now {
+  font-size: var(--text-md);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.home-trend-unit {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+/* One line saying what the numbers above it are. The block it replaced showed
+   a chart nobody could name the units of, which is the whole reason it went. */
+.home-trend-foot {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+/* ── Recovery ───────────────────────────────────────────────────────────── */
+
+/* Muscle, then the day count that carries all the urgency signal itself
+   (see RecoveryCard's tier ramp below). */
+.home-rest-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.home-rest-row + .home-rest-row {
+  border-top: 1px solid var(--border);
+}
+
+.home-rest-days {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Faint → full → ember in four steps as a muscle's day count climbs toward
+   RECOVERY_STALE_DAYS — see `restTier` in RecoveryCard.tsx. The first three
+   steps stay inside the app's already-contrast-checked text tiers; ember only
+   lands on the last one, since it's the app's sole "act" hue and the
+   most-neglected muscle is the answer to "what should I train today?". */
+.home-rest-days.t0 {
+  color: var(--text-faint);
+}
+.home-rest-days.t1 {
+  color: var(--text-dim);
+}
+.home-rest-days.t2 {
+  color: var(--text);
+}
+.home-rest-days.t3 {
+  color: var(--accent);
+}
+
+/* ── Recent wins ────────────────────────────────────────────────────────── */
+
+.home-win {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.home-win + .home-win {
+  border-top: 1px solid var(--border);
+}
+
+.home-win-medal {
+  font-size: var(--text-lg);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Headline: what you did and what it was worth, on one line, with the value
+   pushed right so three rows read as a column of numbers. */
+.home-win-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.home-win-value {
+  flex-shrink: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+/* Footnote: which record it was, and when. Both are small, so they share the
+   line the old layout gave to the date alone. */
+.home-win-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: 1px;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.home-win-when {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The near-miss line. Separated from the wins above it only when there are
+   wins — on its own it is the whole card and needs no rule. */
+.home-milestone {
+  padding-top: var(--space-3);
+}
+
+.home-milestone.bordered {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-1);
+}
+
+/* Thinner than a chart bar: this is a hint at a distance, not a measurement. */
+.home-milestone-track {
+  height: 6px;
+  margin-top: var(--space-2);
+}
+
+/* Gold, because a milestone is something won rather than something to act on. */
+.home-milestone-fill {
+  background: var(--gold);
+}
+
+/* ── Routines section ───────────────────────────────────────────────────── */
+
+/* "Choose another" scrolls here, and the header is sticky: without this the
+   section title lands underneath it and the list looks like it starts at the
+   second routine. */
+.home-routines-anchor {
+  scroll-margin-top: calc(var(--safe-top) + 64px);
+}
+
+/* The section title keeps its own top margin here and loses its bottom one, so
+   the actions beside it stay on the title's baseline. */
+.home-section-row {
+  margin: var(--space-5) 0 var(--space-2);
+}
+
+.home-section-row .section-title {
+  margin: 0;
+}
+
+.home-section-actions {
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+/* Folders are organisation, not action: ember is reserved for things that
+   start a workout, so this action reads as secondary text. */
+.home-section-muted {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* Quiet line under the workout name that opens the start-time editor. */
+.start-time-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) 0;
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+}
+
+.start-time-edit {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Exercise summary on a history card: name on the left, set count on the right. */
+.history-ex-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  text-align: left;
+}
+
+.history-ex-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.history-ex-list li .mono {
+  color: var(--text-dim);
+}
+
+.history-ex-list li.history-ex-more {
+  display: block;
+  color: var(--text-faint);
+}

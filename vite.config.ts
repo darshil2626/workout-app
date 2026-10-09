@@ -51,7 +51,7 @@ export default defineConfig({
         short_name: `Trana${nameSuffix}`,
         description:
           'Offline-first strength log: routines, set-by-set logging, rest timer, personal records, muscle recovery and progress charts.',
-        // theme_color must track the dark --bg in src/index.css: it colours the
+        // theme_color must track the dark --bg in src/styles/base.css: it colours the
         // phone's status bar before the page has loaded, which is the one place
         // a stale value shows as a flash of the wrong black.
         theme_color: '#0f0d0b',

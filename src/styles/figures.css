@@ -1,0 +1,139 @@
+/* ── Stats ──────────────────────────────────────────────────────────────── */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-grid-pairs {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* The four Stats-page pair tiles get larger figures than the generic .stat. */
+.stat-grid-pairs .stat-value {
+  font-size: clamp(var(--text-2xl), 7vw, var(--text-3xl));
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-3);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+
+/* Proportional figures: tabular widths make a value like 121 look loose.
+   Live-updating counters add `.mono` where anti-jitter matters more.
+   The size flexes down rather than letting a long total spill out of the tile. */
+.stat-value {
+  font-size: clamp(var(--text-md), 4.2vw, var(--text-xl));
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Each headline tile is now also a shortcut to the chart it summarises. The
+   press needs the same felt geometry as the rest of the app, but nothing
+   louder — these are read as figures first, and a border or fill here would
+   make them compete with the numbers for attention. */
+.headline:active {
+  transform: scale(0.97);
+  transition: transform var(--dur-press) var(--ease);
+}
+
+/* The bodyweight trend inside the Measurements card: a glance-sized preview,
+   not something meant for the point-by-point inspection the full page's
+   LineChart supports, so it drops the plot's usual top margin to sit flush
+   under the latest reading. */
+.measurement-preview {
+  margin-top: 2px;
+}
+
+.measurement-preview .chart-plot {
+  margin-top: 0;
+}
+
+/* ── Headline figures ───────────────────────────────────────────────────── */
+
+/* One card, three figures, hairline separators: reads as a single summary
+   rather than three competing tiles. */
+.headline-card {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: var(--space-4);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.headline {
+  padding: var(--space-3) var(--space-2);
+  text-align: center;
+  min-width: 0;
+}
+
+.headline + .headline {
+  border-left: 1px solid var(--border);
+}
+
+/* Tabular here even though .stat-value above is not: these three figures update
+   live during a workout, and a proportional 1 makes the whole row twitch. */
+.headline-value {
+  font-size: clamp(var(--text-xl), 5.6vw, var(--text-3xl));
+  font-weight: 760;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.028em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Demoted so the figure reads first and the unit never competes with it. */
+.headline-unit {
+  font-size: 0.62em;
+  font-weight: 650;
+  color: var(--text-dim);
+  margin-left: 2px;
+}
+
+/* ── Hero figure ────────────────────────────────────────────────────────── */
+
+.hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-1) 2px 0;
+}
+
+/* The single biggest number on any screen. Heavier and tighter than the type
+   scale below it so it anchors the page rather than merely being large, and
+   tabular so a ticking counter does not shift its own label. */
+.hero-value {
+  font-size: var(--text-6xl);
+  font-weight: 780;
+  line-height: 1;
+  letter-spacing: -0.038em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.hero-label {
+  color: var(--text-dim);
+  font-size: var(--text-md);
+}
+
+.stat-label {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 650;
+  margin-top: 2px;
+}

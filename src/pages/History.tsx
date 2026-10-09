@@ -121,7 +121,7 @@ export function HistoryPage() {
                         </div>
                       ) : (
                         <ul className="history-ex-list">
-                          {w.exercises.slice(0, 5).map((le) => (
+                          {w.exercises.slice(0, 3).map((le) => (
                             <li key={le.id}>
                               <span className="truncate">{byId.get(le.exerciseId)?.name ?? 'Unknown'}</span>
                               <span className="mono">
@@ -129,8 +129,8 @@ export function HistoryPage() {
                               </span>
                             </li>
                           ))}
-                          {w.exercises.length > 5 && (
-                            <li className="history-ex-more">+{w.exercises.length - 5} more</li>
+                          {w.exercises.length > 3 && (
+                            <li className="history-ex-more">+{w.exercises.length - 3} more</li>
                           )}
                         </ul>
                       )}

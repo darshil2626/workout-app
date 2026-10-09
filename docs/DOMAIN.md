@@ -19,6 +19,17 @@ installs it is a support problem. Choose the permanent address now.
   for "Trana" in software and fitness classes (9, 41, 42, 44). A web search found no fitness
   app of that name, which is not the same as clearance.
 
+  **Search done 9 October 2026** (TMview, which aggregates EUIPO, UKIPO and USPTO; not an official
+  register and not legal advice). Names containing "trana" gave 67 records. Only one is
+  identical to **TRANA**: US application 99478975, filed 4 Nov 2025, **class 3 (cosmetics)**,
+  status "Filed", applicant Hugo Alberto Ornelas Gutierrez. Nothing identical in the EU or UK
+  registers, and nothing identical in software (9, 42), fitness or training services (41) or
+  medical and health services (44). Closest in software: METRANA (UK, classes 9 and 42,
+  registered Jan 2026), CENTRANA (US, 9 and 42, filed 2025) and VOLTRANA (UK, class 9, filed
+  2026): different words, but worth a look from a trade mark attorney if you plan to
+  register. The UK IPO's own search sat behind a bot check, so run that one yourself
+  at <https://trademarks.ipo.gov.uk/ipo-tmtext>.
+
 ## Steps
 
 1. **Export a backup from your phone** (Settings → Export backup) and keep the file.

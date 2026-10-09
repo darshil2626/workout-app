@@ -3,7 +3,8 @@ import { parseHevyCsv } from '../../src/lib/importers/hevy'
 import { LB_PER_KG, METRES_PER_MILE } from '../../src/lib/units'
 import { mkEx } from './helpers'
 
-const H = 'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe'
+const H =
+  'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe'
 const local = (y: number, m: number, d: number, h = 0, mi = 0) => new Date(y, m - 1, d, h, mi).getTime()
 const LEG = '"Leg Day","4 Mar 2024, 18:30","4 Mar 2024, 19:35"'
 
@@ -137,18 +138,33 @@ describe('parseHevyCsv', () => {
 
   describe('exercise resolution and bodyweight', () => {
     it('reuses library exercises', () => {
-      const sq = mkEx('weight_reps', { id: 'sq', name: 'Squat (Barbell)', muscleGroup: 'Quadriceps', equipment: 'Barbell' })
+      const sq = mkEx('weight_reps', {
+        id: 'sq',
+        name: 'Squat (Barbell)',
+        muscleGroup: 'Quadriceps',
+        equipment: 'Barbell',
+      })
       const r = parseHevyCsv(`${H}\n${LEG},,Squat (Barbell),,,0,normal,100,5,,,`, [sq], null)
       expect(r.newExercises).toEqual([])
       expect(r.workouts[0].exerciseIds).toEqual(['sq'])
     })
     it('weighted bodyweight library exercise scores bodyweight + load', () => {
-      const wp = mkEx('weighted_bodyweight', { id: 'wp', name: 'Pull Up (Weighted)', muscleGroup: 'Back', equipment: 'Bodyweight' })
+      const wp = mkEx('weighted_bodyweight', {
+        id: 'wp',
+        name: 'Pull Up (Weighted)',
+        muscleGroup: 'Back',
+        equipment: 'Bodyweight',
+      })
       const csv = `${H}\n${LEG},,Pull Up (Weighted),,,0,normal,20,5,,,`
       expect(parseHevyCsv(csv, [wp], 80).workouts[0].totalVolumeKg).toBe(500)
     })
     it('the same exercise appearing in non-adjacent rows merges into one entry', () => {
-      const csv = [H, `${LEG},,Squat,,,0,normal,100,5,,,`, `${LEG},,Bench,,,0,normal,60,5,,,`, `${LEG},,Squat,,,1,normal,100,5,,,`].join('\n')
+      const csv = [
+        H,
+        `${LEG},,Squat,,,0,normal,100,5,,,`,
+        `${LEG},,Bench,,,0,normal,60,5,,,`,
+        `${LEG},,Squat,,,1,normal,100,5,,,`,
+      ].join('\n')
       const w = parseHevyCsv(csv, [], null).workouts[0]
       expect(w.exercises.map((e) => e.sets.length)).toEqual([2, 1])
     })

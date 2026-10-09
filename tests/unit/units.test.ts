@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
-  LB_PER_KG, METRES_PER_MILE, cmToDisplay, displayToCm, displayToKg, displayToMetres, formatDistance,
-  formatLength, formatVolume, formatVolumeCompact, formatWeight, kgToDisplay, metresToDisplay, parseNumber, trimNumber,
+  LB_PER_KG,
+  METRES_PER_MILE,
+  cmToDisplay,
+  displayToCm,
+  displayToKg,
+  displayToMetres,
+  formatDistance,
+  formatLength,
+  formatVolume,
+  formatVolumeCompact,
+  formatWeight,
+  kgToDisplay,
+  metresToDisplay,
+  parseNumber,
+  trimNumber,
 } from '../../src/lib/units'
 
 describe('weight conversion', () => {

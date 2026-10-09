@@ -16,21 +16,49 @@ const V1_STORES = {
 const V2_STORES = { measurements: 'id, type, takenAt, [type+takenAt]' }
 
 const exA: Exercise = {
-  id: 'my-custom', name: 'Zercher Squat', muscleGroup: 'Quadriceps', equipment: 'Barbell',
-  kind: 'weight_reps', isCustom: true, createdAt: 5, notes: 'keep elbows tight',
+  id: 'my-custom',
+  name: 'Zercher Squat',
+  muscleGroup: 'Quadriceps',
+  equipment: 'Barbell',
+  kind: 'weight_reps',
+  isCustom: true,
+  createdAt: 5,
+  notes: 'keep elbows tight',
 }
 const w1: Workout = workout({
-  id: 'w1', name: 'Legs', startedAt: 1_700_000_000_000,
-  exercises: [logged('my-custom', [set({ weight: 80, reps: 8 })]), logged('squat-barbell', [set({ weight: 100, reps: 5 })])],
-  totalVolumeKg: 1140, totalSets: 2, totalReps: 13,
+  id: 'w1',
+  name: 'Legs',
+  startedAt: 1_700_000_000_000,
+  exercises: [
+    logged('my-custom', [set({ weight: 80, reps: 8 })]),
+    logged('squat-barbell', [set({ weight: 100, reps: 5 })]),
+  ],
+  totalVolumeKg: 1140,
+  totalSets: 2,
+  totalReps: 13,
 })
 const w2: Workout = workout({
-  id: 'w2', name: 'Push', startedAt: 1_700_100_000_000, routineId: 'r1',
+  id: 'w2',
+  name: 'Push',
+  startedAt: 1_700_100_000_000,
+  routineId: 'r1',
   exercises: [logged('bench-press-barbell', [set({ weight: 60, reps: 10 })])],
 })
 const routine: Routine = {
-  id: 'r1', name: 'Push', folderId: 'f1', order: 2, createdAt: 1, updatedAt: 9,
-  exercises: [{ id: 're1', exerciseId: 'bench-press-barbell', supersetGroup: null, sets: [{ weight: null, reps: 8, durationSec: null, distanceM: null, setType: 'normal' }] }],
+  id: 'r1',
+  name: 'Push',
+  folderId: 'f1',
+  order: 2,
+  createdAt: 1,
+  updatedAt: 9,
+  exercises: [
+    {
+      id: 're1',
+      exerciseId: 'bench-press-barbell',
+      supersetGroup: null,
+      sets: [{ weight: null, reps: 8, durationSec: null, distanceM: null, setType: 'normal' }],
+    },
+  ],
 }
 const oldSettings = { id: 1, weightUnit: 'lb', distanceUnit: 'mi', defaultRestSeconds: 120 }
 
@@ -79,14 +107,19 @@ describe('schema upgrades keep installed data', () => {
     expect((await db.workouts.where('routineId').equals('r1').toArray()).map((w) => w.id)).toEqual(['w2'])
     expect(await db.workouts.where('status').equals('done').count()).toBe(2)
     expect((await db.workouts.where('startedAt').equals(1_700_100_000_000).toArray()).map((w) => w.id)).toEqual(['w2'])
-    expect((await db.exercises.where('muscleGroup').equals('Quadriceps').toArray()).map((e) => e.id)).toEqual(['my-custom'])
+    expect((await db.exercises.where('muscleGroup').equals('Quadriceps').toArray()).map((e) => e.id)).toEqual([
+      'my-custom',
+    ])
   })
 
   it('v2 -> current: measurements and compound index survive', async () => {
     await makeOld(2)
     await db.open()
     expect(await db.measurements.count()).toBe(3)
-    const bw = await db.measurements.where('[type+takenAt]').between(['bodyweight', 0], ['bodyweight', Dexie.maxKey]).toArray()
+    const bw = await db.measurements
+      .where('[type+takenAt]')
+      .between(['bodyweight', 0], ['bodyweight', Dexie.maxKey])
+      .toArray()
     expect(bw.map((m) => m.id)).toEqual(['m1', 'm2'])
     expect((await db.measurements.get('m3'))?.notes).toBe('x')
     expect(await db.workouts.count()).toBe(2)

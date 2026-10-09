@@ -38,12 +38,7 @@ export function Sparkline({ values }: Props) {
         .join(' ')
 
   return (
-    <svg
-      className="home-spark"
-      viewBox={`0 0 ${VB_W} ${VB_H}`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
+    <svg className="home-spark" viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="none" aria-hidden="true">
       <polyline points={points} vectorEffect="non-scaling-stroke" />
     </svg>
   )

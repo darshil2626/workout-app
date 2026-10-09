@@ -19,9 +19,7 @@ export function Header({ title, back, right, left }: HeaderProps) {
           <button
             className="icon-btn"
             aria-label="Back"
-            onClick={() =>
-              back === true ? navigate(-1) : navigate(back, { direction: 'back' })
-            }
+            onClick={() => (back === true ? navigate(-1) : navigate(back, { direction: 'back' }))}
           >
             <IconBack />
           </button>

@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Checks run on pull requests too, so they can gate a merge. Only a push to
+  # main reaches the deploy job.
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -27,6 +30,10 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run format:check
 
       - run: npm run typecheck
 
@@ -73,6 +80,7 @@ jobs:
           if-no-files-found: ignore
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: [build, e2e]
     runs-on: ubuntu-latest
     environment:

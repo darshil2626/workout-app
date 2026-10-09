@@ -24,9 +24,7 @@ export function BottomNav() {
           onClick={() => {
             document.documentElement.dataset.navDirection = 'forward'
           }}
-          className={({ isActive }) =>
-            `nav-item${to === '/' ? ' nav-item-home' : ''}${isActive ? ' active' : ''}`
-          }
+          className={({ isActive }) => `nav-item${to === '/' ? ' nav-item-home' : ''}${isActive ? ' active' : ''}`}
         >
           <Icon />
           <span>{label}</span>

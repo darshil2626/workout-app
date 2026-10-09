@@ -69,11 +69,7 @@ export interface Exercise {
   createdAt: number
 }
 
-export type SetType =
-  | 'normal'
-  | 'warmup'
-  | 'drop'
-  | 'failure'
+export type SetType = 'normal' | 'warmup' | 'drop' | 'failure'
 
 export interface LoggedSet {
   id: string

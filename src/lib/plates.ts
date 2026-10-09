@@ -17,11 +17,7 @@ export interface PlateSolution {
 
 const EPSILON = 1e-6
 
-export function solvePlates(
-  targetKg: number,
-  barKg: number,
-  availablePlatesKg: number[],
-): PlateSolution | null {
+export function solvePlates(targetKg: number, barKg: number, availablePlatesKg: number[]): PlateSolution | null {
   // A target under the bar cannot be loaded at all.
   if (targetKg < barKg - EPSILON) return null
 
@@ -51,9 +47,7 @@ export function solvePlates(
 export function groupPlates(perSide: number[]): { plate: number; count: number }[] {
   const map = new Map<number, number>()
   for (const p of perSide) map.set(p, (map.get(p) ?? 0) + 1)
-  return [...map.entries()]
-    .map(([plate, count]) => ({ plate, count }))
-    .sort((a, b) => b.plate - a.plate)
+  return [...map.entries()].map(([plate, count]) => ({ plate, count })).sort((a, b) => b.plate - a.plate)
 }
 
 /** Common plate inventories offered in settings, in kilograms. */

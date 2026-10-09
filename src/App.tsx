@@ -25,9 +25,7 @@ const RoutineEditPage = lazy(() => import('./pages/RoutineEdit').then((m) => ({ 
 const HistoryPage = lazy(() => import('./pages/History').then((m) => ({ default: m.HistoryPage })))
 const WorkoutDetailPage = lazy(() => import('./pages/WorkoutDetail').then((m) => ({ default: m.WorkoutDetailPage })))
 const ExercisesPage = lazy(() => import('./pages/Exercises').then((m) => ({ default: m.ExercisesPage })))
-const ExerciseDetailPage = lazy(() =>
-  import('./pages/ExerciseDetail').then((m) => ({ default: m.ExerciseDetailPage })),
-)
+const ExerciseDetailPage = lazy(() => import('./pages/ExerciseDetail').then((m) => ({ default: m.ExerciseDetailPage })))
 const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })))
 const StatsPage = lazy(() => import('./pages/Stats').then((m) => ({ default: m.StatsPage })))
 const MeasurementsPage = lazy(() => import('./pages/Measurements').then((m) => ({ default: m.MeasurementsPage })))

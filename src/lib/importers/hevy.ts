@@ -65,11 +65,7 @@ interface WoGroup {
  * Hevy's CSV header discloses the unit ("weight_kg" vs "weight_lbs",
  * "distance_km" vs "distance_miles") — unlike Strong, no need to ask.
  */
-export function parseHevyCsv(
-  text: string,
-  existingExercises: Exercise[],
-  bodyweightKg: number | null,
-): ParsedImport {
+export function parseHevyCsv(text: string, existingExercises: Exercise[], bodyweightKg: number | null): ParsedImport {
   const rows = parseCsv(text, sniffDelimiter(text.split(/\r?\n/)[0] ?? ''))
   const headerLower = (rows[0] ?? []).map((h) => h.trim().toLowerCase())
   const weightUnit: WeightUnit = headerLower.includes('weight_lbs') ? 'lb' : 'kg'

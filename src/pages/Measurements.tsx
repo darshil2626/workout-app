@@ -56,8 +56,8 @@ export function MeasurementsPage() {
       <Header title="Measurements" back="/stats" />
       <div className="page">
         <p className="muted">
-          Track bodyweight and circumferences over time. Logging bodyweight also lets the app score
-          pull-ups, dips and other bodyweight exercises.
+          Track bodyweight and circumferences over time. Logging bodyweight also lets the app score pull-ups, dips and
+          other bodyweight exercises.
         </p>
 
         <div className="list" style={{ marginTop: 14 }}>
@@ -65,8 +65,7 @@ export function MeasurementsPage() {
             const list = byType.get(spec.type) ?? []
             const latest = list[0]
             const previous = list[1]
-            const delta =
-              latest && previous ? latest.value - previous.value : null
+            const delta = latest && previous ? latest.value - previous.value : null
             return (
               <div className="card" key={spec.type}>
                 <div className="row-between">
@@ -110,11 +109,7 @@ export function MeasurementsPage() {
       </div>
 
       <EntrySheet type={open} onClose={() => setOpen(null)} />
-      <HistorySheet
-        type={detail}
-        entries={detail ? (byType.get(detail) ?? []) : []}
-        onClose={() => setDetail(null)}
-      />
+      <HistorySheet type={detail} entries={detail ? (byType.get(detail) ?? []) : []} onClose={() => setDetail(null)} />
     </>
   )
 }
@@ -250,10 +245,7 @@ function HistorySheet({
 
   // Charts read left-to-right in time; the list below reads newest-first.
   const points = useMemo(
-    () =>
-      [...entries]
-        .sort((a, b) => a.takenAt - b.takenAt)
-        .map((e) => ({ date: e.takenAt, value: e.value })),
+    () => [...entries].sort((a, b) => a.takenAt - b.takenAt).map((e) => ({ date: e.takenAt, value: e.value })),
     [entries],
   )
 
@@ -347,11 +339,7 @@ function HistorySheet({
       />
 
       <Toast
-        message={
-          undoEntry
-            ? `Deleted ${formatMeasurement(undoEntry.value, spec.kind, settings)} ${unit} entry`
-            : null
-        }
+        message={undoEntry ? `Deleted ${formatMeasurement(undoEntry.value, spec.kind, settings)} ${unit} entry` : null}
         actionLabel="Undo"
         onAction={() => {
           if (undoEntry) void db.measurements.put(undoEntry)

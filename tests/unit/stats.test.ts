@@ -1,7 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
-  TIME_RANGES, computeStreaks, exerciseProgress, exerciseSparklines, firstWorkoutAt, isMilestoneWorkoutCount,
-  metricsFor, muscleDistribution, overallTotals, startOfWeek, volumeByDay, volumeByWeek, withinRange,
+  TIME_RANGES,
+  computeStreaks,
+  exerciseProgress,
+  exerciseSparklines,
+  firstWorkoutAt,
+  isMilestoneWorkoutCount,
+  metricsFor,
+  muscleDistribution,
+  overallTotals,
+  startOfWeek,
+  volumeByDay,
+  volumeByWeek,
+  withinRange,
 } from '../../src/lib/stats'
 import type { ExerciseKind } from '../../src/db/types'
 import { mkEx, mkLogged, mkSet, mkWorkout } from './helpers'
@@ -38,7 +49,14 @@ describe('startOfWeek', () => {
 describe('overallTotals / firstWorkoutAt / isMilestoneWorkoutCount', () => {
   it('sums cached totals and elapsed time', () => {
     const w1 = mkWorkout({ startedAt: 0, finishedAt: 60_000, totalVolumeKg: 100, totalSets: 3, totalReps: 20 })
-    const w2 = mkWorkout({ startedAt: 0, finishedAt: 120_000, pausedSec: 20, totalVolumeKg: 50, totalSets: 2, totalReps: 10 })
+    const w2 = mkWorkout({
+      startedAt: 0,
+      finishedAt: 120_000,
+      pausedSec: 20,
+      totalVolumeKg: 50,
+      totalSets: 2,
+      totalReps: 10,
+    })
     expect(overallTotals([w1, w2])).toEqual({ workouts: 2, volumeKg: 150, sets: 5, reps: 30, durationSec: 160 })
     expect(overallTotals([])).toEqual({ workouts: 0, volumeKg: 0, sets: 0, reps: 0, durationSec: 0 })
   })
@@ -62,8 +80,14 @@ describe('computeStreaks', () => {
   })
   it('counts consecutive weeks back from this week, and finds the longest run', () => {
     const ws = [
-      wk(6, 22), wk(6, 29), wk(7, 6), wk(7, 13), // run of 4
-      wk(8, 3), wk(8, 10), wk(8, 17), wk(8, 24), // run of 4 including this week
+      wk(6, 22),
+      wk(6, 29),
+      wk(7, 6),
+      wk(7, 13), // run of 4
+      wk(8, 3),
+      wk(8, 10),
+      wk(8, 17),
+      wk(8, 24), // run of 4 including this week
     ]
     // Jul 20 and Jul 27 weeks are missing, so two runs of 4
     const s = computeStreaks(ws, 1, NOW)
@@ -96,7 +120,8 @@ describe('computeStreaks', () => {
   })
   it('daysThisWeek counts distinct days within the last 7 days', () => {
     const ws = [
-      at(L(8, 26, 8)), at(L(8, 26, 11)), // same day, counted once
+      at(L(8, 26, 8)),
+      at(L(8, 26, 11)), // same day, counted once
       at(L(8, 25, 12)),
       at(L(8, 19, 11)), // older than 7 days (now is 12:00 on the 26th)
       at(L(8, 19, 12)), // exactly 7 days ago: included
@@ -157,19 +182,31 @@ describe('muscleDistribution', () => {
   const map = new Map([bench, squat, pullup].map((e) => [e.id, e]))
 
   it('attributes to primary muscle only, sorted by sets desc', () => {
-    const w = mkWorkout({ exercises: [
-      mkLogged(bench.id, [mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 100, reps: 5 })]),
-      mkLogged(squat.id, [mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 100, reps: 5 })]),
-    ] })
+    const w = mkWorkout({
+      exercises: [
+        mkLogged(bench.id, [mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 100, reps: 5 })]),
+        mkLogged(squat.id, [
+          mkSet({ weight: 100, reps: 5 }),
+          mkSet({ weight: 100, reps: 5 }),
+          mkSet({ weight: 100, reps: 5 }),
+        ]),
+      ],
+    })
     const r = muscleDistribution([w], map, null)
     expect(r.map((s) => s.muscle)).toEqual(['Quadriceps', 'Chest'])
     expect(r[0]).toEqual({ muscle: 'Quadriceps', sets: 3, volumeKg: 1500 })
     expect(r.find((s) => s.muscle === 'Triceps')).toBeUndefined()
   })
   it('warm-ups and incomplete sets excluded unless enabled', () => {
-    const w = mkWorkout({ exercises: [mkLogged(bench.id, [
-      mkSet({ weight: 40, reps: 10, setType: 'warmup' }), mkSet({ weight: 100, reps: 5, completed: false }), mkSet({ weight: 100, reps: 5 }),
-    ])] })
+    const w = mkWorkout({
+      exercises: [
+        mkLogged(bench.id, [
+          mkSet({ weight: 40, reps: 10, setType: 'warmup' }),
+          mkSet({ weight: 100, reps: 5, completed: false }),
+          mkSet({ weight: 100, reps: 5 }),
+        ]),
+      ],
+    })
     expect(muscleDistribution([w], map, null)[0]).toMatchObject({ sets: 1, volumeKg: 500 })
     expect(muscleDistribution([w], map, null, true)[0]).toMatchObject({ sets: 2, volumeKg: 900 })
   })
@@ -180,7 +217,12 @@ describe('muscleDistribution', () => {
     expect(muscleDistribution([w2], map, 70)[0].volumeKg).toBe(400)
   })
   it('sets without reps count as sets but add no volume; unknown exercises skipped', () => {
-    const w = mkWorkout({ exercises: [mkLogged(bench.id, [mkSet({ weight: 100, reps: null })]), mkLogged('ghost', [mkSet({ weight: 1, reps: 1 })])] })
+    const w = mkWorkout({
+      exercises: [
+        mkLogged(bench.id, [mkSet({ weight: 100, reps: null })]),
+        mkLogged('ghost', [mkSet({ weight: 1, reps: 1 })]),
+      ],
+    })
     expect(muscleDistribution([w], map, null)).toEqual([{ muscle: 'Chest', sets: 1, volumeKg: 0 }])
   })
   it('empty', () => expect(muscleDistribution([], map, null)).toEqual([]))
@@ -210,7 +252,10 @@ describe('exerciseProgress', () => {
       { at: L(8, 10), sets: [mkSet({ weight: 90, reps: 5 })] },
     )
     const get = (m: Parameters<typeof exerciseProgress>[2]) => exerciseProgress(h, ex, m, null).map((p) => p.value)
-    expect(exerciseProgress(h, ex, 'heaviest', null).map((p) => p.date)).toEqual([L(8, 10) + 3_600_000, L(8, 20) + 3_600_000])
+    expect(exerciseProgress(h, ex, 'heaviest', null).map((p) => p.date)).toEqual([
+      L(8, 10) + 3_600_000,
+      L(8, 20) + 3_600_000,
+    ])
     expect(get('heaviest')).toEqual([90, 100])
     expect(get('volume')).toEqual([450, 1300])
     expect(get('reps')).toEqual([5, 15])
@@ -250,13 +295,21 @@ describe('exerciseProgress', () => {
   })
   it('duration and distance take the best set', () => {
     const run = mkEx('distance_duration')
-    const h = hist({ at: L(8, 20), sets: [mkSet({ durationSec: 600, distanceM: 2000 }), mkSet({ durationSec: 900, distanceM: 1500 })] })
+    const h = hist({
+      at: L(8, 20),
+      sets: [mkSet({ durationSec: 600, distanceM: 2000 }), mkSet({ durationSec: 900, distanceM: 1500 })],
+    })
     expect(exerciseProgress(h, run, 'duration', null)[0].value).toBe(900)
     expect(exerciseProgress(h, run, 'distance', null)[0].value).toBe(2000)
   })
   it('uses startedAt when unfinished and records workoutId', () => {
     const w = mkWorkout({ startedAt: 777, finishedAt: null })
-    const [p] = exerciseProgress([{ workout: w, logged: { sets: [mkSet({ weight: 10, reps: 1 })] } }], ex, 'heaviest', null)
+    const [p] = exerciseProgress(
+      [{ workout: w, logged: { sets: [mkSet({ weight: 10, reps: 1 })] } }],
+      ex,
+      'heaviest',
+      null,
+    )
     expect(p).toEqual({ date: 777, value: 10, workoutId: w.id })
   })
 })
@@ -282,7 +335,8 @@ describe('exerciseSparklines', () => {
     const ws = [
       session(1, bench, 100, 1),
       session(2, bench, 110, 1, { status: 'active' }),
-      session(1, ghost, 50, 1), session(2, ghost, 60, 1),
+      session(1, ghost, 50, 1),
+      session(2, ghost, 60, 1),
     ]
     const r = exerciseSparklines(ws, map, null)
     expect(r.has(bench.id)).toBe(false)
@@ -334,13 +388,21 @@ describe.each(['America/Los_Angeles', 'Pacific/Auckland'])('DST robustness (%s)'
   it('computeStreaks counts consecutive weeks across a DST change', () => {
     // Monday-start weeks: pick one workout in each of the two weeks around the change.
     const monday = new Date(t.getFullYear(), t.getMonth(), t.getDate() - ((t.getDay() + 6) % 7), 12).getTime()
-    const prevWeek = new Date(new Date(monday).getFullYear(), new Date(monday).getMonth(), new Date(monday).getDate() - 7, 12).getTime()
+    const prevWeek = new Date(
+      new Date(monday).getFullYear(),
+      new Date(monday).getMonth(),
+      new Date(monday).getDate() - 7,
+      12,
+    ).getTime()
     const s = computeStreaks([at(prevWeek), at(monday)], 1, monday)
     expect(s.longestWeeks).toBe(2)
     expect(s.currentWeeks).toBe(2)
   })
   it('volumeByWeek still buckets a workout from before the DST change', () => {
-    const total = volumeByWeek([at(local(-10), { totalVolumeKg: 100 })], 1, 6, local(10)).reduce((a, p) => a + p.volumeKg, 0)
+    const total = volumeByWeek([at(local(-10), { totalVolumeKg: 100 })], 1, 6, local(10)).reduce(
+      (a, p) => a + p.volumeKg,
+      0,
+    )
     expect(total).toBe(100)
   })
   it('volumeByWeek keys are all real week starts', () => {

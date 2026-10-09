@@ -35,13 +35,7 @@ export function GoalRing({ progress, streaks }: Props) {
         role="img"
         aria-label={`${done} of ${goal} workouts this week`}
       >
-        <circle
-          className="goal-ring-track"
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          strokeWidth={STROKE}
-        />
+        <circle className="goal-ring-track" cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} strokeWidth={STROKE} />
         <circle
           className={hit ? 'goal-ring-arc hit' : 'goal-ring-arc'}
           cx={SIZE / 2}
@@ -54,13 +48,7 @@ export function GoalRing({ progress, streaks }: Props) {
           transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
           style={{ '--ring-c': CIRCUMFERENCE } as CSSProperties}
         />
-        <text
-          className="goal-ring-value"
-          x={SIZE / 2}
-          y={SIZE / 2}
-          textAnchor="middle"
-          dominantBaseline="central"
-        >
+        <text className="goal-ring-value" x={SIZE / 2} y={SIZE / 2} textAnchor="middle" dominantBaseline="central">
           {done}
         </text>
       </svg>

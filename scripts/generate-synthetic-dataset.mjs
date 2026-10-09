@@ -164,13 +164,7 @@ function weekFracAt(date) {
 }
 
 // ── Folders ─────────────────────────────────────────────────────────────
-const folderDefs = [
-  'Push Pull Legs',
-  'Upper Lower',
-  'Strength',
-  'Cardio & Conditioning',
-  'Mobility',
-]
+const folderDefs = ['Push Pull Legs', 'Upper Lower', 'Strength', 'Cardio & Conditioning', 'Mobility']
 const folders = folderDefs.map((name, i) => ({
   id: newId(),
   name,
@@ -267,7 +261,14 @@ function baselineFor(name) {
   return b
 }
 
-function buildSet({ weight = null, reps = null, durationSec = null, distanceM = null, rpe = null, setType = 'normal' }) {
+function buildSet({
+  weight = null,
+  reps = null,
+  durationSec = null,
+  distanceM = null,
+  rpe = null,
+  setType = 'normal',
+}) {
   return { id: newId(), weight, reps, durationSec, distanceM, rpe, setType, completed: true }
 }
 
@@ -337,7 +338,14 @@ function logExercise(name, weekFrac, { supersetGroup = null, restSeconds = null 
     const pace = lerp(baseline.paceStart, baseline.paceEnd, weekFrac)
     for (let i = 0; i < setCount; i++) {
       const setDist = setCount > 1 ? Math.round(dist / setCount) : dist
-      sets.push(buildSet({ distanceM: setDist, durationSec: Math.round(setDist * pace) || Math.round(pace), setType: 'normal', rpe: maybeRpe(true) }))
+      sets.push(
+        buildSet({
+          distanceM: setDist,
+          durationSec: Math.round(setDist * pace) || Math.round(pace),
+          setType: 'normal',
+          rpe: maybeRpe(true),
+        }),
+      )
     }
   }
 
@@ -354,11 +362,29 @@ function mkRoutineExercise(name, { sets = 3, supersetGroup = null, restSeconds =
   if (warmupFirst) targets.push({ weight: null, reps: 8, durationSec: null, distanceM: null, setType: 'warmup' })
   for (let i = 0; i < sets; i++) {
     if (kind === 'duration') {
-      targets.push({ weight: null, reps: null, durationSec: baseline.durationStart ?? 45, distanceM: null, setType: 'normal' })
+      targets.push({
+        weight: null,
+        reps: null,
+        durationSec: baseline.durationStart ?? 45,
+        distanceM: null,
+        setType: 'normal',
+      })
     } else if (kind === 'duration_weight') {
-      targets.push({ weight: baseline.weightStart ?? null, reps: null, durationSec: baseline.durationStart ?? 30, distanceM: null, setType: 'normal' })
+      targets.push({
+        weight: baseline.weightStart ?? null,
+        reps: null,
+        durationSec: baseline.durationStart ?? 30,
+        distanceM: null,
+        setType: 'normal',
+      })
     } else if (kind === 'distance_duration') {
-      targets.push({ weight: null, reps: null, durationSec: null, distanceM: baseline.distanceStart ?? 1000, setType: 'normal' })
+      targets.push({
+        weight: null,
+        reps: null,
+        durationSec: null,
+        distanceM: baseline.distanceStart ?? 1000,
+        setType: 'normal',
+      })
     } else {
       targets.push({ weight: null, reps: targetReps, durationSec: null, distanceM: null, setType: 'normal' })
     }
@@ -383,163 +409,258 @@ const routineCreatedAt = START_DATE.getTime() - DAY_MS * 2
 
 const ROUTINES = [
   // ── Push Pull Legs ──────────────────────────────────────────────────
-  mkRoutine('Push Day A', 'Push Pull Legs', [
-    { name: 'Bench Press (Barbell)', sets: 4 },
-    { name: 'Overhead Press (Barbell)', sets: 3 },
-    { name: 'Incline Bench Press (Dumbbell)', sets: 3 },
-    { name: 'Lateral Raise (Dumbbell)', sets: 3, supersetGroup: 1 },
-    { name: 'Rear Delt Fly (Dumbbell)', sets: 3, supersetGroup: 1 },
-    { name: 'Triceps Pushdown (Cable)', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Pull Day A', 'Push Pull Legs', [
-    { name: 'Deadlift (Barbell)', sets: 3, restSeconds: 180 },
-    { name: 'Pull Up', sets: 3 },
-    { name: 'Bent Over Row (Barbell)', sets: 3 },
-    { name: 'Lat Pulldown (Cable)', sets: 3 },
-    { name: 'Bicep Curl (Dumbbell)', sets: 3, supersetGroup: 1 },
-    { name: 'Hammer Curl', sets: 3, supersetGroup: 1 },
-  ], routineCreatedAt),
-  mkRoutine('Leg Day A', 'Push Pull Legs', [
-    { name: 'Squat (Barbell)', sets: 4, restSeconds: 180 },
-    { name: 'Romanian Deadlift (Barbell)', sets: 3 },
-    { name: 'Leg Press', sets: 3 },
-    { name: 'Leg Extension', sets: 3 },
-    { name: 'Lying Leg Curl', sets: 3 },
-    { name: 'Standing Calf Raise (Machine)', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Push Day B', 'Push Pull Legs', [
-    { name: 'Overhead Press (Dumbbell)', sets: 3 },
-    { name: 'Decline Bench Press (Barbell)', sets: 3 },
-    { name: 'Cable Crossover', sets: 3 },
-    { name: 'Front Raise (Cable)', sets: 3 },
-    { name: 'Skullcrusher (EZ Bar)', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Pull Day B', 'Push Pull Legs', [
-    { name: 'Rack Pull', sets: 3, restSeconds: 180 },
-    { name: 'Seated Cable Row', sets: 3 },
-    { name: 'Chin Up', sets: 3 },
-    { name: 'Face Pull', sets: 3 },
-    { name: 'Preacher Curl', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Leg Day B', 'Push Pull Legs', [
-    { name: 'Front Squat', sets: 3, restSeconds: 150 },
-    { name: 'Bulgarian Split Squat', sets: 3 },
-    { name: 'Hip Thrust (Barbell)', sets: 3 },
-    { name: 'Seated Leg Curl', sets: 3 },
-    { name: 'Seated Calf Raise (Machine)', sets: 3 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'Push Day A',
+    'Push Pull Legs',
+    [
+      { name: 'Bench Press (Barbell)', sets: 4 },
+      { name: 'Overhead Press (Barbell)', sets: 3 },
+      { name: 'Incline Bench Press (Dumbbell)', sets: 3 },
+      { name: 'Lateral Raise (Dumbbell)', sets: 3, supersetGroup: 1 },
+      { name: 'Rear Delt Fly (Dumbbell)', sets: 3, supersetGroup: 1 },
+      { name: 'Triceps Pushdown (Cable)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Pull Day A',
+    'Push Pull Legs',
+    [
+      { name: 'Deadlift (Barbell)', sets: 3, restSeconds: 180 },
+      { name: 'Pull Up', sets: 3 },
+      { name: 'Bent Over Row (Barbell)', sets: 3 },
+      { name: 'Lat Pulldown (Cable)', sets: 3 },
+      { name: 'Bicep Curl (Dumbbell)', sets: 3, supersetGroup: 1 },
+      { name: 'Hammer Curl', sets: 3, supersetGroup: 1 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Leg Day A',
+    'Push Pull Legs',
+    [
+      { name: 'Squat (Barbell)', sets: 4, restSeconds: 180 },
+      { name: 'Romanian Deadlift (Barbell)', sets: 3 },
+      { name: 'Leg Press', sets: 3 },
+      { name: 'Leg Extension', sets: 3 },
+      { name: 'Lying Leg Curl', sets: 3 },
+      { name: 'Standing Calf Raise (Machine)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Push Day B',
+    'Push Pull Legs',
+    [
+      { name: 'Overhead Press (Dumbbell)', sets: 3 },
+      { name: 'Decline Bench Press (Barbell)', sets: 3 },
+      { name: 'Cable Crossover', sets: 3 },
+      { name: 'Front Raise (Cable)', sets: 3 },
+      { name: 'Skullcrusher (EZ Bar)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Pull Day B',
+    'Push Pull Legs',
+    [
+      { name: 'Rack Pull', sets: 3, restSeconds: 180 },
+      { name: 'Seated Cable Row', sets: 3 },
+      { name: 'Chin Up', sets: 3 },
+      { name: 'Face Pull', sets: 3 },
+      { name: 'Preacher Curl', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Leg Day B',
+    'Push Pull Legs',
+    [
+      { name: 'Front Squat', sets: 3, restSeconds: 150 },
+      { name: 'Bulgarian Split Squat', sets: 3 },
+      { name: 'Hip Thrust (Barbell)', sets: 3 },
+      { name: 'Seated Leg Curl', sets: 3 },
+      { name: 'Seated Calf Raise (Machine)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
 
   // ── Upper Lower ─────────────────────────────────────────────────────
-  mkRoutine('Upper A', 'Upper Lower', [
-    { name: 'Bench Press (Barbell)', sets: 4 },
-    { name: 'Bent Over Row (Barbell)', sets: 3 },
-    { name: 'Overhead Press (Dumbbell)', sets: 3 },
-    { name: 'Lat Pulldown (Cable)', sets: 3 },
-    { name: 'Bicep Curl (Barbell)', sets: 3 },
-    { name: 'Triceps Pushdown (Cable)', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Lower A', 'Upper Lower', [
-    { name: 'Squat (Barbell)', sets: 4, restSeconds: 180 },
-    { name: 'Romanian Deadlift (Dumbbell)', sets: 3 },
-    { name: 'Leg Press', sets: 3 },
-    { name: 'Standing Calf Raise (Machine)', sets: 3 },
-    { name: 'Hanging Leg Raise', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Upper B', 'Upper Lower', [
-    { name: 'Incline Bench Press (Dumbbell)', sets: 3 },
-    { name: 'Seated Cable Row', sets: 3 },
-    { name: 'Arnold Press', sets: 3 },
-    { name: 'Lat Pulldown - Wide Grip', sets: 3 },
-    { name: 'Hammer Curl', sets: 3 },
-    { name: 'Overhead Triceps Extension (Cable)', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Lower B', 'Upper Lower', [
-    { name: 'Deadlift (Barbell)', sets: 3, restSeconds: 180 },
-    { name: 'Leg Extension', sets: 3 },
-    { name: 'Lying Leg Curl', sets: 3 },
-    { name: 'Walking Lunge', sets: 3 },
-    { name: 'Seated Calf Raise (Machine)', sets: 3 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'Upper A',
+    'Upper Lower',
+    [
+      { name: 'Bench Press (Barbell)', sets: 4 },
+      { name: 'Bent Over Row (Barbell)', sets: 3 },
+      { name: 'Overhead Press (Dumbbell)', sets: 3 },
+      { name: 'Lat Pulldown (Cable)', sets: 3 },
+      { name: 'Bicep Curl (Barbell)', sets: 3 },
+      { name: 'Triceps Pushdown (Cable)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Lower A',
+    'Upper Lower',
+    [
+      { name: 'Squat (Barbell)', sets: 4, restSeconds: 180 },
+      { name: 'Romanian Deadlift (Dumbbell)', sets: 3 },
+      { name: 'Leg Press', sets: 3 },
+      { name: 'Standing Calf Raise (Machine)', sets: 3 },
+      { name: 'Hanging Leg Raise', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Upper B',
+    'Upper Lower',
+    [
+      { name: 'Incline Bench Press (Dumbbell)', sets: 3 },
+      { name: 'Seated Cable Row', sets: 3 },
+      { name: 'Arnold Press', sets: 3 },
+      { name: 'Lat Pulldown - Wide Grip', sets: 3 },
+      { name: 'Hammer Curl', sets: 3 },
+      { name: 'Overhead Triceps Extension (Cable)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Lower B',
+    'Upper Lower',
+    [
+      { name: 'Deadlift (Barbell)', sets: 3, restSeconds: 180 },
+      { name: 'Leg Extension', sets: 3 },
+      { name: 'Lying Leg Curl', sets: 3 },
+      { name: 'Walking Lunge', sets: 3 },
+      { name: 'Seated Calf Raise (Machine)', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
 
   // ── Strength (low exercise count, heavier top sets) ────────────────
-  mkRoutine('Squat Focus', 'Strength', [
-    { name: 'Squat (Barbell)', sets: 5, warmupFirst: true, restSeconds: 180 },
-    { name: 'Leg Press', sets: 3 },
-    { name: 'Plank', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Bench Focus', 'Strength', [
-    { name: 'Bench Press (Barbell)', sets: 5, warmupFirst: true, restSeconds: 180 },
-    { name: 'Close Grip Bench Press', sets: 3 },
-    { name: 'Face Pull', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Deadlift Focus', 'Strength', [
-    { name: 'Deadlift (Barbell)', sets: 3, warmupFirst: true, restSeconds: 210 },
-    { name: 'Pull Up', sets: 3 },
-    { name: 'Cable Crunch', sets: 3 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'Squat Focus',
+    'Strength',
+    [
+      { name: 'Squat (Barbell)', sets: 5, warmupFirst: true, restSeconds: 180 },
+      { name: 'Leg Press', sets: 3 },
+      { name: 'Plank', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Bench Focus',
+    'Strength',
+    [
+      { name: 'Bench Press (Barbell)', sets: 5, warmupFirst: true, restSeconds: 180 },
+      { name: 'Close Grip Bench Press', sets: 3 },
+      { name: 'Face Pull', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Deadlift Focus',
+    'Strength',
+    [
+      { name: 'Deadlift (Barbell)', sets: 3, warmupFirst: true, restSeconds: 210 },
+      { name: 'Pull Up', sets: 3 },
+      { name: 'Cable Crunch', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
 
   // ── Cardio & Conditioning ───────────────────────────────────────────
-  mkRoutine('HIIT Circuit', 'Cardio & Conditioning', [
-    { name: 'Kettlebell Swing', sets: 3, supersetGroup: 1 },
-    { name: 'Battle Ropes', sets: 3, supersetGroup: 1 },
-    { name: 'Box Jump', sets: 3, supersetGroup: 1 },
-    { name: 'Burpee', sets: 3, supersetGroup: 1 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'HIIT Circuit',
+    'Cardio & Conditioning',
+    [
+      { name: 'Kettlebell Swing', sets: 3, supersetGroup: 1 },
+      { name: 'Battle Ropes', sets: 3, supersetGroup: 1 },
+      { name: 'Box Jump', sets: 3, supersetGroup: 1 },
+      { name: 'Burpee', sets: 3, supersetGroup: 1 },
+    ],
+    routineCreatedAt,
+  ),
   mkRoutine('Long Run', 'Cardio & Conditioning', [{ name: 'Running (Outdoor)', sets: 1 }], routineCreatedAt),
-  mkRoutine('Rowing Intervals', 'Cardio & Conditioning', [
-    { name: 'Rowing Machine', sets: 4 },
-    { name: 'Assault Bike', sets: 2 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'Rowing Intervals',
+    'Cardio & Conditioning',
+    [
+      { name: 'Rowing Machine', sets: 4 },
+      { name: 'Assault Bike', sets: 2 },
+    ],
+    routineCreatedAt,
+  ),
 
   // ── Mobility ────────────────────────────────────────────────────────
-  mkRoutine('Morning Stretch', 'Mobility', [
-    { name: 'Stretching', sets: 1 },
-    { name: 'Foam Rolling', sets: 1 },
-    { name: 'Couch Stretch', sets: 2 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'Morning Stretch',
+    'Mobility',
+    [
+      { name: 'Stretching', sets: 1 },
+      { name: 'Foam Rolling', sets: 1 },
+      { name: 'Couch Stretch', sets: 2 },
+    ],
+    routineCreatedAt,
+  ),
   mkRoutine('Yoga Flow', 'Mobility', [{ name: 'Yoga', sets: 1 }], routineCreatedAt),
 
   // ── Loose (no folder) ───────────────────────────────────────────────
-  mkRoutine('The Everything Routine', null, [
-    { name: 'Bench Press (Barbell)', sets: 4 },
-    { name: 'Overhead Press (Barbell)', sets: 3 },
-    { name: 'Deadlift (Barbell)', sets: 3 },
-    { name: 'Squat (Barbell)', sets: 4 },
-    { name: 'Bent Over Row (Barbell)', sets: 3 },
-    { name: 'Seated Cable Row', sets: 3 },
-    { name: 'Lat Pulldown (Cable)', sets: 3 },
-    { name: 'Leg Press', sets: 3 },
-    { name: 'Leg Extension', sets: 3 },
-    { name: 'Lying Leg Curl', sets: 3 },
-    { name: 'Romanian Deadlift (Barbell)', sets: 3 },
-    { name: 'Hip Thrust (Barbell)', sets: 3 },
-    { name: 'Standing Calf Raise (Machine)', sets: 3 },
-    { name: 'Lateral Raise (Dumbbell)', sets: 3, supersetGroup: 1 },
-    { name: 'Face Pull', sets: 3, supersetGroup: 1 },
-    { name: 'Bicep Curl (Dumbbell)', sets: 3, supersetGroup: 2 },
-    { name: 'Hammer Curl', sets: 3, supersetGroup: 2 },
-    { name: 'Triceps Pushdown (Cable)', sets: 3 },
-    { name: 'Skullcrusher (EZ Bar)', sets: 3 },
-    { name: 'Air Squat', sets: 3 },
-    { name: 'Pull Up', sets: 3 },
-    { name: 'Assisted Pull Up', sets: 3 },
-    { name: 'Plank', sets: 3 },
-    { name: 'Farmers Walk', sets: 3 },
-    { name: 'Rowing Machine', sets: 1 },
-    { name: 'Box Jump', sets: 3 },
-    { name: 'Russian Twist', sets: 3 },
-  ], routineCreatedAt),
-  mkRoutine('Quick 15', null, [
-    { name: 'Air Squat', sets: 3 },
-    { name: 'Ring Dips', sets: 3 },
-    { name: 'Plank', sets: 3 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'The Everything Routine',
+    null,
+    [
+      { name: 'Bench Press (Barbell)', sets: 4 },
+      { name: 'Overhead Press (Barbell)', sets: 3 },
+      { name: 'Deadlift (Barbell)', sets: 3 },
+      { name: 'Squat (Barbell)', sets: 4 },
+      { name: 'Bent Over Row (Barbell)', sets: 3 },
+      { name: 'Seated Cable Row', sets: 3 },
+      { name: 'Lat Pulldown (Cable)', sets: 3 },
+      { name: 'Leg Press', sets: 3 },
+      { name: 'Leg Extension', sets: 3 },
+      { name: 'Lying Leg Curl', sets: 3 },
+      { name: 'Romanian Deadlift (Barbell)', sets: 3 },
+      { name: 'Hip Thrust (Barbell)', sets: 3 },
+      { name: 'Standing Calf Raise (Machine)', sets: 3 },
+      { name: 'Lateral Raise (Dumbbell)', sets: 3, supersetGroup: 1 },
+      { name: 'Face Pull', sets: 3, supersetGroup: 1 },
+      { name: 'Bicep Curl (Dumbbell)', sets: 3, supersetGroup: 2 },
+      { name: 'Hammer Curl', sets: 3, supersetGroup: 2 },
+      { name: 'Triceps Pushdown (Cable)', sets: 3 },
+      { name: 'Skullcrusher (EZ Bar)', sets: 3 },
+      { name: 'Air Squat', sets: 3 },
+      { name: 'Pull Up', sets: 3 },
+      { name: 'Assisted Pull Up', sets: 3 },
+      { name: 'Plank', sets: 3 },
+      { name: 'Farmers Walk', sets: 3 },
+      { name: 'Rowing Machine', sets: 1 },
+      { name: 'Box Jump', sets: 3 },
+      { name: 'Russian Twist', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
+  mkRoutine(
+    'Quick 15',
+    null,
+    [
+      { name: 'Air Squat', sets: 3 },
+      { name: 'Ring Dips', sets: 3 },
+      { name: 'Plank', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
   mkRoutine('Empty Routine Draft', null, [], routineCreatedAt),
-  mkRoutine('Old PPL (Unused)', null, [
-    { name: 'Landmine Squat', sets: 3 },
-    { name: 'Bulgarian Split Squat (Custom Tempo)', sets: 3 },
-    { name: 'Band Pull Apart', sets: 3 },
-  ], routineCreatedAt),
+  mkRoutine(
+    'Old PPL (Unused)',
+    null,
+    [
+      { name: 'Landmine Squat', sets: 3 },
+      { name: 'Bulgarian Split Squat (Custom Tempo)', sets: 3 },
+      { name: 'Band Pull Apart', sets: 3 },
+    ],
+    routineCreatedAt,
+  ),
 ]
 
 // Order within each folder / the loose group, in the order defined above.
@@ -580,7 +701,10 @@ for (const [type, spec] of Object.entries(MEASUREMENT_SERIES)) {
   let t = START_DATE.getTime() + randInt(0, 4) * DAY_MS
   while (t <= END_DATE.getTime()) {
     const frac = (t - START_DATE.getTime()) / (END_DATE.getTime() - START_DATE.getTime())
-    const value = roundTo(lerp(spec.start, spec.end, frac) + randFloat(-spec.noise, spec.noise), type === 'bodyFat' ? 0.1 : 0.1)
+    const value = roundTo(
+      lerp(spec.start, spec.end, frac) + randFloat(-spec.noise, spec.noise),
+      type === 'bodyFat' ? 0.1 : 0.1,
+    )
     measurements.push({ id: newId(), type, value, takenAt: t })
     if (type === 'bodyweight') bodyweightSamples.push({ t, kg: value })
     t += Math.round(spec.freqDays * DAY_MS * randFloat(0.7, 1.3))
@@ -659,10 +783,7 @@ function addWorkout({ date, routine, exerciseSpecs, hourRange }) {
   const loggedExercises = exerciseSpecs.map((spec) => logExercise(spec.name, weekFrac, spec))
   const bw = bodyweightAt(startedAt)
   const totals = computeTotals(loggedExercises, bw)
-  const durationMin =
-    loggedExercises.length <= 2
-      ? randInt(20, 50)
-      : randInt(45, 95)
+  const durationMin = loggedExercises.length <= 2 ? randInt(20, 50) : randInt(45, 95)
   const finishedAt = startedAt + durationMin * 60000
   const exerciseIds = [...new Set(loggedExercises.map((le) => le.exerciseId))]
 

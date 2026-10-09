@@ -35,17 +35,10 @@ const AT_RISK_DAY_SHARE = 0.75
 /**
  * Weekly-goal progress for the home screen's headline card.
  */
-export function weekProgress(
-  workouts: Workout[],
-  firstDayOfWeek: 0 | 1,
-  goal: number,
-  now = Date.now(),
-): WeekProgress {
+export function weekProgress(workouts: Workout[], firstDayOfWeek: 0 | 1, goal: number, now = Date.now()): WeekProgress {
   const weekStart = startOfWeek(now, firstDayOfWeek)
   const weekEnd = addDays(weekStart, 7)
-  const done = doneWorkouts(workouts).filter(
-    (w) => w.startedAt >= weekStart && w.startedAt < weekEnd,
-  ).length
+  const done = doneWorkouts(workouts).filter((w) => w.startedAt >= weekStart && w.startedAt < weekEnd).length
 
   // Whole days remaining, inclusive of today: if it's Wednesday, today still
   // counts as a day you could train, so daysLeft only hits 0 after the week ends.
@@ -105,11 +98,7 @@ const GOAL_MAX = 6
  * This is only ever a suggestion. `weeklyGoalWorkouts` in settings stays
  * authoritative, because a goal the app quietly rewrote is not a goal.
  */
-export function suggestedWeeklyGoal(
-  workouts: Workout[],
-  firstDayOfWeek: 0 | 1,
-  now = Date.now(),
-): number | null {
+export function suggestedWeeklyGoal(workouts: Workout[], firstDayOfWeek: 0 | 1, now = Date.now()): number | null {
   const done = doneWorkouts(workouts)
   if (done.length === 0) return null
 
@@ -122,16 +111,13 @@ export function suggestedWeeklyGoal(
   for (let i = GOAL_SAMPLE_WEEKS; i >= 1; i--) {
     const weekStart = addDays(thisWeek, -7 * i)
     if (weekStart < firstEver) continue
-    counts.push(
-      done.filter((w) => w.startedAt >= weekStart && w.startedAt < addDays(weekStart, 7)).length,
-    )
+    counts.push(done.filter((w) => w.startedAt >= weekStart && w.startedAt < addDays(weekStart, 7)).length)
   }
   if (counts.length < 3) return null
 
   counts.sort((a, b) => a - b)
   const mid = Math.floor(counts.length / 2)
-  const median =
-    counts.length % 2 === 0 ? (counts[mid - 1] + counts[mid]) / 2 : counts[mid]
+  const median = counts.length % 2 === 0 ? (counts[mid - 1] + counts[mid]) / 2 : counts[mid]
 
   return Math.min(GOAL_MAX, Math.max(GOAL_MIN, Math.round(median)))
 }
@@ -374,9 +360,7 @@ export async function strengthTrend(
     // Name breaks ties so the card does not reshuffle itself between renders
     // when two lifts are trained equally often.
     .sort(
-      (a, b) =>
-        b[1] - a[1] ||
-        (exerciseById.get(a[0])?.name ?? '').localeCompare(exerciseById.get(b[0])?.name ?? ''),
+      (a, b) => b[1] - a[1] || (exerciseById.get(a[0])?.name ?? '').localeCompare(exerciseById.get(b[0])?.name ?? ''),
     )
     .slice(0, limit)
 

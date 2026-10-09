@@ -1,11 +1,4 @@
-import type {
-  Exercise,
-  ExerciseKind,
-  LoggedExercise,
-  LoggedSet,
-  RoutineSetTarget,
-  Workout,
-} from '../db/types'
+import type { Exercise, ExerciseKind, LoggedExercise, LoggedSet, RoutineSetTarget, Workout } from '../db/types'
 import { newId } from '../db/db'
 
 /** Which input columns a set row should render for a given exercise kind. */
@@ -23,17 +16,45 @@ export interface KindFields {
 export function fieldsFor(kind: ExerciseKind): KindFields {
   switch (kind) {
     case 'weight_reps':
-      return { weight: true, reps: true, duration: false, distance: false, relativeWeight: false, weightLabel: 'Weight' }
+      return {
+        weight: true,
+        reps: true,
+        duration: false,
+        distance: false,
+        relativeWeight: false,
+        weightLabel: 'Weight',
+      }
     case 'bodyweight_reps':
       return { weight: false, reps: true, duration: false, distance: false, relativeWeight: false, weightLabel: '' }
     case 'weighted_bodyweight':
-      return { weight: true, reps: true, duration: false, distance: false, relativeWeight: true, weightLabel: '+Weight' }
+      return {
+        weight: true,
+        reps: true,
+        duration: false,
+        distance: false,
+        relativeWeight: true,
+        weightLabel: '+Weight',
+      }
     case 'assisted_bodyweight':
-      return { weight: true, reps: true, duration: false, distance: false, relativeWeight: true, weightLabel: '−Assist' }
+      return {
+        weight: true,
+        reps: true,
+        duration: false,
+        distance: false,
+        relativeWeight: true,
+        weightLabel: '−Assist',
+      }
     case 'duration':
       return { weight: false, reps: false, duration: true, distance: false, relativeWeight: false, weightLabel: '' }
     case 'duration_weight':
-      return { weight: true, reps: false, duration: true, distance: false, relativeWeight: false, weightLabel: 'Weight' }
+      return {
+        weight: true,
+        reps: false,
+        duration: true,
+        distance: false,
+        relativeWeight: false,
+        weightLabel: 'Weight',
+      }
     case 'distance_duration':
       return { weight: false, reps: false, duration: true, distance: true, relativeWeight: false, weightLabel: '' }
     case 'reps_only':
@@ -72,11 +93,7 @@ export function setFromTarget(target: RoutineSetTarget): LoggedSet {
  * Bodyweight movements count the user's bodyweight when it is known, so a
  * weighted pull-up at +20 kg is not recorded as a 20 kg lift.
  */
-export function effectiveWeightKg(
-  set: LoggedSet,
-  kind: ExerciseKind,
-  bodyweightKg: number | null | undefined,
-): number {
+export function effectiveWeightKg(set: LoggedSet, kind: ExerciseKind, bodyweightKg: number | null | undefined): number {
   const bw = bodyweightKg ?? 0
   switch (kind) {
     case 'weight_reps':
@@ -170,13 +187,7 @@ export function elapsedSeconds(workout: Workout, now = Date.now()): number {
 
 /** A set the user has actually filled in — used to decide what to persist. */
 export function isSetLogged(set: LoggedSet): boolean {
-  return (
-    set.completed ||
-    set.weight !== null ||
-    set.reps !== null ||
-    set.durationSec !== null ||
-    set.distanceM !== null
-  )
+  return set.completed || set.weight !== null || set.reps !== null || set.durationSec !== null || set.distanceM !== null
 }
 
 /**
@@ -193,7 +204,11 @@ export function hasLoggedValue(set: LoggedSet): boolean {
 export function describeSet(
   set: LoggedSet,
   kind: ExerciseKind,
-  fmt: { weight: (kg: number | null) => string; distance: (m: number | null) => string; duration: (s: number) => string },
+  fmt: {
+    weight: (kg: number | null) => string
+    distance: (m: number | null) => string
+    duration: (s: number) => string
+  },
 ): string {
   const f = fieldsFor(kind)
   const parts: string[] = []

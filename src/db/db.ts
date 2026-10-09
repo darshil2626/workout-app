@@ -118,10 +118,7 @@ export async function initDb(): Promise<void> {
     // routines or workouts — never has one appended to their list.
     const starterSeeded = (await db.meta.get('starterRoutineSeeded'))?.value ?? 0
     if (starterSeeded === 0) {
-      const [routineCount, workoutCount] = await Promise.all([
-        db.routines.count(),
-        db.workouts.count(),
-      ])
+      const [routineCount, workoutCount] = await Promise.all([db.routines.count(), db.workouts.count()])
       if (routineCount === 0 && workoutCount === 0) {
         await db.routines.add(buildStarterRoutine())
       }

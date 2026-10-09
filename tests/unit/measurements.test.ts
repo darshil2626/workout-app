@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  MEASUREMENT_SPECS, formatMeasurement, fromDisplayValue, measurementLengthUnit, measurementWeightUnit,
-  specFor, toDisplayValue, unitLabel,
+  MEASUREMENT_SPECS,
+  formatMeasurement,
+  fromDisplayValue,
+  measurementLengthUnit,
+  measurementWeightUnit,
+  specFor,
+  toDisplayValue,
+  unitLabel,
 } from '../../src/lib/measurements'
 import type { MeasurementKind, MeasurementType, Settings } from '../../src/db/types'
 
@@ -17,7 +23,8 @@ describe('specs', () => {
   it('kinds', () => {
     expect(specFor('bodyweight').kind).toBe('weight')
     expect(specFor('bodyFat').kind).toBe('percent')
-    for (const t of ['neck', 'waist', 'leftBicep', 'rightCalf'] as MeasurementType[]) expect(specFor(t).kind).toBe('length')
+    for (const t of ['neck', 'waist', 'leftBicep', 'rightCalf'] as MeasurementType[])
+      expect(specFor(t).kind).toBe('length')
   })
   it('every spec has a label and resolves to itself', () => {
     for (const s of MEASUREMENT_SPECS) {
@@ -58,7 +65,11 @@ describe('display conversion', () => {
   })
   it('round trips for every kind and unit combination', () => {
     const kinds: MeasurementKind[] = ['weight', 'percent', 'length']
-    for (const s of [settings(), settings({ weightUnit: 'lb', lengthUnit: 'in' }), settings({ measurementWeightUnit: 'lb' })]) {
+    for (const s of [
+      settings(),
+      settings({ weightUnit: 'lb', lengthUnit: 'in' }),
+      settings({ measurementWeightUnit: 'lb' }),
+    ]) {
       for (const k of kinds) {
         for (const v of [0, 12.3, 80, 182.88]) expect(fromDisplayValue(toDisplayValue(v, k, s), k, s)).toBeCloseTo(v, 9)
       }

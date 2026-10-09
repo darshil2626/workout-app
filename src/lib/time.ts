@@ -5,9 +5,7 @@ export function formatDuration(totalSeconds: number): string {
   const minutes = Math.floor((s % 3600) / 60)
   const seconds = s % 60
   const mm = hours > 0 ? String(minutes).padStart(2, '0') : String(minutes)
-  return hours > 0
-    ? `${hours}:${mm}:${String(seconds).padStart(2, '0')}`
-    : `${mm}:${String(seconds).padStart(2, '0')}`
+  return hours > 0 ? `${hours}:${mm}:${String(seconds).padStart(2, '0')}` : `${mm}:${String(seconds).padStart(2, '0')}`
 }
 
 /** Compact form for history rows: "1h 12m", "48m". */

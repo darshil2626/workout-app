@@ -1,9 +1,21 @@
 import { readFileSync } from 'node:fs'
-import { test, expect, seed, importBackup, readStore, waitForApp, logSet, waitForWorkoutSaved, SYNTHETIC } from './helpers/fixtures'
+import {
+  test,
+  expect,
+  seed,
+  importBackup,
+  readStore,
+  waitForApp,
+  logSet,
+  waitForWorkoutSaved,
+  SYNTHETIC,
+} from './helpers/fixtures'
 import type { Page } from '@playwright/test'
 
 const unitButton = (page: Page, u: 'kg' | 'lb') =>
-  page.locator('.field', { has: page.locator('.field-label', { hasText: /^Weight$/ }) }).locator('.segmented button', { hasText: u })
+  page
+    .locator('.field', { has: page.locator('.field-label', { hasText: /^Weight$/ }) })
+    .locator('.segmented button', { hasText: u })
 
 const settingRow = (page: Page, label: string) => page.locator('button.row-between', { hasText: label })
 
@@ -105,8 +117,14 @@ test('export downloads a valid backup; wipe then re-import restores it', async (
   expect(backup.routines).toHaveLength(original.routines)
 
   // Wipe.
-  await page.getByRole('button', { name: /Delete all data|Wipe|Erase/i }).first().click()
-  await page.getByRole('dialog', { name: 'Delete all data?' }).getByRole('button', { name: 'Delete everything' }).click()
+  await page
+    .getByRole('button', { name: /Delete all data|Wipe|Erase/i })
+    .first()
+    .click()
+  await page
+    .getByRole('dialog', { name: 'Delete all data?' })
+    .getByRole('button', { name: 'Delete everything' })
+    .click()
   await expect.poll(async () => (await readStore(page, 'workouts')).length).toBe(0)
   await expect.poll(async () => (await readStore(page, 'routines')).length).toBe(0)
 

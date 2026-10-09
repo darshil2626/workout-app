@@ -66,9 +66,7 @@ export async function getPreviousSessionTotals(
 }
 
 /** Every completed session containing an exercise, newest first. */
-export async function getExerciseHistory(exerciseId: string): Promise<
-  { workout: Workout; logged: LoggedExercise }[]
-> {
+export async function getExerciseHistory(exerciseId: string): Promise<{ workout: Workout; logged: LoggedExercise }[]> {
   const candidates = await db.workouts.where('exerciseIds').equals(exerciseId).toArray()
   return candidates
     .filter((w) => w.status === 'done')

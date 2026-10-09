@@ -1,13 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { db, newId } from '../db/db'
 import type { LoggedExercise, LoggedSet, Routine, Workout } from '../db/types'
 import { computeTotals, emptySet, hasLoggedValue, isSetLogged, setFromTarget } from '../lib/workout'
@@ -213,9 +204,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
   const replaceExercise = useCallback(
     (loggedExerciseId: string, exerciseId: string) => {
       mutate((w) => {
-        const exercises = w.exercises.map((le) =>
-          le.id === loggedExerciseId ? { ...le, exerciseId } : le,
-        )
+        const exercises = w.exercises.map((le) => (le.id === loggedExerciseId ? { ...le, exerciseId } : le))
         return { ...w, exercises, exerciseIds: [...new Set(exercises.map((e) => e.exerciseId))] }
       })
     },
@@ -327,55 +316,53 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
   )
   const setNotes = useCallback((notes: string) => mutate((w) => ({ ...w, notes })), [mutate])
 
-  const finish = useCallback(async (rating?: SessionRating) => {
-    if (!workout) return null
-    const settings = await db.settings.get(1)
-    const all = await db.exercises.bulkGet([...new Set(workout.exercises.map((e) => e.exerciseId))])
-    const byId = new Map(all.filter((e) => e !== undefined).map((e) => [e.id, e]))
+  const finish = useCallback(
+    async (rating?: SessionRating) => {
+      if (!workout) return null
+      const settings = await db.settings.get(1)
+      const all = await db.exercises.bulkGet([...new Set(workout.exercises.map((e) => e.exerciseId))])
+      const byId = new Map(all.filter((e) => e !== undefined).map((e) => [e.id, e]))
 
-    // Drop empty placeholder sets and exercises so history stays clean.
-    const exercises = workout.exercises
-      .map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) }))
-      .filter((le) => le.sets.length > 0)
+      // Drop empty placeholder sets and exercises so history stays clean.
+      const exercises = workout.exercises
+        .map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) }))
+        .filter((le) => le.sets.length > 0)
 
-    const totals = computeTotals(
-      exercises,
-      byId,
-      settings?.bodyweightKg ?? null,
-      settings?.countWarmupSets ?? false,
-    )
-    const finished: Workout = {
-      ...workout,
-      exercises,
-      exerciseIds: [...new Set(exercises.map((e) => e.exerciseId))],
-      status: 'done',
-      finishedAt: Date.now(),
-      bodyweightKg: settings?.bodyweightKg ?? null,
-      totalVolumeKg: totals.totalVolumeKg,
-      totalSets: totals.totalSets,
-      totalReps: totals.totalReps,
-      // Written with the session rather than patched in afterwards, so a
-      // rated workout is never briefly stored unrated.
-      ...(rating?.effort !== undefined ? { effort: rating.effort } : {}),
-      ...(rating?.feeling !== undefined ? { feeling: rating.feeling } : {}),
-    }
-    await db.workouts.put(finished)
-    if (finished.routineId) {
-      const routine = await db.routines.get(finished.routineId)
-      if (routine) {
-        await db.routines.put({ ...routine, lastPerformedAt: finished.finishedAt })
+      const totals = computeTotals(exercises, byId, settings?.bodyweightKg ?? null, settings?.countWarmupSets ?? false)
+      const finished: Workout = {
+        ...workout,
+        exercises,
+        exerciseIds: [...new Set(exercises.map((e) => e.exerciseId))],
+        status: 'done',
+        finishedAt: Date.now(),
+        bodyweightKg: settings?.bodyweightKg ?? null,
+        totalVolumeKg: totals.totalVolumeKg,
+        totalSets: totals.totalSets,
+        totalReps: totals.totalReps,
+        // Written with the session rather than patched in afterwards, so a
+        // rated workout is never briefly stored unrated.
+        ...(rating?.effort !== undefined ? { effort: rating.effort } : {}),
+        ...(rating?.feeling !== undefined ? { feeling: rating.feeling } : {}),
       }
-    }
-    dirtyRef.current = false
-    setWorkout(null)
-    const durationMin = (finished.finishedAt! - finished.startedAt - finished.pausedSec * 1000) / 60000
-    track('workout_completed', {
-      from_routine: finished.routineId !== undefined,
-      duration_bucket: bucketDurationMinutes(Math.max(0, durationMin)),
-      set_count_bucket: bucketSetCount(totals.totalSets),
-    })
-    return finished.id
-  }, [workout])
+      await db.workouts.put(finished)
+      if (finished.routineId) {
+        const routine = await db.routines.get(finished.routineId)
+        if (routine) {
+          await db.routines.put({ ...routine, lastPerformedAt: finished.finishedAt })
+        }
+      }
+      dirtyRef.current = false
+      setWorkout(null)
+      const durationMin = (finished.finishedAt! - finished.startedAt - finished.pausedSec * 1000) / 60000
+      track('workout_completed', {
+        from_routine: finished.routineId !== undefined,
+        duration_bucket: bucketDurationMinutes(Math.max(0, durationMin)),
+        set_count_bucket: bucketSetCount(totals.totalSets),
+      })
+      return finished.id
+    },
+    [workout],
+  )
 
   const discard = useCallback(async () => {
     if (!workout) return

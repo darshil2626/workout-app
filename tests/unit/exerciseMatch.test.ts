@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ExerciseIndex, MERGE_CONFIDENCES, canonicalName, hintFromName, inferKind, matchExercise, splitName,
-  type NameHint, type RowShape,
+  ExerciseIndex,
+  MERGE_CONFIDENCES,
+  canonicalName,
+  hintFromName,
+  inferKind,
+  matchExercise,
+  splitName,
+  type NameHint,
+  type RowShape,
 } from '../../src/lib/exerciseMatch'
 import type { Equipment, Exercise, MuscleGroup } from '../../src/db/types'
 import { mkEx } from './helpers'
 
-const shape = (o: Partial<RowShape> = {}): RowShape => ({ hasWeight: true, hasReps: true, hasDuration: false, hasDistance: false, ...o })
+const shape = (o: Partial<RowShape> = {}): RowShape => ({
+  hasWeight: true,
+  hasReps: true,
+  hasDuration: false,
+  hasDistance: false,
+  ...o,
+})
 const lib = (id: string, name: string, muscleGroup: MuscleGroup, equipment: Equipment, extra: Partial<Exercise> = {}) =>
   mkEx('weight_reps', { id, name, muscleGroup, equipment, ...extra })
 
@@ -47,9 +60,12 @@ describe('hintFromName', () => {
 describe('inferKind', () => {
   const hint = (o: Partial<NameHint> = {}): NameHint => ({ equipment: 'Other', kindHint: null, ...o })
   it('kind hint wins over everything', () => {
-    expect(inferKind(shape({ hasDistance: true }), hint({ kindHint: 'assisted_bodyweight' }))).toBe('assisted_bodyweight')
+    expect(inferKind(shape({ hasDistance: true }), hint({ kindHint: 'assisted_bodyweight' }))).toBe(
+      'assisted_bodyweight',
+    )
   })
-  it('distance wins next', () => expect(inferKind(shape({ hasDistance: true, hasDuration: true }), hint())).toBe('distance_duration'))
+  it('distance wins next', () =>
+    expect(inferKind(shape({ hasDistance: true, hasDuration: true }), hint())).toBe('distance_duration'))
   it('duration without reps', () => {
     expect(inferKind(shape({ hasWeight: false, hasReps: false, hasDuration: true }), hint())).toBe('duration')
     expect(inferKind(shape({ hasWeight: true, hasReps: false, hasDuration: true }), hint())).toBe('duration_weight')
@@ -132,7 +148,12 @@ describe('matchExercise confidence ladder', () => {
     const m = matchExercise('  bench press (barbell) ', library, shape())
     expect(m.confidence).toBe('exact')
     expect(m.exercise).toBe(bench)
-    expect(m.classify).toMatchObject({ muscleGroup: 'Chest', equipment: 'Barbell', kind: 'weight_reps', secondaryMuscles: ['Triceps'] })
+    expect(m.classify).toMatchObject({
+      muscleGroup: 'Chest',
+      equipment: 'Barbell',
+      kind: 'weight_reps',
+      secondaryMuscles: ['Triceps'],
+    })
   })
   it('canonical: spelling/punctuation differences', () => {
     const m = matchExercise('Bench Press - Barbell', library, shape())
@@ -141,8 +162,14 @@ describe('matchExercise confidence ladder', () => {
   })
   it('alias: known synonym resolves to the seeded id', () => {
     expect(matchExercise('Back Extension', library, shape())).toMatchObject({ confidence: 'alias', exercise: hyper })
-    expect(matchExercise('Seated Row (Cable)', library, shape())).toMatchObject({ confidence: 'alias', exercise: cableRow })
-    expect(matchExercise('Seated Leg Press (Machine)', library, shape())).toMatchObject({ confidence: 'alias', exercise: legPress })
+    expect(matchExercise('Seated Row (Cable)', library, shape())).toMatchObject({
+      confidence: 'alias',
+      exercise: cableRow,
+    })
+    expect(matchExercise('Seated Leg Press (Machine)', library, shape())).toMatchObject({
+      confidence: 'alias',
+      exercise: legPress,
+    })
   })
   it('alias is ignored when the target is not in the library', () => {
     const m = matchExercise('Back Extension', [bench], shape())
@@ -157,7 +184,12 @@ describe('matchExercise confidence ladder', () => {
     const m = matchExercise('Bench Press (Dumbbell)', library, shape())
     expect(m.exercise).toBeNull()
     expect(m.confidence).toBe('sibling')
-    expect(m.classify).toMatchObject({ muscleGroup: 'Chest', equipment: 'Dumbbell', secondaryMuscles: ['Triceps'], kind: 'weight_reps' })
+    expect(m.classify).toMatchObject({
+      muscleGroup: 'Chest',
+      equipment: 'Dumbbell',
+      secondaryMuscles: ['Triceps'],
+      kind: 'weight_reps',
+    })
   })
   it('sibling when the import has no qualifier at all', () => {
     const m = matchExercise('Arnold Press', library, shape())
@@ -176,15 +208,27 @@ describe('matchExercise confidence ladder', () => {
     expect(m.confidence).not.toBe('related')
   })
   it('keyword: guesses a muscle from the words', () => {
-    expect(matchExercise('Zercher Squat', library, shape())).toMatchObject({ confidence: 'keyword', classify: { muscleGroup: 'Quadriceps' } })
-    expect(matchExercise('Treadmill Run', [], shape({ hasWeight: false, hasReps: false, hasDuration: true, hasDistance: true })))
-      .toMatchObject({ confidence: 'keyword', classify: { muscleGroup: 'Cardio', kind: 'distance_duration' } })
+    expect(matchExercise('Zercher Squat', library, shape())).toMatchObject({
+      confidence: 'keyword',
+      classify: { muscleGroup: 'Quadriceps' },
+    })
+    expect(
+      matchExercise(
+        'Treadmill Run',
+        [],
+        shape({ hasWeight: false, hasReps: false, hasDuration: true, hasDistance: true }),
+      ),
+    ).toMatchObject({ confidence: 'keyword', classify: { muscleGroup: 'Cardio', kind: 'distance_duration' } })
     expect(matchExercise('Standing Calf Raise', [], shape()).classify.muscleGroup).toBe('Calves')
     expect(matchExercise('Cable Crunch', [], shape()).classify.muscleGroup).toBe('Abs')
   })
   it('none: Other with the hinted equipment and inferred kind', () => {
     const m = matchExercise('Zzz Qqq (Kettlebell)', [], shape({ hasWeight: false }))
-    expect(m).toMatchObject({ exercise: null, confidence: 'none', classify: { muscleGroup: 'Other', equipment: 'Kettlebell', kind: 'bodyweight_reps' } })
+    expect(m).toMatchObject({
+      exercise: null,
+      confidence: 'none',
+      classify: { muscleGroup: 'Other', equipment: 'Kettlebell', kind: 'bodyweight_reps' },
+    })
   })
   it('exact match wins over everything else', () => {
     const dup = lib('dup', 'Bench Press (Barbell)', 'Other', 'Other')

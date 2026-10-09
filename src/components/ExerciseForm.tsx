@@ -83,7 +83,9 @@ export function ExerciseFormSheet({ open, exercise, onClose, onSaved }: Props) {
       .filter((e) => e.id !== exercise?.id && e.name.toLowerCase() === trimmed.toLowerCase())
       .first()
     if (clash) {
-      setError('An exercise with that name already exists. To combine the two, use “Merge into…” on the exercise instead.')
+      setError(
+        'An exercise with that name already exists. To combine the two, use “Merge into…” on the exercise instead.',
+      )
       return
     }
 
@@ -177,12 +179,7 @@ export function ExerciseFormSheet({ open, exercise, onClose, onSaved }: Props) {
           <label className="field-label" htmlFor="ex-kind">
             What gets logged
           </label>
-          <select
-            id="ex-kind"
-            className="input"
-            value={kind}
-            onChange={(e) => setKind(e.target.value as ExerciseKind)}
-          >
+          <select id="ex-kind" className="input" value={kind} onChange={(e) => setKind(e.target.value as ExerciseKind)}>
             {KINDS.map((k) => (
               <option key={k.value} value={k.value}>
                 {k.label}

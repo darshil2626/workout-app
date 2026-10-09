@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
-  emptyRecords, findSessionPRs, loadRecords, loadRecordsBefore, loadSetRecords, prsForWorkout,
-  recordsFromHistory, relevantKinds, setPRKinds,
+  emptyRecords,
+  findSessionPRs,
+  loadRecords,
+  loadRecordsBefore,
+  loadSetRecords,
+  prsForWorkout,
+  recordsFromHistory,
+  relevantKinds,
+  setPRKinds,
 } from '../../src/lib/records'
 import { db } from '../../src/db/db'
 import { mkEx, mkLogged, mkSet, mkWorkout } from './helpers'
@@ -32,10 +39,12 @@ describe('recordsFromHistory', () => {
   const entry = (sets: ReturnType<typeof mkSet>[], w = {}) => ({ workout: mkWorkout(w), logged: { sets } })
 
   it('computes best values across sessions', () => {
-    const r = recordsFromHistory([
-      entry([mkSet({ weight: 100, reps: 5 })]),
-      entry([mkSet({ weight: 80, reps: 12 })]),
-    ], 'weight_reps', null, false)
+    const r = recordsFromHistory(
+      [entry([mkSet({ weight: 100, reps: 5 })]), entry([mkSet({ weight: 80, reps: 12 })])],
+      'weight_reps',
+      null,
+      false,
+    )
     expect(r.weight).toBe(100)
     expect(r.reps).toBe(12)
     expect(r.volume).toBe(960)
@@ -45,11 +54,16 @@ describe('recordsFromHistory', () => {
   it('sums session volume per workout, taking the best session', () => {
     const w1 = mkWorkout()
     const w2 = mkWorkout()
-    const r = recordsFromHistory([
-      { workout: w1, logged: { sets: [mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 100, reps: 5 })] } },
-      { workout: w1, logged: { sets: [mkSet({ weight: 50, reps: 10 })] } },
-      { workout: w2, logged: { sets: [mkSet({ weight: 200, reps: 3 })] } },
-    ], 'weight_reps', null, false)
+    const r = recordsFromHistory(
+      [
+        { workout: w1, logged: { sets: [mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 100, reps: 5 })] } },
+        { workout: w1, logged: { sets: [mkSet({ weight: 50, reps: 10 })] } },
+        { workout: w2, logged: { sets: [mkSet({ weight: 200, reps: 3 })] } },
+      ],
+      'weight_reps',
+      null,
+      false,
+    )
     expect(r.sessionVolume).toBe(1500)
   })
   it('ignores incomplete sets and warm-ups unless enabled', () => {
@@ -62,24 +76,49 @@ describe('recordsFromHistory', () => {
     expect(recordsFromHistory([entry(sets)], 'weight_reps', null, true).weight).toBe(140)
   })
   it('weighted bodyweight: weight record is added load; 1RM/volume use bodyweight total', () => {
-    const r = recordsFromHistory([entry([mkSet({ weight: 20, reps: 5 })], { bodyweightKg: 80 })], 'weighted_bodyweight', null, false)
+    const r = recordsFromHistory(
+      [entry([mkSet({ weight: 20, reps: 5 })], { bodyweightKg: 80 })],
+      'weighted_bodyweight',
+      null,
+      false,
+    )
     expect(r.weight).toBe(20)
     expect(r.volume).toBe(500)
     expect(r.oneRm).toBeCloseTo(100 * (1 + 5 / 30), 6)
   })
   it('workout bodyweight overrides the fallback', () => {
-    const r = recordsFromHistory([entry([mkSet({ weight: 0, reps: 10 })], { bodyweightKg: 90 })], 'weighted_bodyweight', 70, false)
+    const r = recordsFromHistory(
+      [entry([mkSet({ weight: 0, reps: 10 })], { bodyweightKg: 90 })],
+      'weighted_bodyweight',
+      70,
+      false,
+    )
     expect(r.volume).toBe(900)
-    const r2 = recordsFromHistory([entry([mkSet({ weight: 0, reps: 10 })], { bodyweightKg: null })], 'weighted_bodyweight', 70, false)
+    const r2 = recordsFromHistory(
+      [entry([mkSet({ weight: 0, reps: 10 })], { bodyweightKg: null })],
+      'weighted_bodyweight',
+      70,
+      false,
+    )
     expect(r2.volume).toBe(700)
   })
   it('assisted: weight record stays 0, reps tracked', () => {
-    const r = recordsFromHistory([entry([mkSet({ weight: 30, reps: 8 })], { bodyweightKg: 80 })], 'assisted_bodyweight', null, false)
+    const r = recordsFromHistory(
+      [entry([mkSet({ weight: 30, reps: 8 })], { bodyweightKg: 80 })],
+      'assisted_bodyweight',
+      null,
+      false,
+    )
     expect(r.weight).toBe(0)
     expect(r.reps).toBe(8)
   })
   it('tracks duration and distance', () => {
-    const r = recordsFromHistory([entry([mkSet({ durationSec: 600, distanceM: 2000 }), mkSet({ durationSec: 500, distanceM: 2500 })])], 'distance_duration', null, false)
+    const r = recordsFromHistory(
+      [entry([mkSet({ durationSec: 600, distanceM: 2000 }), mkSet({ durationSec: 500, distanceM: 2500 })])],
+      'distance_duration',
+      null,
+      false,
+    )
     expect(r.duration).toBe(600)
     expect(r.distance).toBe(2500)
   })
@@ -139,7 +178,9 @@ describe('findSessionPRs', () => {
   it('duration/distance kinds', () => {
     const run = mkEx('distance_duration')
     const s = mkSet({ durationSec: 100, distanceM: 400 })
-    expect(findSessionPRs([s], run, { ...emptyRecords(), duration: 90, distance: 500 }, null).get(s.id)).toEqual(['duration'])
+    expect(findSessionPRs([s], run, { ...emptyRecords(), duration: 90, distance: 500 }, null).get(s.id)).toEqual([
+      'duration',
+    ])
   })
 })
 
@@ -147,7 +188,12 @@ describe('DB-backed record loading', () => {
   it('judges a past session against prior history only, ignoring later, active and excluded workouts', async () => {
     const ex = mkEx('weight_reps')
     const mk = (startedAt: number, weight: number, status: 'done' | 'active' = 'done') =>
-      mkWorkout({ startedAt, finishedAt: startedAt + 1, status, exercises: [mkLogged(ex.id, [mkSet({ weight, reps: 5 })])] })
+      mkWorkout({
+        startedAt,
+        finishedAt: startedAt + 1,
+        status,
+        exercises: [mkLogged(ex.id, [mkSet({ weight, reps: 5 })])],
+      })
     const early = mk(1000, 60)
     const mid = mk(2000, 100)
     const late = mk(3000, 140)
@@ -174,12 +220,29 @@ describe('DB-backed record loading', () => {
 
   it('loadSetRecords: heaviest per rep count, ties keep earlier date, warm-ups gated', async () => {
     const ex = mkEx('weight_reps')
-    const w1 = mkWorkout({ startedAt: 100, finishedAt: 200, exercises: [mkLogged(ex.id, [
-      mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 80, reps: 12 }), mkSet({ weight: 150, reps: 1, setType: 'warmup' }), mkSet({ weight: 0, reps: 5 }),
-    ])] })
-    const w2 = mkWorkout({ startedAt: 300, finishedAt: 400, exercises: [mkLogged(ex.id, [
-      mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 85, reps: 12 }), mkSet({ weight: 90, reps: 3, completed: false }),
-    ])] })
+    const w1 = mkWorkout({
+      startedAt: 100,
+      finishedAt: 200,
+      exercises: [
+        mkLogged(ex.id, [
+          mkSet({ weight: 100, reps: 5 }),
+          mkSet({ weight: 80, reps: 12 }),
+          mkSet({ weight: 150, reps: 1, setType: 'warmup' }),
+          mkSet({ weight: 0, reps: 5 }),
+        ]),
+      ],
+    })
+    const w2 = mkWorkout({
+      startedAt: 300,
+      finishedAt: 400,
+      exercises: [
+        mkLogged(ex.id, [
+          mkSet({ weight: 100, reps: 5 }),
+          mkSet({ weight: 85, reps: 12 }),
+          mkSet({ weight: 90, reps: 3, completed: false }),
+        ]),
+      ],
+    })
     await db.workouts.bulkPut([w2, w1])
     expect(await loadSetRecords(ex.id, 'weight_reps', false)).toEqual([
       { reps: 5, weightKg: 100, achievedAt: 200 },

@@ -38,7 +38,10 @@ function sampleQuad([x0, y0], [cx, cy], [x1, y1], steps = 48) {
 /** Centrelines as polylines: the stem curving into the foot, and the crossbar. */
 const STROKES = [
   [[24, 16], [24, 96], ...sampleQuad([24, 96], [24, 120], [50, 120]).slice(1)],
-  [[2, 48], [46, 48]],
+  [
+    [2, 48],
+    [46, 48],
+  ],
 ]
 
 function distToSegment(px, py, [ax, ay], [bx, by]) {

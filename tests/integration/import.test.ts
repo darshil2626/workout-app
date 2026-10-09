@@ -127,7 +127,8 @@ describe('Hevy import', () => {
 
 describe('partitionImport', () => {
   const base = workout({
-    id: 'a', startedAt: 5000,
+    id: 'a',
+    startedAt: 5000,
     exercises: [logged('x', [set({ weight: 10, reps: 5 })]), logged('y', [set({ weight: 20, reps: 5 })])],
   })
 
@@ -140,7 +141,11 @@ describe('partitionImport', () => {
     const same = { ...base, id: 'b', name: 'renamed', finishedAt: 1, notes: 'n' }
     const sameReordered = { ...base, id: 'c', exercises: [...base.exercises].reverse() }
     const differentTime = { ...base, id: 'd', startedAt: 6000 }
-    const differentSets = workout({ id: 'e', startedAt: 5000, exercises: [logged('x', [set({ weight: 11, reps: 5 })])] })
+    const differentSets = workout({
+      id: 'e',
+      startedAt: 5000,
+      exercises: [logged('x', [set({ weight: 11, reps: 5 })])],
+    })
     const dup2 = { ...differentTime, id: 'f' }
     const r = await partitionImport([same, sameReordered, differentTime, differentSets, dup2])
     expect(r.duplicates.map((w) => w.id)).toEqual(['b', 'c', 'f'])
@@ -151,7 +156,8 @@ describe('partitionImport', () => {
   it('placeholder-only differences still match', async () => {
     await db.workouts.put(base)
     const withPlaceholder = {
-      ...base, id: 'p',
+      ...base,
+      id: 'p',
       exercises: [...base.exercises, logged('z', [set({ weight: 0, reps: 0 }), set({ weight: null, reps: null })])],
     }
     expect((await partitionImport([withPlaceholder])).duplicates).toHaveLength(1)
@@ -163,7 +169,11 @@ describe('workoutFingerprint', () => {
 
   it('is stable across ids, names, finish time, set ids, rpe, set type', () => {
     const w2 = workout({
-      id: 'zzz', name: 'Other', startedAt: 123, finishedAt: 999, notes: 'q',
+      id: 'zzz',
+      name: 'Other',
+      startedAt: 123,
+      finishedAt: 999,
+      notes: 'q',
       exercises: [logged('x', [set({ weight: 10.0004, reps: 5, rpe: 9, setType: 'failure' })], 'other-le-id')],
     })
     expect(workoutFingerprint(w)).toBe(workoutFingerprint(w2))
@@ -178,11 +188,31 @@ describe('workoutFingerprint', () => {
   it('changes with start time, weight, reps, exercise, set order', () => {
     const fp = workoutFingerprint(w)
     expect(workoutFingerprint({ ...w, startedAt: 124 })).not.toBe(fp)
-    expect(workoutFingerprint(workout({ id: 'b', startedAt: 123, exercises: [logged('x', [set({ weight: 11, reps: 5 })])] }))).not.toBe(fp)
-    expect(workoutFingerprint(workout({ id: 'b', startedAt: 123, exercises: [logged('x', [set({ weight: 10.0004, reps: 6 })])] }))).not.toBe(fp)
-    expect(workoutFingerprint(workout({ id: 'b', startedAt: 123, exercises: [logged('y', [set({ weight: 10.0004, reps: 5 })])] }))).not.toBe(fp)
-    const ab = workout({ id: 'b', startedAt: 123, exercises: [logged('x', [set({ weight: 1, reps: 5 }), set({ weight: 2, reps: 5 })])] })
-    const ba = workout({ id: 'b', startedAt: 123, exercises: [logged('x', [set({ weight: 2, reps: 5 }), set({ weight: 1, reps: 5 })])] })
+    expect(
+      workoutFingerprint(
+        workout({ id: 'b', startedAt: 123, exercises: [logged('x', [set({ weight: 11, reps: 5 })])] }),
+      ),
+    ).not.toBe(fp)
+    expect(
+      workoutFingerprint(
+        workout({ id: 'b', startedAt: 123, exercises: [logged('x', [set({ weight: 10.0004, reps: 6 })])] }),
+      ),
+    ).not.toBe(fp)
+    expect(
+      workoutFingerprint(
+        workout({ id: 'b', startedAt: 123, exercises: [logged('y', [set({ weight: 10.0004, reps: 5 })])] }),
+      ),
+    ).not.toBe(fp)
+    const ab = workout({
+      id: 'b',
+      startedAt: 123,
+      exercises: [logged('x', [set({ weight: 1, reps: 5 }), set({ weight: 2, reps: 5 })])],
+    })
+    const ba = workout({
+      id: 'b',
+      startedAt: 123,
+      exercises: [logged('x', [set({ weight: 2, reps: 5 }), set({ weight: 1, reps: 5 })])],
+    })
     expect(workoutFingerprint(ab)).not.toBe(workoutFingerprint(ba))
   })
 })

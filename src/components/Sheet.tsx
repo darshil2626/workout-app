@@ -73,6 +73,9 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
   return (
     <div
       className={`sheet-backdrop${closing ? ' closing' : ''}`}
+      // Pointer shortcut only: keyboard users close with Escape (handled above)
+      // or the Close button, so the backdrop is not itself a control.
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -132,10 +135,7 @@ export function ConfirmSheet({
           <button className="btn btn-ghost grow" onClick={onCancel}>
             Cancel
           </button>
-          <button
-            className={`btn grow ${destructive ? 'btn-danger' : 'btn-primary'}`}
-            onClick={onConfirm}
-          >
+          <button className={`btn grow ${destructive ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>
             {confirmLabel}
           </button>
         </>

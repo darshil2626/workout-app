@@ -229,8 +229,7 @@ export function WorkoutDetailPage() {
                     </button>
                     {oneRM ? (
                       <span className="ex-sub">
-                        Best estimated 1RM {fmt.weight(Math.round(oneRM * 10) / 10)}{' '}
-                        {fmt.weightUnit}
+                        Best estimated 1RM {fmt.weight(Math.round(oneRM * 10) / 10)} {fmt.weightUnit}
                       </span>
                     ) : null}
                   </div>
@@ -260,7 +259,10 @@ export function WorkoutDetailPage() {
                       {prs.get(s.id)?.length ? (
                         <span
                           className="badge badge-pr"
-                          title={prs.get(s.id)!.map((k) => PR_LABEL[k]).join(', ')}
+                          title={prs
+                            .get(s.id)!
+                            .map((k) => PR_LABEL[k])
+                            .join(', ')}
                         >
                           PR
                         </span>

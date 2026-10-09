@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  formatAge, formatDateLabel, formatDuration, formatDurationShort, formatHoursTotal, formatRelative,
-  formatTimeOfDay, parseDuration,
+  formatAge,
+  formatDateLabel,
+  formatDuration,
+  formatDurationShort,
+  formatHoursTotal,
+  formatRelative,
+  formatTimeOfDay,
+  parseDuration,
 } from '../../src/lib/time'
 
 const DAY = 86_400_000

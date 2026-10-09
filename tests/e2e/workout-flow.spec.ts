@@ -40,7 +40,10 @@ test('core loop: log, complete, PR, finish, history, stats', async ({ page }) =>
 
   // Finish -> confirm -> rating sheet -> skip.
   await page.getByRole('button', { name: 'Finish', exact: true }).click()
-  await page.getByRole('dialog', { name: 'Finish workout?' }).getByRole('button', { name: 'Finish', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Finish workout?' })
+    .getByRole('button', { name: 'Finish', exact: true })
+    .click()
   const sheet = page.getByRole('dialog', { name: 'Workout complete' })
   await expect(sheet).toBeVisible()
   await expect(sheet.locator('.finish-summary')).toContainText('700 kg')
@@ -73,7 +76,10 @@ test('rating the session saves effort and feeling', async ({ page }) => {
   await startEmptyAndAddBench(page)
   await logSet(page, 0, '50', '8')
   await page.getByRole('button', { name: 'Finish', exact: true }).click()
-  await page.getByRole('dialog', { name: 'Finish workout?' }).getByRole('button', { name: 'Finish', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Finish workout?' })
+    .getByRole('button', { name: 'Finish', exact: true })
+    .click()
   const sheet = page.getByRole('dialog', { name: 'Workout complete' })
   await sheet.locator('.rpe-row').first().locator('.chip').nth(2).click()
   await expect(sheet.locator('.rpe-row').first().locator('.chip').nth(2)).toHaveAttribute('aria-pressed', 'true')

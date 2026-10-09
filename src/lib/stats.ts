@@ -1,12 +1,5 @@
 import type { Exercise, ExerciseKind, MuscleGroup, Workout } from '../db/types'
-import {
-  countsTowardVolume,
-  effectiveWeightKg,
-  elapsedSeconds,
-  estimate1RM,
-  fieldsFor,
-  prWeightKg,
-} from './workout'
+import { countsTowardVolume, effectiveWeightKg, elapsedSeconds, estimate1RM, fieldsFor, prWeightKg } from './workout'
 import { addDays } from './time'
 
 const DAY_MS = 86400000
@@ -104,9 +97,7 @@ export function computeStreaks(workouts: Workout[], firstDayOfWeek: 0 | 1, now =
   }
 
   const weekAgo = now - 7 * DAY_MS
-  const daysThisWeek = new Set(
-    workouts.filter((w) => w.startedAt >= weekAgo).map((w) => startOfDay(w.startedAt)),
-  ).size
+  const daysThisWeek = new Set(workouts.filter((w) => w.startedAt >= weekAgo).map((w) => startOfDay(w.startedAt))).size
 
   return { currentWeeks: current, longestWeeks: longest, daysThisWeek }
 }
@@ -119,12 +110,7 @@ export interface WeekPoint {
 }
 
 /** One entry per week in the range, including weeks with no training. */
-export function volumeByWeek(
-  workouts: Workout[],
-  firstDayOfWeek: 0 | 1,
-  weeks = 12,
-  now = Date.now(),
-): WeekPoint[] {
+export function volumeByWeek(workouts: Workout[], firstDayOfWeek: 0 | 1, weeks = 12, now = Date.now()): WeekPoint[] {
   const thisWeek = startOfWeek(now, firstDayOfWeek)
   const buckets = new Map<number, WeekPoint>()
   for (let i = weeks - 1; i >= 0; i--) {
@@ -189,9 +175,7 @@ export function muscleDistribution(
       if (!exercise) continue
       for (const s of le.sets) {
         if (!countsTowardVolume(s, countWarmups)) continue
-        const slice =
-          map.get(exercise.muscleGroup) ??
-          { muscle: exercise.muscleGroup, sets: 0, volumeKg: 0 }
+        const slice = map.get(exercise.muscleGroup) ?? { muscle: exercise.muscleGroup, sets: 0, volumeKg: 0 }
         slice.sets += 1
         if (s.reps) {
           slice.volumeKg += effectiveWeightKg(s, exercise.kind, w.bodyweightKg ?? bodyweightKg) * s.reps
@@ -365,7 +349,10 @@ export function exerciseSparklines(
     if (!metric) continue
     const points = exerciseProgress(history, exercise, metric, bodyweightKg, countWarmups)
     if (points.length < 2) continue
-    result.set(exerciseId, points.slice(-maxPoints).map((p) => p.value))
+    result.set(
+      exerciseId,
+      points.slice(-maxPoints).map((p) => p.value),
+    )
   }
   return result
 }
@@ -379,11 +366,7 @@ export const TIME_RANGES = [
 
 export type TimeRangeKey = (typeof TIME_RANGES)[number]['key']
 
-export function withinRange<T extends { date: number }>(
-  points: T[],
-  range: TimeRangeKey,
-  now = Date.now(),
-): T[] {
+export function withinRange<T extends { date: number }>(points: T[], range: TimeRangeKey, now = Date.now()): T[] {
   const spec = TIME_RANGES.find((r) => r.key === range)
   if (!spec || spec.days === Infinity) return points
   const cutoff = now - spec.days * DAY_MS

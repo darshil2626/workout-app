@@ -112,9 +112,7 @@ export function ColumnChart({ columns, formatValue, height = 168 }: Props) {
           }}
         >
           <span className="chart-tooltip-value">{formatValue(columns[active].value)}</span>
-          <span className="chart-tooltip-date">
-            {columns[active].tooltipLabel ?? columns[active].label}
-          </span>
+          <span className="chart-tooltip-date">{columns[active].tooltipLabel ?? columns[active].label}</span>
         </div>
       )}
     </div>

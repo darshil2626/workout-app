@@ -88,11 +88,7 @@ export function HomePage() {
   const exercises = useLiveQuery(() => db.exercises.toArray(), [])
   const sessions = useLiveQuery(() => db.workouts.where('status').equals('done').toArray(), [])
 
-  const loaded =
-    routines !== undefined &&
-    folders !== undefined &&
-    exercises !== undefined &&
-    sessions !== undefined
+  const loaded = routines !== undefined && folders !== undefined && exercises !== undefined && sessions !== undefined
 
   const [menuRoutine, setMenuRoutine] = useState<Routine | null>(null)
   const [deleting, setDeleting] = useState<Routine | null>(null)
@@ -135,10 +131,7 @@ export function HomePage() {
       }),
     [routines, workoutList],
   )
-  const exerciseById = useMemo(
-    () => new Map(exerciseList.map((e) => [e.id, e])),
-    [exerciseList],
-  )
+  const exerciseById = useMemo(() => new Map(exerciseList.map((e) => [e.id, e])), [exerciseList])
 
   const { firstDayOfWeek, weeklyGoalWorkouts, countWarmupSets, bodyweightKg } = fmt.settings
 
@@ -146,14 +139,8 @@ export function HomePage() {
     () => weekProgress(workoutList, firstDayOfWeek, weeklyGoalWorkouts),
     [workoutList, firstDayOfWeek, weeklyGoalWorkouts],
   )
-  const streaks = useMemo(
-    () => computeStreaks(workoutList, firstDayOfWeek),
-    [workoutList, firstDayOfWeek],
-  )
-  const calendarDays = useMemo(
-    () => volumeByDay(workoutList, HOME_CALENDAR_DAYS),
-    [workoutList],
-  )
+  const streaks = useMemo(() => computeStreaks(workoutList, firstDayOfWeek), [workoutList, firstDayOfWeek])
+  const calendarDays = useMemo(() => volumeByDay(workoutList, HOME_CALENDAR_DAYS), [workoutList])
   const recovery = useMemo(
     () => muscleRecovery(workoutList, exerciseById, countWarmupSets),
     [workoutList, exerciseById, countWarmupSets],
@@ -183,9 +170,7 @@ export function HomePage() {
    * The active session is never in here — it isn't `done` — so its autosave,
    * which writes every few hundred milliseconds, cannot start a rescan.
    */
-  const recentKey = recent
-    .map((w) => `${w.id}:${w.totalSets}:${Math.round(w.totalVolumeKg)}`)
-    .join('|')
+  const recentKey = recent.map((w) => `${w.id}:${w.totalSets}:${Math.round(w.totalVolumeKg)}`).join('|')
 
   // `null` until the scan finishes. Rendering [] in the meantime would title
   // the block "Next milestone", then swap it for "Recent wins" a moment later.
@@ -332,11 +317,7 @@ export function HomePage() {
           </span>
         }
         left={
-          <button
-            className="icon-btn"
-            aria-label="Exercise library"
-            onClick={() => navigate('/exercises')}
-          >
+          <button className="icon-btn" aria-label="Exercise library" onClick={() => navigate('/exercises')}>
             {/* A magnifier promised search; this button opens the library. The
                 Exercises page keeps its own search field, and IconSearch with
                 it. */}
@@ -355,10 +336,7 @@ export function HomePage() {
         {!loaded ? (
           <HomeSkeleton />
         ) : firstRun ? (
-          <FirstRun
-            onStartEmpty={() => void start()}
-            onNewRoutine={() => navigate('/routines/new')}
-          />
+          <FirstRun onStartEmpty={() => void start()} onNewRoutine={() => navigate('/routines/new')} />
         ) : (
           <>
             <PrimaryAction
@@ -374,12 +352,7 @@ export function HomePage() {
 
             {showGoal && <GoalRing progress={goal} streaks={streaks} />}
             {showConsistency && (
-              <ConsistencyCalendar
-                days={calendarDays}
-                streaks={streaks}
-                firstDayOfWeek={firstDayOfWeek}
-                fmt={fmt}
-              />
+              <ConsistencyCalendar days={calendarDays} streaks={streaks} firstDayOfWeek={firstDayOfWeek} fmt={fmt} />
             )}
             {showTrend && <StrengthTrend lifts={lifts ?? []} fmt={fmt} />}
             {showRecovery && <RecoveryCard items={recovery} />}
@@ -402,11 +375,7 @@ export function HomePage() {
         )}
       </div>
 
-      <Sheet
-        open={menuRoutine !== null}
-        title={menuRoutine?.name}
-        onClose={() => setMenuRoutine(null)}
-      >
+      <Sheet open={menuRoutine !== null} title={menuRoutine?.name} onClose={() => setMenuRoutine(null)}>
         <button
           className="sheet-list-item"
           onClick={() => {
@@ -473,14 +442,12 @@ export function HomePage() {
       <ConfirmSheet
         open={deletingFolder !== null}
         title={`Delete folder “${deletingFolder?.name}”?`}
-        message={
-          (() => {
-            const n = routineList.filter((r) => r.folderId === deletingFolder?.id).length
-            return n === 0
-              ? 'The folder is empty.'
-              : `Its ${n} ${n === 1 ? 'routine moves' : 'routines move'} to Other routines and nothing else is deleted.`
-          })()
-        }
+        message={(() => {
+          const n = routineList.filter((r) => r.folderId === deletingFolder?.id).length
+          return n === 0
+            ? 'The folder is empty.'
+            : `Its ${n} ${n === 1 ? 'routine moves' : 'routines move'} to Other routines and nothing else is deleted.`
+        })()}
         confirmLabel="Delete folder"
         destructive
         onConfirm={() => deletingFolder && void deleteFolder(deletingFolder)}

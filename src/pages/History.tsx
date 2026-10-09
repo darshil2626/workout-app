@@ -16,9 +16,7 @@ export function HistoryPage() {
   // `undefined` while Dexie hasn't answered yet, distinct from a genuinely
   // empty history — collapsing that into `[]` immediately would show the
   // "No workouts yet" empty state as a flash before real history pops in.
-  const workoutsRaw = useLiveQuery(() =>
-    db.workouts.where('status').equals('done').reverse().sortBy('startedAt'),
-  )
+  const workoutsRaw = useLiveQuery(() => db.workouts.where('status').equals('done').reverse().sortBy('startedAt'))
   const workouts = workoutsRaw ?? []
   const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
@@ -69,9 +67,7 @@ export function HistoryPage() {
                 <div className="stat-label">Total {fmt.weightUnit}</div>
               </div>
               <div className="stat">
-                <div className="stat-value mono">
-                  {workouts.reduce((s, w) => s + w.totalSets, 0)}
-                </div>
+                <div className="stat-value mono">{workouts.reduce((s, w) => s + w.totalSets, 0)}</div>
                 <div className="stat-label">Sets</div>
               </div>
             </div>

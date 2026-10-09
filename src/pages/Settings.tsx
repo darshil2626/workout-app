@@ -25,12 +25,7 @@ import {
   scanHistoryIssues,
   type HistoryIssues,
 } from '../lib/dedupe'
-import {
-  applyExerciseFixes,
-  hasActiveWorkout,
-  scanExerciseFixes,
-  type ExerciseFix,
-} from '../lib/exerciseRepair'
+import { applyExerciseFixes, hasActiveWorkout, scanExerciseFixes, type ExerciseFix } from '../lib/exerciseRepair'
 import type { ParsedImport } from '../lib/importers/shared'
 import { track } from '../lib/analytics'
 import { InstallSteps } from '../components/InstallSteps'
@@ -58,8 +53,7 @@ function describeCsvPreview(preview: CsvPreview): string {
   const earliest = new Date(Math.min(...dates)).toLocaleDateString()
   const latest = new Date(Math.max(...dates)).toLocaleDateString()
   const range = earliest === latest ? earliest : `${earliest} – ${latest}`
-  const exerciseText =
-    preview.newExercises > 0 ? `, creating ${preview.newExercises} new exercise(s)` : ''
+  const exerciseText = preview.newExercises > 0 ? `, creating ${preview.newExercises} new exercise(s)` : ''
   const skipText =
     preview.skipped > 0
       ? ` ${preview.skipped} workout(s) in this file are already in your history and will be skipped.`
@@ -76,9 +70,7 @@ function describeCsvPreview(preview: CsvPreview): string {
 function describeHistoryIssues(issues: HistoryIssues): string {
   const parts: string[] = []
   if (issues.duplicates > 0) {
-    parts.push(
-      `${issues.duplicates} workout(s) are exact copies of another session so one copy of each is kept.`,
-    )
+    parts.push(`${issues.duplicates} workout(s) are exact copies of another session so one copy of each is kept.`)
   }
   if (issues.placeholderSets > 0) {
     parts.push(
@@ -149,11 +141,7 @@ export function SettingsPage() {
   // Only the session timestamps are needed, but Dexie has no projection, so
   // this pulls the rows. It is the same read the Stats page already does, and
   // it only runs while Settings is open.
-  const doneWorkouts = useLiveQuery(
-    () => db.workouts.where('status').equals('done').toArray(),
-    [],
-    [] as Workout[],
-  )
+  const doneWorkouts = useLiveQuery(() => db.workouts.where('status').equals('done').toArray(), [], [] as Workout[])
   const suggestedGoal = suggestedWeeklyGoal(doneWorkouts, settings.firstDayOfWeek)
 
   async function onFilePicked(file: File | undefined) {
@@ -263,8 +251,7 @@ export function SettingsPage() {
     const sourceLabel = parsed.source === 'strong' ? 'Strong' : 'Hevy'
     try {
       const summary = await applyCsvImport(parsed)
-      const skipText =
-        summary.skipped > 0 ? ` ${summary.skipped} were already in your history and were skipped.` : ''
+      const skipText = summary.skipped > 0 ? ` ${summary.skipped} were already in your history and were skipped.` : ''
       const warnText = parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) were skipped.` : ''
       setMessage(
         `Added ${summary.workouts} workouts and ${summary.exercises} new exercises from ${sourceLabel}.${skipText}${warnText}`,
@@ -306,7 +293,9 @@ export function SettingsPage() {
     setMessage(null)
     try {
       if (await hasActiveWorkout()) {
-        setError('Finish or discard the workout in progress first because merging exercises would change it underneath you.')
+        setError(
+          'Finish or discard the workout in progress first because merging exercises would change it underneath you.',
+        )
         return
       }
       const fixes = await scanExerciseFixes()
@@ -466,9 +455,8 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
-            Bodyweight has its own unit, so you can lift in one and weigh yourself in the other.
-            Everything is stored in kilograms and centimetres internally, so switching units never
-            changes what you lifted or measured.
+            Bodyweight has its own unit, so you can lift in one and weigh yourself in the other. Everything is stored in
+            kilograms and centimetres internally, so switching units never changes what you lifted or measured.
           </p>
         </div>
 
@@ -527,8 +515,8 @@ export function SettingsPage() {
             <div className="stack grow">
               <span>Count warm-up sets</span>
               <span className="faint">
-                Include them in volume, set counts and records. Off by default because a warm-up is
-                preparation and not a training stimulus.
+                Include them in volume, set counts and records. Off by default because a warm-up is preparation and not
+                a training stimulus.
               </span>
             </div>
             <button
@@ -567,9 +555,7 @@ export function SettingsPage() {
               <span className="faint">What your gym actually stocks</span>
             </div>
             <span className="muted mono">
-              {settings.availablePlatesKg
-                .map((p) => formatWeight(p, settings.weightUnit))
-                .join(', ')}
+              {settings.availablePlatesKg.map((p) => formatWeight(p, settings.weightUnit)).join(', ')}
             </span>
           </button>
           <div className="divider" />
@@ -595,8 +581,7 @@ export function SettingsPage() {
               </button>
             </div>
             <span className="faint">
-              Used to score pull-ups, dips and other bodyweight movements. Leave blank and they
-              count zero volume.
+              Used to score pull-ups, dips and other bodyweight movements. Leave blank and they count zero volume.
             </span>
           </div>
           <div className="divider" />
@@ -654,8 +639,8 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="faint" style={{ marginBottom: 12 }}>
-            Your workouts, routines and exercises live on this device only. Export regularly because
-            clearing your browser data or deleting the app will erase them.
+            Your workouts, routines and exercises live on this device only. Export regularly because clearing your
+            browser data or deleting the app will erase them.
           </p>
           <div className="list">
             <button
@@ -688,11 +673,10 @@ export function SettingsPage() {
             </button>
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
-            Import accepts a Trana backup (.json, replaces everything), or a CSV export from Strong
-            or Hevy (added alongside what's already here). Re-importing a CSV is safe because sessions you
-            already have are skipped so a longer export only adds what's new. Clean up history finds
-            duplicates and empty sets left behind by older imports; Match imported exercises folds
-            differently-named imports into the built-in library.
+            Import accepts a Trana backup (.json, replaces everything), or a CSV export from Strong or Hevy (added
+            alongside what's already here). Re-importing a CSV is safe because sessions you already have are skipped so
+            a longer export only adds what's new. Clean up history finds duplicates and empty sets left behind by older
+            imports; Match imported exercises folds differently-named imports into the built-in library.
           </p>
         </div>
 
@@ -702,8 +686,8 @@ export function SettingsPage() {
             <div className="stack grow">
               <span>Share anonymous usage data</span>
               <span className="faint">
-                Which screens and features get used, and whether the app gets reopened but never your
-                workouts, routines, weights or measurements. Helps me improve Trana while it's early.
+                Which screens and features get used, and whether the app gets reopened but never your workouts,
+                routines, weights or measurements. Helps me improve Trana while it's early.
               </span>
             </div>
             <button
@@ -719,8 +703,8 @@ export function SettingsPage() {
         <div className="section-title">About</div>
         <div className="card">
           <p className="muted">
-            Trana is an offline-first workout tracker. Add it to your home screen and it behaves
-            like a native app and needs no account or subscription or internet.
+            Trana is an offline-first workout tracker. Add it to your home screen and it behaves like a native app and
+            needs no account or subscription or internet.
           </p>
           {installed ? (
             <p className="faint" style={{ marginTop: 10 }}>
@@ -728,7 +712,9 @@ export function SettingsPage() {
             </p>
           ) : (
             <>
-              <div className="section-title" style={{ marginTop: 14 }}>Install</div>
+              <div className="section-title" style={{ marginTop: 14 }}>
+                Install
+              </div>
               <InstallSteps />
             </>
           )}
@@ -794,9 +780,7 @@ export function SettingsPage() {
             <span className="grow">
               {formatWeight(kg, settings.weightUnit)} {settings.weightUnit}
             </span>
-            {Math.abs(settings.barWeightKg - kg) < 0.01 && (
-              <span style={{ color: 'var(--accent)' }}>✓</span>
-            )}
+            {Math.abs(settings.barWeightKg - kg) < 0.01 && <span style={{ color: 'var(--accent)' }}>✓</span>}
           </button>
         ))}
       </Sheet>
@@ -821,8 +805,7 @@ export function SettingsPage() {
               <div className="stack grow">
                 <span>{preset.label}</span>
                 <span className="faint mono">
-                  {preset.platesKg.map((p) => formatWeight(p, settings.weightUnit)).join(', ')}{' '}
-                  {settings.weightUnit}
+                  {preset.platesKg.map((p) => formatWeight(p, settings.weightUnit)).join(', ')} {settings.weightUnit}
                 </span>
               </div>
               {selected && <span style={{ color: 'var(--accent)' }}>✓</span>}
@@ -857,18 +840,14 @@ export function SettingsPage() {
         }
       >
         <p className="muted" style={{ marginBottom: 12 }}>
-          Strong's export doesn't record which units it used, so pick what your app was set to when
-          you exported this file.
+          Strong's export doesn't record which units it used, so pick what your app was set to when you exported this
+          file.
         </p>
         <div className="field">
           <span className="field-label">Weight</span>
           <div className="segmented">
             {(['kg', 'lb'] as WeightUnit[]).map((u) => (
-              <button
-                key={u}
-                className={strongWeightUnit === u ? 'active' : ''}
-                onClick={() => setStrongWeightUnit(u)}
-              >
+              <button key={u} className={strongWeightUnit === u ? 'active' : ''} onClick={() => setStrongWeightUnit(u)}>
                 {u}
               </button>
             ))}

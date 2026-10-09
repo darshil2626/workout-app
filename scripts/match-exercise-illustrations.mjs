@@ -20,23 +20,70 @@ const STOP = new Set(['the', 'with', 'a', 'an', 'and', 'or', 'to', 'on', 'of', '
 
 // Words that describe the same movement under a different name.
 const SYN = {
-  biceps: 'bicep', triceps: 'tricep', skullcrusher: 'skullcrush', skull: 'skullcrush',
-  crusher: 'skullcrush', crossover: 'fly', flye: 'fly', flyes: 'fly', flys: 'fly',
-  flies: 'fly', farmers: 'farmer', carry: 'walk', abdominal: 'ab',
-  quadriceps: 'quad', lats: 'lat', db: 'dumbbell', bb: 'barbell', kb: 'kettlebell',
-  ez: 'ezbar', hyperextension: 'extension', situp: 'sit', pushup: 'push',
-  pullup: 'pull', chinup: 'chin', ups: 'up', downs: 'down', kicks: 'kick',
-  thrusts: 'thrust', walks: 'walk',
+  biceps: 'bicep',
+  triceps: 'tricep',
+  skullcrusher: 'skullcrush',
+  skull: 'skullcrush',
+  crusher: 'skullcrush',
+  crossover: 'fly',
+  flye: 'fly',
+  flyes: 'fly',
+  flys: 'fly',
+  flies: 'fly',
+  farmers: 'farmer',
+  carry: 'walk',
+  abdominal: 'ab',
+  quadriceps: 'quad',
+  lats: 'lat',
+  db: 'dumbbell',
+  bb: 'barbell',
+  kb: 'kettlebell',
+  ez: 'ezbar',
+  hyperextension: 'extension',
+  situp: 'sit',
+  pushup: 'push',
+  pullup: 'pull',
+  chinup: 'chin',
+  ups: 'up',
+  downs: 'down',
+  kicks: 'kick',
+  thrusts: 'thrust',
+  walks: 'walk',
 }
 
 // Body-part and stance words that only qualify a movement. A drawing missing
 // one is still the right drawing ("Dumbbell Fly" for "Chest Fly"), so their
 // absence costs a fraction of a normal word rather than failing coverage.
 const QUALIFIER = new Set([
-  'chest', 'back', 'ab', 'glute', 'tricep', 'bicep', 'leg', 'shoulder', 'hip',
-  'calf', 'neck', 'wrist', 'lat', 'quad', 'hamstring', 'forearm', 'trap',
-  'standing', 'seated', 'lying', 'machine', 'cable', 'barbell', 'dumbbell',
-  'bar', 'ezbar', 'plate', 'outdoor', 'indoor',
+  'chest',
+  'back',
+  'ab',
+  'glute',
+  'tricep',
+  'bicep',
+  'leg',
+  'shoulder',
+  'hip',
+  'calf',
+  'neck',
+  'wrist',
+  'lat',
+  'quad',
+  'hamstring',
+  'forearm',
+  'trap',
+  'standing',
+  'seated',
+  'lying',
+  'machine',
+  'cable',
+  'barbell',
+  'dumbbell',
+  'bar',
+  'ezbar',
+  'plate',
+  'outdoor',
+  'indoor',
 ])
 
 // This app's "Name (Equipment)" vocabulary mapped onto the catalog's values.
@@ -47,7 +94,18 @@ const EQUIPMENT = {
   Dumbbell: ['Dumbbell', 'Kettlebell'],
   Machine: ['Machine', 'Cable'],
   Cable: ['Cable', 'Machine', 'Resistance Band'],
-  Bodyweight: ['Bodyweight', 'Pull-up Bar', 'Bench', 'Box', 'Chair', 'Wall', 'Doorway', 'Towel', 'Stability Ball', 'Machine'],
+  Bodyweight: [
+    'Bodyweight',
+    'Pull-up Bar',
+    'Bench',
+    'Box',
+    'Chair',
+    'Wall',
+    'Doorway',
+    'Towel',
+    'Stability Ball',
+    'Machine',
+  ],
   Kettlebell: ['Kettlebell', 'Dumbbell'],
   Band: ['Resistance Band', 'Cable'],
   Plate: ['Plate', 'Barbell', 'Dumbbell'],
@@ -283,9 +341,7 @@ function roundPathData(d) {
 }
 
 function optimise(svg) {
-  return svg
-    .replace(/ d="([^"]*)"/g, (_, d) => ` d="${roundPathData(d)}"`)
-    .replace(/fill="#fff"/gi, `fill="${FIGURE}"`)
+  return svg.replace(/ d="([^"]*)"/g, (_, d) => ` d="${roundPathData(d)}"`).replace(/fill="#fff"/gi, `fill="${FIGURE}"`)
 }
 
 // ── Fetching ────────────────────────────────────────────────────────────────

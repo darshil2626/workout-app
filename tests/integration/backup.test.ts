@@ -10,13 +10,39 @@ beforeEach(resetDb)
 async function populate() {
   await initDb()
   await db.exercises.put({
-    id: 'c1', name: 'Odd Lift', muscleGroup: 'Back', equipment: 'Cable', kind: 'weight_reps',
-    isCustom: true, createdAt: 11, notes: 'n', archived: true,
+    id: 'c1',
+    name: 'Odd Lift',
+    muscleGroup: 'Back',
+    equipment: 'Cable',
+    kind: 'weight_reps',
+    isCustom: true,
+    createdAt: 11,
+    notes: 'n',
+    archived: true,
   })
-  await db.folders.bulkPut([{ id: 'f1', name: 'A', order: 0, createdAt: 1 }, { id: 'f2', name: 'B', order: 1, createdAt: 2 }])
+  await db.folders.bulkPut([
+    { id: 'f1', name: 'A', order: 0, createdAt: 1 },
+    { id: 'f2', name: 'B', order: 1, createdAt: 2 },
+  ])
   await db.workouts.bulkPut([
-    workout({ id: 'w1', startedAt: 1000, exercises: [logged('c1', [set({ weight: 50.5, reps: 7, rpe: 8.5 })])], totalVolumeKg: 353.5, totalSets: 1, totalReps: 7, effort: 4, feeling: 3, notes: 'hi' }),
-    workout({ id: 'w2', startedAt: 2000, status: 'active', finishedAt: null, exercises: [logged('squat-barbell', [set({ completed: false, weight: null, reps: null })])] }),
+    workout({
+      id: 'w1',
+      startedAt: 1000,
+      exercises: [logged('c1', [set({ weight: 50.5, reps: 7, rpe: 8.5 })])],
+      totalVolumeKg: 353.5,
+      totalSets: 1,
+      totalReps: 7,
+      effort: 4,
+      feeling: 3,
+      notes: 'hi',
+    }),
+    workout({
+      id: 'w2',
+      startedAt: 2000,
+      status: 'active',
+      finishedAt: null,
+      exercises: [logged('squat-barbell', [set({ completed: false, weight: null, reps: null })])],
+    }),
   ])
   await db.measurements.put({ id: 'm1', type: 'bodyweight', value: 81.2, takenAt: 5 })
   await db.settings.put({ ...DEFAULT_SETTINGS, weightUnit: 'lb', bodyweightKg: 80, availablePlatesKg: [20, 10] })
@@ -66,8 +92,13 @@ describe('backup round trip', () => {
 
   it('missing measurements (v1 file) restores with zero measurements and backfills settings', async () => {
     const v1 = {
-      app: 'ironlog', version: 1, exportedAt: 1,
-      exercises: [], workouts: [workout({ id: 'w1' })], routines: [], folders: [],
+      app: 'ironlog',
+      version: 1,
+      exportedAt: 1,
+      exercises: [],
+      workouts: [workout({ id: 'w1' })],
+      routines: [],
+      folders: [],
       settings: { id: 1, weightUnit: 'lb' },
     }
     await db.measurements.put({ id: 'old', type: 'waist', value: 1, takenAt: 1 })
@@ -92,7 +123,16 @@ describe('backup round trip', () => {
 })
 
 describe('parseBackup validation', () => {
-  const ok = { app: 'trana', version: 2, exportedAt: 1, exercises: [], workouts: [], routines: [], folders: [], settings: DEFAULT_SETTINGS }
+  const ok = {
+    app: 'trana',
+    version: 2,
+    exportedAt: 1,
+    exercises: [],
+    workouts: [],
+    routines: [],
+    folders: [],
+    settings: DEFAULT_SETTINGS,
+  }
 
   it('accepts current and older versions, and foreign app markers when shape is right', () => {
     expect(parseBackup(JSON.stringify(ok)).version).toBe(2)
@@ -131,7 +171,9 @@ describe('parseBackup validation', () => {
     const before = await snapshot()
     await expect(restoreBackup('{"version":99}')).rejects.toThrow()
     await expect(restoreBackup('garbage')).rejects.toThrow()
-    await expect(restoreBackup(JSON.stringify({ version: 2, exercises: [], workouts: [], routines: [] }))).rejects.toThrow()
+    await expect(
+      restoreBackup(JSON.stringify({ version: 2, exercises: [], workouts: [], routines: [] })),
+    ).rejects.toThrow()
     expect(await snapshot()).toEqual(before)
   })
 
@@ -141,9 +183,14 @@ describe('parseBackup validation', () => {
     // A workout whose exerciseIds is not indexable would still store; instead force a
     // failure with a non-clonable value to prove the transaction is atomic.
     const bad = {
-      app: 'trana', version: 2, exportedAt: 1, exercises: [{ id: 'x', name: 'x' }],
+      app: 'trana',
+      version: 2,
+      exportedAt: 1,
+      exercises: [{ id: 'x', name: 'x' }],
       workouts: [{ id: 'w-bad', exerciseIds: ['a'] }, { /* no id: primary key missing */ name: 'broken' }],
-      routines: [], folders: [], settings: DEFAULT_SETTINGS,
+      routines: [],
+      folders: [],
+      settings: DEFAULT_SETTINGS,
     }
     await expect(restoreBackup(JSON.stringify(bad))).rejects.toThrow()
     expect(await snapshot()).toEqual(before)
@@ -158,8 +205,16 @@ describe('parseBackup validation', () => {
 })
 
 describe('large fixtures', () => {
-  const cases: [string, string, { exercises: number; workouts: number; routines: number; folders: number; measurements: number }][] = [
-    ['src/dev/synthetic-dataset.json', 'synthetic', { exercises: 219, workouts: 145, routines: 22, folders: 5, measurements: 327 }],
+  const cases: [
+    string,
+    string,
+    { exercises: number; workouts: number; routines: number; folders: number; measurements: number },
+  ][] = [
+    [
+      'src/dev/synthetic-dataset.json',
+      'synthetic',
+      { exercises: 219, workouts: 145, routines: 22, folders: 5, measurements: 327 },
+    ],
     ['qa/qa-dataset.json', 'qa', { exercises: 211, workouts: 21, routines: 9, folders: 0, measurements: 16 }],
   ]
   for (const [path, label, counts] of cases) {
@@ -200,8 +255,10 @@ describe('large fixtures', () => {
     for (const [path] of cases) {
       const p = parseBackup(readFixture(path))
       const ids = new Set(p.exercises.map((e) => e.id))
-      for (const w of p.workouts) for (const le of w.exercises) expect(ids.has(le.exerciseId), `${path} ${w.id}`).toBe(true)
-      for (const r of p.routines) for (const re of r.exercises) expect(ids.has(re.exerciseId), `${path} ${r.id}`).toBe(true)
+      for (const w of p.workouts)
+        for (const le of w.exercises) expect(ids.has(le.exerciseId), `${path} ${w.id}`).toBe(true)
+      for (const r of p.routines)
+        for (const re of r.exercises) expect(ids.has(re.exerciseId), `${path} ${r.id}`).toBe(true)
     }
   })
 

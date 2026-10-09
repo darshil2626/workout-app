@@ -66,18 +66,12 @@ function recordTile(
 ): { value: string; label: string } | null {
   switch (kind) {
     case 'weight':
-      return records.weight > 0
-        ? { value: fmt.weight(records.weight), label: `Heaviest ${fmt.weightUnit}` }
-        : null
+      return records.weight > 0 ? { value: fmt.weight(records.weight), label: `Heaviest ${fmt.weightUnit}` } : null
     case 'oneRm':
       // An estimate, so one decimal — 134.17 kg implies precision it lacks.
-      return records.oneRm > 0
-        ? { value: fmt.weight(Math.round(records.oneRm * 10) / 10), label: 'Est. 1RM' }
-        : null
+      return records.oneRm > 0 ? { value: fmt.weight(Math.round(records.oneRm * 10) / 10), label: 'Est. 1RM' } : null
     case 'volume':
-      return records.volume > 0
-        ? { value: fmt.volumeCompact(records.volume), label: 'Best set vol.' }
-        : null
+      return records.volume > 0 ? { value: fmt.volumeCompact(records.volume), label: 'Best set vol.' } : null
     case 'sessionVolume':
       return records.sessionVolume > 0
         ? { value: fmt.volumeCompact(records.sessionVolume), label: 'Best session vol.' }
@@ -85,9 +79,7 @@ function recordTile(
     case 'reps':
       return records.reps > 0 ? { value: String(records.reps), label: 'Most reps' } : null
     case 'duration':
-      return records.duration > 0
-        ? { value: fmt.duration(records.duration), label: 'Longest' }
-        : null
+      return records.duration > 0 ? { value: fmt.duration(records.duration), label: 'Longest' } : null
     case 'distance':
       return records.distance > 0
         ? { value: fmt.distance(records.distance), label: `Furthest ${fmt.distanceUnit}` }
@@ -121,49 +113,30 @@ export function ExerciseDetailPage() {
   // Folded by the same helper the in-workout PR badges use, so the records on
   // this page and the badges during a session can never disagree.
   const records = useMemo(
-    () =>
-      exercise
-        ? recordsFromHistory(history, exercise.kind, fmt.settings.bodyweightKg, countWarmups)
-        : null,
+    () => (exercise ? recordsFromHistory(history, exercise.kind, fmt.settings.bodyweightKg, countWarmups) : null),
     [history, exercise, fmt.settings.bodyweightKg, countWarmups],
   )
 
-  const recordKinds = useMemo(
-    () => (exercise ? relevantKinds(exercise.kind) : []),
-    [exercise],
-  )
+  const recordKinds = useMemo(() => (exercise ? relevantKinds(exercise.kind) : []), [exercise])
 
   const totalSets = useMemo(
     () =>
-      history.reduce(
-        (n, { logged }) => n + logged.sets.filter((s) => countsTowardVolume(s, countWarmups)).length,
-        0,
-      ),
+      history.reduce((n, { logged }) => n + logged.sets.filter((s) => countsTowardVolume(s, countWarmups)).length, 0),
     [history, countWarmups],
   )
 
   const setRecords = useLiveQuery(
-    async () =>
-      id && exercise ? await loadSetRecords(id, exercise.kind, countWarmups) : ([] as SetRecord[]),
+    async () => (id && exercise ? await loadSetRecords(id, exercise.kind, countWarmups) : ([] as SetRecord[])),
     [id, exercise?.kind, countWarmups],
     [] as SetRecord[],
   )
 
-  const availableMetrics = useMemo(
-    () => (exercise ? metricsFor(exercise.kind) : []),
-    [exercise],
-  )
+  const availableMetrics = useMemo(() => (exercise ? metricsFor(exercise.kind) : []), [exercise])
   const activeMetric: ProgressMetric = metric ?? availableMetrics[0] ?? 'heaviest'
 
   const points = useMemo(() => {
     if (!exercise) return []
-    const all = exerciseProgress(
-      history,
-      exercise,
-      activeMetric,
-      fmt.settings.bodyweightKg,
-      countWarmups,
-    )
+    const all = exerciseProgress(history, exercise, activeMetric, fmt.settings.bodyweightKg, countWarmups)
     return withinRange(all, range)
   }, [exercise, history, activeMetric, range, fmt.settings.bodyweightKg, countWarmups])
 
@@ -243,9 +216,7 @@ export function ExerciseDetailPage() {
         // page only ever renders one such span, for the one exercise it's
         // showing, so there is never a duplicate to collide with).
         title={
-          <span style={{ viewTransitionName: `exercise-name-${exercise.id}` } as CSSProperties}>
-            {exercise.name}
-          </span>
+          <span style={{ viewTransitionName: `exercise-name-${exercise.id}` } as CSSProperties}>{exercise.name}</span>
         }
         back={true}
         right={
@@ -342,13 +313,8 @@ export function ExerciseDetailPage() {
                 </button>
               ))}
               table={{
-                columns: [
-                  { header: 'Date' },
-                  { header: PROGRESS_METRIC_LABEL[activeMetric], numeric: true },
-                ],
-                rows: [...points]
-                  .reverse()
-                  .map((p) => [new Date(p.date).toLocaleDateString(), formatMetric(p.value)]),
+                columns: [{ header: 'Date' }, { header: PROGRESS_METRIC_LABEL[activeMetric], numeric: true }],
+                rows: [...points].reverse().map((p) => [new Date(p.date).toLocaleDateString(), formatMetric(p.value)]),
               }}
               empty="No sessions in this range."
             >
@@ -366,8 +332,8 @@ export function ExerciseDetailPage() {
           <>
             <div className="section-title">Set records</div>
             <p className="faint" style={{ marginBottom: 8 }}>
-              Heaviest weight lifted at each rep count. These are not personal records and earn no
-              badge so together they describe a strength curve that a single 1RM estimate flattens.
+              Heaviest weight lifted at each rep count. These are not personal records and earn no badge so together
+              they describe a strength curve that a single 1RM estimate flattens.
             </p>
             <div className="card set-records">
               <table className="chart-table">

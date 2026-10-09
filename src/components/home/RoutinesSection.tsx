@@ -107,8 +107,7 @@ export function RoutinesSection({
           <div className="empty-icon">📋</div>
           <h3>No routines yet</h3>
           <p className="muted">
-            Build a routine once and every session starts pre-filled with your exercises and target
-            sets.
+            Build a routine once and every session starts pre-filled with your exercises and target sets.
           </p>
         </div>
       )}
@@ -245,11 +244,7 @@ function RoutineCard({
             </ul>
           )}
         </button>
-        <button
-          className="btn btn-primary btn-sm btn-block"
-          style={{ marginTop: 10 }}
-          onClick={onStart}
-        >
+        <button className="btn btn-primary btn-sm btn-block" style={{ marginTop: 10 }} onClick={onStart}>
           <IconPlay />
           Start routine
         </button>

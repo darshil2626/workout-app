@@ -86,13 +86,11 @@ export function ExercisePicker({
               <IconPlus />
               New
             </button>
-            <button
-              className="btn btn-primary grow"
-              disabled={selected.length === 0}
-              onClick={confirm}
-            >
+            <button className="btn btn-primary grow" disabled={selected.length === 0} onClick={confirm}>
               {selected.length === 0
-                ? (confirmLabel ? 'Select an exercise' : 'Select exercises')
+                ? confirmLabel
+                  ? 'Select an exercise'
+                  : 'Select exercises'
                 : (confirmLabel ?? `Add ${selected.length} exercise${selected.length > 1 ? 's' : ''}`)}
             </button>
           </>
@@ -112,11 +110,7 @@ export function ExercisePicker({
 
         <div className="chips" style={{ marginBottom: 6 }}>
           {muscles.map((m) => (
-            <button
-              key={m}
-              className={`chip${muscle === m ? ' active' : ''}`}
-              onClick={() => setMuscle(m)}
-            >
+            <button key={m} className={`chip${muscle === m ? ' active' : ''}`} onClick={() => setMuscle(m)}>
               {m}
             </button>
           ))}

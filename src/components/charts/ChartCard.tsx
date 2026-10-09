@@ -73,11 +73,7 @@ export function ChartCard({
         </div>
         {action}
         {!isEmpty && (
-          <button
-            className="chart-toggle"
-            onClick={() => setShowTable((v) => !v)}
-            aria-pressed={showTable}
-          >
+          <button className="chart-toggle" onClick={() => setShowTable((v) => !v)} aria-pressed={showTable}>
             {showTable ? 'Chart' : 'Table'}
           </button>
         )}
@@ -89,7 +85,9 @@ export function ChartCard({
       {isEmpty ? (
         emptyState ? (
           <div className="chart-empty">
-            <div className="chart-empty-preview" aria-hidden="true">{emptyState.preview}</div>
+            <div className="chart-empty-preview" aria-hidden="true">
+              {emptyState.preview}
+            </div>
             <p className="muted">{emptyState.message}</p>
             {emptyState.cta}
           </div>

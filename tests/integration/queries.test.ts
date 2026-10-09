@@ -26,10 +26,31 @@ describe('getPreviousPerformance', () => {
 
   it('picks the latest done session with a completed set; ignores active, excluded, incomplete', async () => {
     await db.workouts.bulkPut([
-      workout({ id: 'old', startedAt: T0, finishedAt: T0 + 1, exercises: [logged(BENCH, [set({ weight: 50, reps: 10 })])] }),
-      workout({ id: 'new', startedAt: T0 + DAY, finishedAt: T0 + DAY + 1, exercises: [logged(BENCH, [set({ weight: 60, reps: 8 }), set({ weight: 99, reps: 1, completed: false })])] }),
-      workout({ id: 'newest-incomplete', startedAt: T0 + 2 * DAY, finishedAt: T0 + 2 * DAY + 1, exercises: [logged(BENCH, [set({ completed: false })])] }),
-      workout({ id: 'act', status: 'active', finishedAt: null, startedAt: T0 + 3 * DAY, exercises: [logged(BENCH, [set({ weight: 200 })])] }),
+      workout({
+        id: 'old',
+        startedAt: T0,
+        finishedAt: T0 + 1,
+        exercises: [logged(BENCH, [set({ weight: 50, reps: 10 })])],
+      }),
+      workout({
+        id: 'new',
+        startedAt: T0 + DAY,
+        finishedAt: T0 + DAY + 1,
+        exercises: [logged(BENCH, [set({ weight: 60, reps: 8 }), set({ weight: 99, reps: 1, completed: false })])],
+      }),
+      workout({
+        id: 'newest-incomplete',
+        startedAt: T0 + 2 * DAY,
+        finishedAt: T0 + 2 * DAY + 1,
+        exercises: [logged(BENCH, [set({ completed: false })])],
+      }),
+      workout({
+        id: 'act',
+        status: 'active',
+        finishedAt: null,
+        startedAt: T0 + 3 * DAY,
+        exercises: [logged(BENCH, [set({ weight: 200 })])],
+      }),
       workout({ id: 'other', startedAt: T0 + 4 * DAY, exercises: [logged('squat-barbell', [set()])] }),
     ])
     const p = await getPreviousPerformance(BENCH)
@@ -53,9 +74,23 @@ describe('getPreviousSessionTotals', () => {
   it('matches by routine when given, otherwise by name among done sessions', async () => {
     await db.workouts.bulkPut([
       workout({ id: 'r1', name: 'Push', routineId: 'R', startedAt: T0, finishedAt: T0 + 1, totalVolumeKg: 100 }),
-      workout({ id: 'r2', name: 'Renamed', routineId: 'R', startedAt: T0 + DAY, finishedAt: T0 + DAY + 1, totalVolumeKg: 200 }),
+      workout({
+        id: 'r2',
+        name: 'Renamed',
+        routineId: 'R',
+        startedAt: T0 + DAY,
+        finishedAt: T0 + DAY + 1,
+        totalVolumeKg: 200,
+      }),
       workout({ id: 'f1', name: 'Pull', startedAt: T0 + 2 * DAY, finishedAt: T0 + 2 * DAY + 1, totalVolumeKg: 300 }),
-      workout({ id: 'f2', name: 'Pull', startedAt: T0 + 3 * DAY, totalVolumeKg: 400, status: 'active', finishedAt: null }),
+      workout({
+        id: 'f2',
+        name: 'Pull',
+        startedAt: T0 + 3 * DAY,
+        totalVolumeKg: 400,
+        status: 'active',
+        finishedAt: null,
+      }),
     ])
     expect((await getPreviousSessionTotals('x', 'R'))?.totalVolumeKg).toBe(200)
     expect((await getPreviousSessionTotals('x', 'R', 'r2'))?.totalVolumeKg).toBe(100)
@@ -68,8 +103,19 @@ describe('getExerciseHistory', () => {
   it('lists done sessions newest first, one entry per logged occurrence', async () => {
     await db.workouts.bulkPut([
       workout({ id: 'a', startedAt: T0, finishedAt: T0 + 1, exercises: [logged(BENCH, [set()])] }),
-      workout({ id: 'b', startedAt: T0 + DAY, finishedAt: T0 + DAY + 1, exercises: [logged(BENCH, [set()]), logged(BENCH, [set()])] }),
-      workout({ id: 'c', startedAt: T0 + 2 * DAY, status: 'active', finishedAt: null, exercises: [logged(BENCH, [set()])] }),
+      workout({
+        id: 'b',
+        startedAt: T0 + DAY,
+        finishedAt: T0 + DAY + 1,
+        exercises: [logged(BENCH, [set()]), logged(BENCH, [set()])],
+      }),
+      workout({
+        id: 'c',
+        startedAt: T0 + 2 * DAY,
+        status: 'active',
+        finishedAt: null,
+        exercises: [logged(BENCH, [set()])],
+      }),
     ])
     const h = await getExerciseHistory(BENCH)
     expect(h.map((x) => x.workout.id)).toEqual(['b', 'b', 'a'])
@@ -80,10 +126,24 @@ describe('getExerciseHistory', () => {
 describe('records', () => {
   beforeEach(async () => {
     await db.workouts.bulkPut([
-      workout({ id: 'w1', startedAt: T0, exercises: [logged(BENCH, [set({ weight: 100, reps: 5 }), set({ weight: 140, reps: 3, setType: 'warmup' })])] }),
-      workout({ id: 'w2', startedAt: T0 + DAY, exercises: [logged(BENCH, [set({ weight: 100, reps: 8 }), set({ weight: 110, reps: 1, completed: false })])] }),
+      workout({
+        id: 'w1',
+        startedAt: T0,
+        exercises: [logged(BENCH, [set({ weight: 100, reps: 5 }), set({ weight: 140, reps: 3, setType: 'warmup' })])],
+      }),
+      workout({
+        id: 'w2',
+        startedAt: T0 + DAY,
+        exercises: [logged(BENCH, [set({ weight: 100, reps: 8 }), set({ weight: 110, reps: 1, completed: false })])],
+      }),
       workout({ id: 'w3', startedAt: T0 + 2 * DAY, exercises: [logged(BENCH, [set({ weight: 120, reps: 3 })])] }),
-      workout({ id: 'act', status: 'active', finishedAt: null, startedAt: T0 + 3 * DAY, exercises: [logged(BENCH, [set({ weight: 500, reps: 5 })])] }),
+      workout({
+        id: 'act',
+        status: 'active',
+        finishedAt: null,
+        startedAt: T0 + 3 * DAY,
+        exercises: [logged(BENCH, [set({ weight: 500, reps: 5 })])],
+      }),
     ])
   })
 
@@ -132,9 +192,20 @@ describe('records', () => {
   })
 
   it('loadSetRecords: heaviest per rep count, first achieved date wins ties', async () => {
-    await db.workouts.put(workout({ id: 'tie', startedAt: T0 + 5 * DAY, finishedAt: T0 + 5 * DAY + 1, exercises: [logged(BENCH, [set({ weight: 100, reps: 5 })])] }))
+    await db.workouts.put(
+      workout({
+        id: 'tie',
+        startedAt: T0 + 5 * DAY,
+        finishedAt: T0 + 5 * DAY + 1,
+        exercises: [logged(BENCH, [set({ weight: 100, reps: 5 })])],
+      }),
+    )
     const recs = await loadSetRecords(BENCH, 'weight_reps', false)
-    expect(recs.map((r) => [r.reps, r.weightKg])).toEqual([[3, 120], [5, 100], [8, 100]])
+    expect(recs.map((r) => [r.reps, r.weightKg])).toEqual([
+      [3, 120],
+      [5, 100],
+      [8, 100],
+    ])
     expect(recs.find((r) => r.reps === 5)!.achievedAt).toBe(T0 + 3_600_000) // w1 finishedAt, not the later tie
     expect(await loadSetRecords(BENCH, 'duration', false)).toEqual([])
   })
@@ -145,10 +216,14 @@ describe('strengthTrend', () => {
 
   async function sessions(exerciseId: string, count: number, startDaysAgo = 7) {
     for (let i = 0; i < count; i++) {
-      await db.workouts.put(workout({
-        id: `${exerciseId}-${i}`, startedAt: NOW - (startDaysAgo - i) * DAY, finishedAt: NOW - (startDaysAgo - i) * DAY + 1,
-        exercises: [logged(exerciseId, [set({ weight: 100 + i * 5, reps: 1 })])],
-      }))
+      await db.workouts.put(
+        workout({
+          id: `${exerciseId}-${i}`,
+          startedAt: NOW - (startDaysAgo - i) * DAY,
+          finishedAt: NOW - (startDaysAgo - i) * DAY + 1,
+          exercises: [logged(exerciseId, [set({ weight: 100 + i * 5, reps: 1 })])],
+        }),
+      )
     }
   }
 
@@ -164,7 +239,15 @@ describe('strengthTrend', () => {
 
   it('ignores sessions outside the 8-week window and active ones', async () => {
     await sessions(BENCH, 3, 100) // ~14 weeks ago
-    await db.workouts.put(workout({ id: 'act', status: 'active', finishedAt: null, startedAt: NOW - DAY, exercises: [logged(BENCH, [set()])] }))
+    await db.workouts.put(
+      workout({
+        id: 'act',
+        status: 'active',
+        finishedAt: null,
+        startedAt: NOW - DAY,
+        exercises: [logged(BENCH, [set()])],
+      }),
+    )
     expect(await strengthTrend(await db.workouts.toArray(), await exMap(), null, false, undefined, NOW)).toEqual([])
   })
 

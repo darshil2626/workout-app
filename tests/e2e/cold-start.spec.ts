@@ -15,8 +15,14 @@ test.describe('cold start with an empty database', () => {
     await page.goto('/')
     await waitForApp(page)
     await page.locator('.card', { hasText: 'Full Body Starter' }).getByRole('button').first().click()
-    await page.getByRole('dialog').getByRole('button', { name: /Delete routine/ }).click()
-    await page.getByRole('dialog', { name: /Delete/ }).getByRole('button', { name: 'Delete', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Delete routine/ })
+      .click()
+    await page
+      .getByRole('dialog', { name: /Delete/ })
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click()
     await expect(page.getByRole('heading', { name: /log the first one/i })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Start empty workout' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Build a routine first' })).toBeVisible()

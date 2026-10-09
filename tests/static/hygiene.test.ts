@@ -16,7 +16,9 @@ function walk(dir: string, exts: RegExp, out: string[] = []): string[] {
 
 /** Strip comments and string-free noise cheaply enough for grep-style checks. */
 function code(file: string): string {
-  return readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  return readFileSync(file, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
 }
 
 function offenders(files: string[], re: RegExp): string[] {

@@ -21,8 +21,7 @@ export function detectFormat(text: string): DetectedFormat {
       const obj: unknown = JSON.parse(trimmed)
       if (obj && typeof obj === 'object') {
         const o = obj as { app?: unknown; version?: unknown; workouts?: unknown; exercises?: unknown }
-        const looksLikeBackup =
-          typeof o.version === 'number' && Array.isArray(o.workouts) && Array.isArray(o.exercises)
+        const looksLikeBackup = typeof o.version === 'number' && Array.isArray(o.workouts) && Array.isArray(o.exercises)
         if (looksLikeBackup || o.app === APP_MARKER) return 'backup'
       }
     } catch {

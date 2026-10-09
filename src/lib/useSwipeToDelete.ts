@@ -85,29 +85,32 @@ export function useSwipeToDelete(onDelete: (id: string) => void, threshold = 80)
     window.removeEventListener('pointercancel', handleEnd)
   }, [])
 
-  const handleMove = useCallback((e: PointerEvent) => {
-    const t = track.current
-    if (!t || e.pointerId !== t.pointerId) return
-    const dx = e.clientX - t.startX
-    const dy = e.clientY - t.startY
+  const handleMove = useCallback(
+    (e: PointerEvent) => {
+      const t = track.current
+      if (!t || e.pointerId !== t.pointerId) return
+      const dx = e.clientX - t.startX
+      const dy = e.clientY - t.startY
 
-    if (!t.committed) {
-      if (Math.abs(dx) < INTENT_PX && Math.abs(dy) < INTENT_PX) return
-      if (Math.abs(dy) > Math.abs(dx)) {
-        // Vertical intent wins — this was a scroll, not a swipe. Bail out
-        // entirely and let the page's native scrolling (already under way)
-        // carry on unimpeded.
-        track.current = null
-        removeListeners()
-        return
+      if (!t.committed) {
+        if (Math.abs(dx) < INTENT_PX && Math.abs(dy) < INTENT_PX) return
+        if (Math.abs(dy) > Math.abs(dx)) {
+          // Vertical intent wins — this was a scroll, not a swipe. Bail out
+          // entirely and let the page's native scrolling (already under way)
+          // carry on unimpeded.
+          track.current = null
+          removeListeners()
+          return
+        }
+        t.committed = true
       }
-      t.committed = true
-    }
 
-    const clamped = Math.min(0, Math.max(-t.width, dx))
-    t.dx = clamped
-    setActive({ id: t.id, dx: clamped, width: t.width })
-  }, [removeListeners])
+      const clamped = Math.min(0, Math.max(-t.width, dx))
+      t.dx = clamped
+      setActive({ id: t.id, dx: clamped, width: t.width })
+    },
+    [removeListeners],
+  )
 
   const handleEnd = useCallback(() => {
     const t = track.current

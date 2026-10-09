@@ -25,8 +25,8 @@ export function PlateCalculator({ open, targetKg, onClose }: Props) {
       ) : solution === null ? (
         <p className="muted">
           {formatWeight(targetKg, weightUnit)} {weightUnit} is less than the bar (
-          {formatWeight(barWeightKg, weightUnit)} {weightUnit}). Change the bar weight in Settings if
-          you use a lighter one.
+          {formatWeight(barWeightKg, weightUnit)} {weightUnit}). Change the bar weight in Settings if you use a lighter
+          one.
         </p>
       ) : (
         <>
@@ -66,9 +66,9 @@ export function PlateCalculator({ open, targetKg, onClose }: Props) {
 
           {solution.remainderKg > 0.01 && (
             <p className="plate-warning">
-              Closest loadable weight is {formatWeight(solution.achievedKg, weightUnit)}{' '}
-              {weightUnit} which is {formatWeight(solution.remainderKg * 2, weightUnit)} {weightUnit} short.
-              Add smaller plates to your inventory in Settings if you have them.
+              Closest loadable weight is {formatWeight(solution.achievedKg, weightUnit)} {weightUnit} which is{' '}
+              {formatWeight(solution.remainderKg * 2, weightUnit)} {weightUnit} short. Add smaller plates to your
+              inventory in Settings if you have them.
             </p>
           )}
         </>

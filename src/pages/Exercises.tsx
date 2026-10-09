@@ -53,20 +53,10 @@ export function ExercisesPage() {
   // One bulk load, not one query per row: `exerciseSparklines` groups these
   // in memory, so a ~150-row library costs a single Dexie read here rather
   // than a `getExerciseHistory` call per exercise.
-  const workouts = useLiveQuery(
-    () => db.workouts.where('status').equals('done').toArray(),
-    [],
-    [] as Workout[],
-  )
+  const workouts = useLiveQuery(() => db.workouts.where('status').equals('done').toArray(), [], [] as Workout[])
   const exerciseById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
   const sparklines = useMemo(
-    () =>
-      exerciseSparklines(
-        workouts,
-        exerciseById,
-        fmt.settings.bodyweightKg,
-        fmt.settings.countWarmupSets,
-      ),
+    () => exerciseSparklines(workouts, exerciseById, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets),
     [workouts, exerciseById, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
 
@@ -142,11 +132,7 @@ export function ExercisesPage() {
 
           <div className="chips" style={{ marginTop: 10 }}>
             {muscles.map((m) => (
-              <button
-                key={m}
-                className={`chip${muscle === m ? ' active' : ''}`}
-                onClick={() => setMuscle(m)}
-              >
+              <button key={m} className={`chip${muscle === m ? ' active' : ''}`} onClick={() => setMuscle(m)}>
                 {m}
               </button>
             ))}

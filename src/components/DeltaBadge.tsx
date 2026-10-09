@@ -26,10 +26,7 @@ export function DeltaBadge({
   className?: string
 }) {
   return (
-    <span
-      className={`delta-badge${up ? ' up' : ' down'}${className ? ` ${className}` : ''}`}
-      aria-label={label}
-    >
+    <span className={`delta-badge${up ? ' up' : ' down'}${className ? ` ${className}` : ''}`} aria-label={label}>
       {up ? <IconTriangleUp /> : <IconTriangleDown />}
       <span aria-hidden="true">{text}</span>
     </span>

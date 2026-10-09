@@ -57,10 +57,7 @@ export function LineChart({
   // Breathing room so the line never sits flush against the top or bottom rule.
   const spread = maxV - minV
   const margin = spread > 0 ? spread * 0.15 : Math.max(maxV * 0.05, 1)
-  const ticks =
-    baseline === 'zero'
-      ? niceTicks(0, maxV, 4)
-      : niceTicks(Math.max(0, minV - margin), maxV + margin, 4)
+  const ticks = baseline === 'zero' ? niceTicks(0, maxV, 4) : niceTicks(Math.max(0, minV - margin), maxV + margin, 4)
   const domainMin = baseline === 'zero' ? 0 : ticks[0]
   const domainMax = ticks[ticks.length - 1]
 
@@ -159,27 +156,14 @@ export function LineChart({
 
           {/* One marker per session, so a lone point after a long gap is still
               visible and clusters read as clusters rather than as a flat line. */}
-          {showPoints &&
-            coords.map((c, i) => (
-              <circle key={i} cx={c.px} cy={c.py} r={2.5} className="chart-point" />
-            ))}
+          {showPoints && coords.map((c, i) => <circle key={i} cx={c.px} cy={c.py} r={2.5} className="chart-point" />)}
 
           {/* Crosshair for the inspected point. */}
-          {shown && (
-            <line
-              x1={shown.px}
-              x2={shown.px}
-              y1={PAD.top}
-              y2={PAD.top + plotH}
-              className="chart-crosshair"
-            />
-          )}
+          {shown && <line x1={shown.px} x2={shown.px} y1={PAD.top} y2={PAD.top + plotH} className="chart-crosshair" />}
 
           {/* End marker carries a surface ring so it stays legible over the line. */}
           <circle cx={last.px} cy={last.py} r={5} className="chart-dot" />
-          {shown && shown !== last && (
-            <circle cx={shown.px} cy={shown.py} r={5} className="chart-dot" />
-          )}
+          {shown && shown !== last && <circle cx={shown.px} cy={shown.py} r={5} className="chart-dot" />}
 
           {/* Only the endpoint is directly labelled; the axis and tooltip carry the rest. */}
           {!shown && (

@@ -110,7 +110,11 @@ const routine = (name, order, exerciseIds, lastPerformedAt = null) => ({
   lastPerformedAt,
 })
 
-const R1 = routine('R1 Stale stamp ran via routine', 0, ['bench-press-barbell', 'squat-barbell', 'overhead-press-barbell'])
+const R1 = routine('R1 Stale stamp ran via routine', 0, [
+  'bench-press-barbell',
+  'squat-barbell',
+  'overhead-press-barbell',
+])
 const R2 = routine('R2 Freeform covers all', 1, ['deadlift-barbell', 'lat-pulldown-cable', 'bicep-curl-dumbbell'])
 const R3 = routine('R3 Partially covered', 2, ['pull-up', 'plank', 'inverted-row'])
 const R4 = routine('R4 Never done', 3, ['push-up', 'crunch'])
@@ -121,9 +125,20 @@ const R8 = routine(
   'R8 A deliberately very long routine name to check truncation and wrapping on a narrow phone screen',
   7,
   [
-    'bench-press-barbell', 'squat-barbell', 'overhead-press-barbell', 'deadlift-barbell',
-    'lat-pulldown-cable', 'bicep-curl-dumbbell', 'pull-up', 'plank', 'rowing-machine',
-    'push-up', 'crunch', 'seal-row', 'farmers-walk', 'assisted-pull-up',
+    'bench-press-barbell',
+    'squat-barbell',
+    'overhead-press-barbell',
+    'deadlift-barbell',
+    'lat-pulldown-cable',
+    'bicep-curl-dumbbell',
+    'pull-up',
+    'plank',
+    'rowing-machine',
+    'push-up',
+    'crunch',
+    'seal-row',
+    'farmers-walk',
+    'assisted-pull-up',
   ],
 )
 const R9 = routine('R9 Matched by name', 8, ['crunch', 'cable-crunch'])
@@ -179,10 +194,7 @@ workouts.push(
   workout({
     name: 'Partial bodyweight',
     ago: 4,
-    exercises: [
-      block('pull-up', [S(null, 8), S(null, 7), S(null, 6)]),
-      block('plank', [hold(60), hold(75), hold(90)]),
-    ],
+    exercises: [block('pull-up', [S(null, 8), S(null, 7), S(null, 6)]), block('plank', [hold(60), hold(75), hold(90)])],
   }),
 )
 ;[12, 19, 26].forEach((ago, i) => {
@@ -223,8 +235,14 @@ workouts.push(
     ago: 40,
     feeling: 5,
     exercises: [
-      'bench-press-barbell', 'squat-barbell', 'deadlift-barbell', 'overhead-press-barbell',
-      'lat-pulldown-cable', 'bicep-curl-dumbbell', 'seated-cable-row', 'crunch',
+      'bench-press-barbell',
+      'squat-barbell',
+      'deadlift-barbell',
+      'overhead-press-barbell',
+      'lat-pulldown-cable',
+      'bicep-curl-dumbbell',
+      'seated-cable-row',
+      'crunch',
     ].map((e) => block(e, [S(40, 10), S(40, 10)])),
   }),
   workout({
@@ -323,4 +341,6 @@ const expected = {
 mkdirSync(OUT_DIR, { recursive: true })
 writeFileSync(join(OUT_DIR, 'qa-dataset.json'), JSON.stringify(backup, null, 1))
 writeFileSync(join(OUT_DIR, 'qa-expected.json'), JSON.stringify(expected, null, 2))
-console.log(`Wrote ${workouts.length} workouts, ${routines.length} routines, ${measurements.length} measurements to ${OUT_DIR}`)
+console.log(
+  `Wrote ${workouts.length} workouts, ${routines.length} routines, ${measurements.length} measurements to ${OUT_DIR}`,
+)

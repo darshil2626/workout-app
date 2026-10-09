@@ -60,12 +60,7 @@ export function setPRKinds(kind: ExerciseKind): PRKind[] {
   return relevantKinds(kind).filter((k): k is PRKind => k !== 'sessionVolume')
 }
 
-function foldSet(
-  records: ExerciseRecords,
-  set: LoggedSet,
-  kind: ExerciseKind,
-  bodyweightKg: number | null,
-): void {
+function foldSet(records: ExerciseRecords, set: LoggedSet, kind: ExerciseKind, bodyweightKg: number | null): void {
   const loaded = prWeightKg(set, kind)
   if (loaded > records.weight) records.weight = loaded
   if (set.reps && set.reps > records.reps) records.reps = set.reps

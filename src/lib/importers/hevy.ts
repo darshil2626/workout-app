@@ -7,34 +7,11 @@ import {
   buildSetValues,
   ExerciseResolver,
   normalizeSetType,
+  parseImportDate,
   parseFloatOrNull,
   type ParsedImport,
   type RowShape,
 } from './shared'
-
-const MONTHS: Record<string, number> = {
-  jan: 0,
-  feb: 1,
-  mar: 2,
-  apr: 3,
-  may: 4,
-  jun: 5,
-  jul: 6,
-  aug: 7,
-  sep: 8,
-  oct: 9,
-  nov: 10,
-  dec: 11,
-}
-
-function parseHevyDate(s: string): number | null {
-  const m = /^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\s+(\d{4}),?\s+(\d{1,2}):(\d{2})$/.exec(s.trim())
-  if (!m) return null
-  const [, d, mon, y, h, mi] = m
-  const month = MONTHS[mon.toLowerCase()]
-  if (month === undefined) return null
-  return new Date(Number(y), month, Number(d), Number(h), Number(mi)).getTime()
-}
 
 interface RawRow {
   weightKg: number | null
@@ -88,7 +65,7 @@ export function parseHevyCsv(text: string, existingExercises: Exercise[], bodywe
       warnings.push('Skipped a row missing a start time or exercise name.')
       continue
     }
-    const startedAt = parseHevyDate(startStr)
+    const startedAt = parseImportDate(startStr)
     if (startedAt === null) {
       warnings.push(`Skipped a row with an unreadable date: "${startStr}".`)
       continue
@@ -97,7 +74,7 @@ export function parseHevyCsv(text: string, existingExercises: Exercise[], bodywe
     const woKey = `${title}|${startStr}`
     let wo = workoutGroups.get(woKey)
     if (!wo) {
-      const endedAt = parseHevyDate(rec['end_time'] ?? '')
+      const endedAt = parseImportDate(rec['end_time'] ?? '')
       wo = {
         name: title || 'Workout',
         startedAt,

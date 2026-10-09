@@ -105,10 +105,129 @@ export function isSecondsHeader(headerKey: string | null): boolean {
   return /\(sec(?:ond)?s?\)/.test(headerKey)
 }
 
+/**
+ * A number as another country writes it. Exports follow the phone's locale, so
+ * a European file has "82,5" where an American one has "82.5", and a naive
+ * Number() turns the first into NaN and silently drops the weight.
+ *
+ * Handles: plain numbers; one comma as the decimal mark ("82,5", "0,125");
+ * both marks together, where the later one is the decimal ("1,234.5",
+ * "1.234,5"); and a lone comma followed by exactly three digits as a thousands
+ * group ("1,200"), unless the integer part is 0. Anything ambiguous or malformed
+ * ("1.2.3", "1,2,3") is null, so the row is skipped rather than guessed at.
+ */
 export function parseFloatOrNull(raw: string | undefined): number | null {
   if (raw === undefined) return null
-  const n = Number(raw.trim())
-  return Number.isFinite(n) && raw.trim() !== '' ? n : null
+  const text = raw.trim()
+  if (text === '') return null
+  if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(text)) return Number(text)
+
+  const m = /^([+-]?)(\d[\d.,]*)$/.exec(text)
+  if (!m) return null
+  const [, sign, body] = m
+  const lastComma = body.lastIndexOf(',')
+  const lastDot = body.lastIndexOf('.')
+  let normalised: string
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimal = lastComma > lastDot ? ',' : '.'
+    const group = decimal === ',' ? '.' : ','
+    if (body.split(decimal).length > 2) return null
+    normalised = body.split(group).join('').replace(decimal, '.')
+  } else if (lastComma >= 0) {
+    const parts = body.split(',')
+    if (parts.length === 2) {
+      const [whole, fraction] = parts
+      const thousands = fraction.length === 3 && whole !== '0' && whole.length <= 3
+      normalised = thousands ? whole + fraction : `${whole}.${fraction}`
+    } else if (parts.slice(1).every((p) => p.length === 3)) {
+      normalised = parts.join('')
+    } else {
+      return null
+    }
+  } else {
+    const parts = body.split('.')
+    if (parts.length > 2 && parts.slice(1).every((p) => p.length === 3)) normalised = parts.join('')
+    else return null
+  }
+  const n = Number(sign + normalised)
+  return Number.isFinite(n) ? n : null
+}
+
+const MONTHS: Record<string, number> = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+}
+
+/** Local time, rejecting impossible dates (31 Feb) rather than rolling them over. */
+function localTime(y: number, month: number, d: number, h: number, mi: number, s: number): number | null {
+  const date = new Date(y, month, d, h, mi, s)
+  const ok =
+    date.getFullYear() === y &&
+    date.getMonth() === month &&
+    date.getDate() === d &&
+    date.getHours() === h &&
+    date.getMinutes() === mi
+  return ok ? date.getTime() : null
+}
+
+function to24h(hour: number, meridiem: string | undefined): number | null {
+  if (meridiem === undefined) return hour
+  if (hour < 1 || hour > 12) return null
+  return (hour % 12) + (meridiem.toLowerCase() === 'pm' ? 12 : 0)
+}
+
+/**
+ * A timestamp as the exporting apps write it, in local time unless the text
+ * carries its own zone. Accepts:
+ *   2024-03-04 18:30:00   2024-03-04 18:30   2024-03-04T18:30:00Z / +01:00
+ *   4 Mar 2024, 18:30     4 March 2024, 18:30
+ *   Mar 4, 2024, 6:30 PM  March 4, 2024, 18:30
+ * Anything else is null, which the importer reports as an unreadable date.
+ */
+export function parseImportDate(raw: string): number | null {
+  const s = raw.trim()
+
+  let m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?\s*(Z|[+-]\d{2}:?\d{2})?$/i.exec(s)
+  if (m) {
+    const [, y, mo, d, h, mi, se, zone] = m
+    const parts = [Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se ?? 0)] as const
+    if (!zone) return localTime(...parts)
+    const utc = Date.UTC(...parts)
+    if (zone.toUpperCase() === 'Z') return utc
+    const sign = zone[0] === '-' ? -1 : 1
+    const digits = zone.slice(1).replace(':', '')
+    return utc - sign * (Number(digits.slice(0, 2)) * 60 + Number(digits.slice(2))) * 60_000
+  }
+
+  // "4 Mar 2024, 18:30" / "4 March 2024 6:30 PM"
+  m = /^(\d{1,2})\s+([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AP]M)?$/i.exec(s)
+  let month: number | undefined
+  let day: string | undefined
+  if (m) {
+    month = MONTHS[m[2].toLowerCase()]
+    day = m[1]
+  } else {
+    // "Mar 4, 2024, 6:30 PM" / "March 4, 2024, 18:30"
+    m = /^([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AP]M)?$/i.exec(s)
+    if (!m) return null
+    month = MONTHS[m[1].toLowerCase()]
+    day = m[2]
+  }
+  if (month === undefined) return null
+  const hour = to24h(Number(m[4]), m[7])
+  if (hour === null) return null
+  return localTime(Number(m[3]), month, Number(day), hour, Number(m[5]), Number(m[6] ?? 0))
 }
 
 /** Zeroes out fields an exercise kind doesn't use, so imported sets match native ones. */

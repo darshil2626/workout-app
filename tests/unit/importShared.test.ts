@@ -99,13 +99,16 @@ describe('parseFloatOrNull', () => {
     expect(parseFloatOrNull('0')).toBe(0)
     expect(parseFloatOrNull('-3')).toBe(-3)
   })
+  it('reads a decimal comma, as exported by phones set to a European locale', () => {
+    expect(parseFloatOrNull('1,5')).toBe(1.5)
+  })
   it('null for blank, undefined, garbage, non-finite', () => {
     expect(parseFloatOrNull(undefined)).toBeNull()
     expect(parseFloatOrNull('')).toBeNull()
     expect(parseFloatOrNull('   ')).toBeNull()
     expect(parseFloatOrNull('abc')).toBeNull()
     expect(parseFloatOrNull('Infinity')).toBeNull()
-    expect(parseFloatOrNull('1,5')).toBeNull() // comma decimals are not supported by this helper
+    expect(parseFloatOrNull('1,5,5')).toBeNull() // ambiguous, so skipped rather than guessed
   })
 })
 

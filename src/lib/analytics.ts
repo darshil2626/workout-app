@@ -21,6 +21,54 @@ let pending: Array<[string, Record<string, string | number | boolean> | undefine
 /** A runaway loop must not grow this without bound while offline. */
 const MAX_PENDING = 50
 
+/**
+ * Every event the app sends, by name. PostHog also has features that raise their
+ * own events (dead clicks, rage clicks, exceptions, heatmaps, web vitals), and
+ * several of them attach the visible text or markup of what was tapped, which in
+ * this app can be a workout or exercise name. Those are not on this list, so they
+ * are dropped before leaving the device, whatever the library or its server-side
+ * settings decide. Add a name here when adding a `track()` call, and to PRIVACY.md.
+ */
+export const ALLOWED_EVENTS: ReadonlySet<string> = new Set([
+  'app_opened',
+  'workout_started',
+  'workout_completed',
+  'routine_created',
+  'backup_exported',
+  'backup_imported',
+  'backup_restore_undone',
+  'csv_import_used',
+  'history_cleanup_run',
+  'exercise_match_run',
+  'theme_changed',
+  'pwa_install_prompt_shown',
+  'pwa_install_accepted',
+  'pwa_install_dismissed',
+  'render_error',
+  'unhandled_error',
+  'storage_persist',
+  // The library's own, and needed: one page view per screen, and the opt-in marker.
+  '$pageview',
+  '$opt_in',
+])
+
+/** What PostHog hands `before_send`: the event name and its property bags. */
+interface OutgoingEvent {
+  event: string
+  properties?: Record<string, unknown>
+  $set?: Record<string, unknown>
+  $set_once?: Record<string, unknown>
+}
+
+/** Returns the event with its URLs scrubbed of ids, or null to not send it at all. */
+export function filterOutgoingEvent<T extends OutgoingEvent>(event: T | null): T | null {
+  if (!event || !ALLOWED_EVENTS.has(event.event)) return null
+  for (const bag of [event.properties, event.$set, event.$set_once]) {
+    if (bag) sanitizeEventProperties(bag)
+  }
+  return event
+}
+
 /** Analytics runs only with an explicit yes; see Settings.analyticsConsentAt. */
 export function analyticsAllowed(settings: { analyticsEnabled: boolean; analyticsConsentAt: number | null }): boolean {
   return settings.analyticsEnabled && settings.analyticsConsentAt !== null
@@ -37,11 +85,28 @@ function load(): Promise<void> {
       }
       posthog.init(apiKey!, {
         api_host: 'https://us.i.posthog.com',
+        persistence: 'localStorage',
+        // Only the events this app raises on purpose. Everything below switches off a
+        // feature of the library that would otherwise send its own events, and
+        // `before_send` is the backstop: anything not on the allowlist is dropped.
+        before_send: filterOutgoingEvent,
+        // No server-side feature switches. They are what turned dead-click capture on
+        // for this project, and it sent the visible text of whatever was tapped.
+        advanced_disable_flags: true,
         autocapture: false,
         capture_pageview: false,
+        capture_dead_clicks: false,
+        capture_heatmaps: false,
+        capture_exceptions: false,
+        capture_performance: false,
+        rageclick: false,
         disable_session_recording: true,
-        persistence: 'localStorage',
-        sanitize_properties: (properties) => sanitizeEventProperties(properties),
+        disable_surveys: true,
+        disable_conversations: true,
+        disable_web_experiments: true,
+        // No anonymous person profiles, and no scripts fetched from PostHog's CDN.
+        person_profiles: 'never',
+        disable_external_dependency_loading: true,
       })
       posthog.opt_in_capturing()
       client = posthog

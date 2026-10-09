@@ -33,14 +33,22 @@ Events are about the app, not your training:
 | `routine_created`                                                                                                             | how many exercises it has                                                                 |
 | `theme_changed`                                                                                                               | which theme was chosen                                                                    |
 | `backup_exported`, `backup_imported`, `backup_restore_undone`, `csv_import_used`, `history_cleanup_run`, `exercise_match_run` | that it happened, and which app a CSV came from                                           |
-| `pwa_install_prompt_shown`                                                                                                    | none                                                                                      |
+| `pwa_install_prompt_shown`, `pwa_install_accepted`, `pwa_install_dismissed`                                                   | none                                                                                      |
+| `$opt_in`                                                                                                                     | PostHog's own marker that you said yes                                                    |
 | `render_error`, `unhandled_error`                                                                                             | that something failed, and its kind. No message, stack or content                         |
 | `storage_persist`                                                                                                             | whether the browser agreed to keep your data                                              |
 
 Never sent: exercise names, weights, reps, routine names, measurements, notes, ids
-of anything you logged, or the contents of any backup. Session recording and
-autocapture are turned off. Before each event leaves, the page address PostHog
-attaches by default is scrubbed of ids as well.
+of anything you logged, the text of anything you tap, or the contents of any backup.
+
+How that is enforced, not just promised: the app sends only the events in the table
+above. Every PostHog feature that raises its own events (autocapture, dead and rage
+clicks, heatmaps, exception capture, performance and web-vitals capture, surveys,
+session recording) is switched off, PostHog's server-side feature switches are not
+used, and as a last line of defence anything not in that table is discarded on your
+device before it is sent. Before each event leaves, the page address is also scrubbed
+of ids. Which events may be sent is a list in `src/lib/analytics.ts`, and a test fails
+if the code and this document disagree.
 
 PostHog also records the usual details a web request carries: browser, operating
 system, screen size, language and time zone.

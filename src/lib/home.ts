@@ -1,6 +1,7 @@
 import type { Exercise, MuscleGroup, Routine, Workout } from '../db/types'
 import { getExerciseHistory } from './history'
 import { exerciseProgress, metricsFor, startOfWeek, type Totals } from './stats'
+import { addDays } from './time'
 import { countsTowardVolume } from './workout'
 
 const DAY_MS = 86400000
@@ -41,7 +42,7 @@ export function weekProgress(
   now = Date.now(),
 ): WeekProgress {
   const weekStart = startOfWeek(now, firstDayOfWeek)
-  const weekEnd = weekStart + WEEK_MS
+  const weekEnd = addDays(weekStart, 7)
   const done = doneWorkouts(workouts).filter(
     (w) => w.startedAt >= weekStart && w.startedAt < weekEnd,
   ).length
@@ -49,7 +50,7 @@ export function weekProgress(
   // Whole days remaining, inclusive of today: if it's Wednesday, today still
   // counts as a day you could train, so daysLeft only hits 0 after the week ends.
   const today = startOfDay(now)
-  const daysElapsed = Math.floor((today - weekStart) / DAY_MS)
+  const daysElapsed = Math.round((today - weekStart) / DAY_MS)
   const daysLeft = Math.max(0, 7 - daysElapsed)
 
   if (goal <= 0 || done >= goal) {
@@ -119,10 +120,10 @@ export function suggestedWeeklyGoal(
   // Monday would otherwise score it as a zero-workout week.
   const counts: number[] = []
   for (let i = GOAL_SAMPLE_WEEKS; i >= 1; i--) {
-    const weekStart = thisWeek - i * WEEK_MS
+    const weekStart = addDays(thisWeek, -7 * i)
     if (weekStart < firstEver) continue
     counts.push(
-      done.filter((w) => w.startedAt >= weekStart && w.startedAt < weekStart + WEEK_MS).length,
+      done.filter((w) => w.startedAt >= weekStart && w.startedAt < addDays(weekStart, 7)).length,
     )
   }
   if (counts.length < 3) return null

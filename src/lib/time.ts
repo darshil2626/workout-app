@@ -97,3 +97,14 @@ export function formatRelative(ts: number, now = Date.now()): string {
   if (days < 365) return `${Math.floor(days / 30)}mo ago`
   return `${Math.floor(days / 365)}y ago`
 }
+
+/**
+ * `ts` moved by whole calendar days, keeping the local time of day. Adding
+ * n * 86400000 instead lands an hour off across a daylight-saving change, which
+ * misses the exact week and day boundaries the stats bucket by.
+ */
+export function addDays(ts: number, days: number): number {
+  const d = new Date(ts)
+  d.setDate(d.getDate() + days)
+  return d.getTime()
+}

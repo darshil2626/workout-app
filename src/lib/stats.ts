@@ -7,6 +7,7 @@ import {
   fieldsFor,
   prWeightKg,
 } from './workout'
+import { addDays } from './time'
 
 const DAY_MS = 86400000
 
@@ -84,12 +85,11 @@ export function computeStreaks(workouts: Workout[], firstDayOfWeek: 0 | 1, now =
 
   const weeks = new Set(workouts.map((w) => startOfWeek(w.startedAt, firstDayOfWeek)))
   const sorted = [...weeks].sort((a, b) => a - b)
-  const WEEK_MS = 7 * DAY_MS
 
   let longest = 1
   let run = 1
   for (let i = 1; i < sorted.length; i++) {
-    run = sorted[i] - sorted[i - 1] === WEEK_MS ? run + 1 : 1
+    run = sorted[i] === addDays(sorted[i - 1], 7) ? run + 1 : 1
     if (run > longest) longest = run
   }
 
@@ -97,10 +97,10 @@ export function computeStreaks(workouts: Workout[], firstDayOfWeek: 0 | 1, now =
   // user has trained last week but not yet this one.
   const thisWeek = startOfWeek(now, firstDayOfWeek)
   let current = 0
-  let cursor = weeks.has(thisWeek) ? thisWeek : thisWeek - WEEK_MS
+  let cursor = weeks.has(thisWeek) ? thisWeek : addDays(thisWeek, -7)
   while (weeks.has(cursor)) {
     current += 1
-    cursor -= WEEK_MS
+    cursor = addDays(cursor, -7)
   }
 
   const weekAgo = now - 7 * DAY_MS
@@ -125,11 +125,10 @@ export function volumeByWeek(
   weeks = 12,
   now = Date.now(),
 ): WeekPoint[] {
-  const WEEK_MS = 7 * DAY_MS
   const thisWeek = startOfWeek(now, firstDayOfWeek)
   const buckets = new Map<number, WeekPoint>()
   for (let i = weeks - 1; i >= 0; i--) {
-    const weekStart = thisWeek - i * WEEK_MS
+    const weekStart = addDays(thisWeek, -7 * i)
     buckets.set(weekStart, { weekStart, volumeKg: 0, workouts: 0, sets: 0 })
   }
   for (const w of workouts) {
@@ -154,7 +153,7 @@ export function volumeByDay(workouts: Workout[], days = 119, now = Date.now()): 
   const today = startOfDay(now)
   const buckets = new Map<number, DayPoint>()
   for (let i = days - 1; i >= 0; i--) {
-    const day = today - i * DAY_MS
+    const day = addDays(today, -i)
     buckets.set(day, { day, volumeKg: 0, workouts: 0 })
   }
   for (const w of workouts) {

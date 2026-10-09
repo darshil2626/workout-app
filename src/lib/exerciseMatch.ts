@@ -120,6 +120,8 @@ const WORD_SYNONYMS: Record<string, string> = {
   pulldowns: 'pulldown',
   pushdowns: 'pushdown',
   ups: 'up',
+  downs: 'down',
+  crushers: 'crusher',
 }
 
 /** Applied before tokenising, for variants that span a word boundary. */
@@ -146,12 +148,15 @@ export function canonicalName(name: string): string {
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
-  for (const [re, to] of PHRASE_FIXES) s = s.replace(re, to)
-  return s
+  // Plurals and spellings first, so "push ups" reaches the phrase rules as
+  // "push up" and fuses to the same "pushup" as the singular.
+  s = s
     .split(/\s+/)
     .filter(Boolean)
     .map((w) => WORD_SYNONYMS[w] ?? w)
     .join(' ')
+  for (const [re, to] of PHRASE_FIXES) s = s.replace(re, to)
+  return s.split(/\s+/).filter(Boolean).join(' ')
 }
 
 /**
@@ -191,7 +196,7 @@ const MUSCLE_KEYWORDS: [RegExp, MuscleGroup][] = [
   [/\b(row|pulldown|pull up|chin up|deadlift|lat|shrug)\b/, 'Back'],
   [/\b(shoulder|lateral raise|front raise|overhead press|arnold|face pull|rear delt|upright)\b/, 'Shoulders'],
   [/\b(bench|chest|fly|pushup|pec)\b/, 'Chest'],
-  [/\b(run|walk|cycling|treadmill|elliptical|bike|swim|ski erg|stair|rowing)\b/, 'Cardio'],
+  [/\b(run|running|walk|walking|jog|jogging|cycling|treadmill|elliptical|bike|biking|swim|swimming|ski erg|stair|rowing)\b/, 'Cardio'],
 ]
 
 function muscleFromKeywords(canonical: string): MuscleGroup | null {

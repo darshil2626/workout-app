@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { listExercises, listDoneWorkouts } from '../db/repo'
 import { useSearchParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { Exercise, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ExerciseFormSheet } from '../components/ExerciseForm'
@@ -47,26 +47,17 @@ export function ExercisesPage() {
   // `undefined` while Dexie hasn't answered yet, distinct from a genuinely
   // empty library — the deep-link effect below needs that distinction so it
   // doesn't apply `?muscle=` against a muscle list that hasn't loaded.
-  const exercisesRaw = useLiveQuery(() => db.exercises.toArray())
-  const exercises = exercisesRaw ?? []
+  const exercisesRaw = useLiveQuery(() => listExercises())
+  // Memoised: a fresh `[]` each render would defeat every useMemo keyed on it.
+  const exercises = useMemo(() => exercisesRaw ?? [], [exercisesRaw])
 
   // One bulk load, not one query per row: `exerciseSparklines` groups these
   // in memory, so a ~150-row library costs a single Dexie read here rather
   // than a `getExerciseHistory` call per exercise.
-  const workouts = useLiveQuery(
-    () => db.workouts.where('status').equals('done').toArray(),
-    [],
-    [] as Workout[],
-  )
+  const workouts = useLiveQuery(() => listDoneWorkouts(), [], [] as Workout[])
   const exerciseById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
   const sparklines = useMemo(
-    () =>
-      exerciseSparklines(
-        workouts,
-        exerciseById,
-        fmt.settings.bodyweightKg,
-        fmt.settings.countWarmupSets,
-      ),
+    () => exerciseSparklines(workouts, exerciseById, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets),
     [workouts, exerciseById, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
 
@@ -119,7 +110,7 @@ export function ExercisesPage() {
         title="Exercises"
         back
         right={
-          <button className="header-action" onClick={() => setCreating(true)}>
+          <button className="header-action" aria-label="New exercise" onClick={() => setCreating(true)}>
             <IconPlus />
           </button>
         }
@@ -142,11 +133,7 @@ export function ExercisesPage() {
 
           <div className="chips" style={{ marginTop: 10 }}>
             {muscles.map((m) => (
-              <button
-                key={m}
-                className={`chip${muscle === m ? ' active' : ''}`}
-                onClick={() => setMuscle(m)}
-              >
+              <button key={m} className={`chip${muscle === m ? ' active' : ''}`} onClick={() => setMuscle(m)}>
                 {m}
               </button>
             ))}

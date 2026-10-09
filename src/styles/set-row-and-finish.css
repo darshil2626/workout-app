@@ -1,0 +1,389 @@
+/* ── Plate calculator ───────────────────────────────────────────────────── */
+
+.plate-target {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plate-target-value {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.plate-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.plate-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.plate-chip {
+  min-width: 46px;
+  height: 34px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.plate-warning {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+}
+
+.rpe-row {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-1) 0 var(--space-2);
+  scrollbar-width: none;
+}
+
+.rpe-row::-webkit-scrollbar {
+  display: none;
+}
+
+.prev-cell {
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1.2;
+  padding: var(--space-1) 3px;
+}
+
+/* Same fix as .set-badge: a dashed underline read as decoration, not a
+   control, so nobody found it (item 2 / item 6 in CurrentProblems). A surface
+   and border make it read as a button like every other tappable cell in the
+   row. Padding is tight enough that the 74px previous column still leaves the
+   weight/reps inputs their room at 390px. */
+.prev-cell.prev-copy {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.prev-cell.prev-copy:active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* The one moment gold marks something other than a badge: a session that set
+   a PR gets a beat of its own on the way out, per the peak-end rule. Pure
+   entrance animation, no delay — Skip and Save are clickable the instant the
+   sheet opens, same as a session with no PRs. The global reduced-motion
+   switch (`* { animation-duration: 0.01ms !important }`) already covers this
+   keyframe, so it is disabled rather than duplicated here. */
+.finish-celebrate {
+  text-align: center;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, transparent);
+  color: var(--gold);
+  font-weight: 700;
+  font-size: var(--text-base);
+  animation: finish-celebrate-in 380ms var(--ease-overshoot) both;
+}
+
+@keyframes finish-celebrate-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+}
+
+/* Headline figures above the effort/feeling scales on finishing. */
+.finish-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-lg);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.finish-prs {
+  color: var(--pr);
+}
+
+/* Inline with the volume figure rather than stacked under it, the way the
+   per-set one sits under .col-prev — there's a whole baseline row of space
+   here and stacking it would just add height for nothing. */
+.finish-summary .delta-badge {
+  margin-top: 0;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+
+/* Emoji ignore currentColor, so the active state has to read from the pill. */
+.chip-emoji {
+  font-size: var(--text-2xl);
+  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+}
+
+.set-input {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 2px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* A weight is at most five characters, so the box stays a number's width and
+   centres in its column instead of stretching across it. */
+.set-table td > .set-input {
+  display: block;
+  max-width: 64px;
+  margin-inline: auto;
+}
+
+.set-input:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.set-input::placeholder {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
+tr.done .set-input {
+  background: transparent;
+}
+
+/* Compact +/- nudge flanking weight/reps/distance inputs — "same as last
+   time, +1" without opening the keyboard. Sized like .set-timer-btn rather
+   than a full 44px tap target: these are dense table-row controls, and a
+   small tap target here is fine, not a regression (they sit next to the
+   swipe-to-delete gesture region, and stop pointerdown propagation below so a
+   tap or hold on one is never misread as the start of a row swipe or a
+   long-press). */
+.set-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.set-stepper .set-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.set-step-btn {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.set-step-btn:active {
+  background: var(--raised);
+}
+
+tr.done .set-step-btn {
+  background: transparent;
+}
+
+/* Input and stopwatch share the duration cell. The button is fixed-width so the
+   number keeps as much of a narrow column as possible. */
+.set-duration-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* A m:ss value needs five characters; one step down in size keeps "10:00"
+   whole beside the stopwatch button even in a narrow shared column. Never below 16px: iOS zooms the page on focus under that. */
+.set-duration-cell .set-input {
+  font-size: var(--text-lg);
+}
+
+.set-timer-btn {
+  position: relative;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: var(--text-md);
+}
+
+/* Widened top/bottom only — the duration input sits flush against this
+   button's left edge, and padding the hit area sideways would start
+   stealing taps meant for the number. */
+.set-timer-btn::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 100%;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+/* The running clock fills the cell it will write into, in the accent colour so
+   a held set is unmistakable at arm's length. */
+.set-timer-live {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) 2px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* A finished countdown flips to the success colour: the hold is done, and the
+   set is being recorded. */
+.set-timer-live.done {
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  border-color: color-mix(in srgb, var(--success) 50%, transparent);
+  color: var(--success);
+}
+
+.check-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  border-radius: var(--radius-control);
+  display: grid;
+  place-items: center;
+  background: var(--raised);
+  color: var(--text-faint);
+  border: 1px solid var(--border-strong);
+  transition:
+    transform var(--dur-press) var(--ease),
+    background-color 260ms var(--ease),
+    border-color 260ms var(--ease),
+    color 260ms var(--ease);
+}
+
+.check-btn:active {
+  transform: scale(0.92);
+}
+
+/* .col-check is already 44px, but the visible button sits smaller inside it
+   for a lighter look — pad the hit area back out to match the column. */
+.check-btn::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.check-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.check-btn.on {
+  background: var(--success);
+  border-color: var(--success);
+  color: #06240f;
+}
+
+tr.pr .check-btn.on {
+  background: var(--pr);
+  border-color: var(--pr);
+  color: var(--bg);
+}
+
+.check-btn.on svg {
+  animation: check-pop 320ms var(--ease-overshoot);
+}
+
+@keyframes check-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ex-foot {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Square, so it reads as a secondary action next to "Add set" rather than
+   competing with it for width. */
+.ex-foot-remove {
+  flex: 0 0 auto;
+  padding-inline: var(--space-3);
+}
+
+.ex-foot-remove:disabled {
+  opacity: 0.35;
+}
+
+.ex-note-input {
+  width: 100%;
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 22%, transparent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
+  width: calc(100% - (var(--space-4) * 2));
+  font-size: var(--text-lg);
+  color: var(--text);
+}

@@ -1,7 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, initDb, DEFAULT_SETTINGS } from '../../src/db/db'
 import { SEED_EXERCISES, SEED_VERSION } from '../../src/db/seed'
-import { APP_MARKER, BACKUP_VERSION, buildBackup, parseBackup, restoreBackup, wipeAllData } from '../../src/lib/backup'
+import {
+  APP_MARKER,
+  BACKUP_VERSION,
+  buildBackup,
+  getRestoreSnapshot,
+  parseBackup,
+  restoreBackup,
+  undoRestore,
+  wipeAllData,
+} from '../../src/lib/backup'
+import { dismissBackupReminder, getBackupStatus, recordBackup } from '../../src/lib/backupReminder'
 import { detectFormat } from '../../src/lib/importers/detect'
 import { logged, readFixture, resetDb, set, snapshot, workout } from './helpers'
 
@@ -10,13 +20,39 @@ beforeEach(resetDb)
 async function populate() {
   await initDb()
   await db.exercises.put({
-    id: 'c1', name: 'Odd Lift', muscleGroup: 'Back', equipment: 'Cable', kind: 'weight_reps',
-    isCustom: true, createdAt: 11, notes: 'n', archived: true,
+    id: 'c1',
+    name: 'Odd Lift',
+    muscleGroup: 'Back',
+    equipment: 'Cable',
+    kind: 'weight_reps',
+    isCustom: true,
+    createdAt: 11,
+    notes: 'n',
+    archived: true,
   })
-  await db.folders.bulkPut([{ id: 'f1', name: 'A', order: 0, createdAt: 1 }, { id: 'f2', name: 'B', order: 1, createdAt: 2 }])
+  await db.folders.bulkPut([
+    { id: 'f1', name: 'A', order: 0, createdAt: 1 },
+    { id: 'f2', name: 'B', order: 1, createdAt: 2 },
+  ])
   await db.workouts.bulkPut([
-    workout({ id: 'w1', startedAt: 1000, exercises: [logged('c1', [set({ weight: 50.5, reps: 7, rpe: 8.5 })])], totalVolumeKg: 353.5, totalSets: 1, totalReps: 7, effort: 4, feeling: 3, notes: 'hi' }),
-    workout({ id: 'w2', startedAt: 2000, status: 'active', finishedAt: null, exercises: [logged('squat-barbell', [set({ completed: false, weight: null, reps: null })])] }),
+    workout({
+      id: 'w1',
+      startedAt: 1000,
+      exercises: [logged('c1', [set({ weight: 50.5, reps: 7, rpe: 8.5 })])],
+      totalVolumeKg: 353.5,
+      totalSets: 1,
+      totalReps: 7,
+      effort: 4,
+      feeling: 3,
+      notes: 'hi',
+    }),
+    workout({
+      id: 'w2',
+      startedAt: 2000,
+      status: 'active',
+      finishedAt: null,
+      exercises: [logged('squat-barbell', [set({ completed: false, weight: null, reps: null })])],
+    }),
   ])
   await db.measurements.put({ id: 'm1', type: 'bodyweight', value: 81.2, takenAt: 5 })
   await db.settings.put({ ...DEFAULT_SETTINGS, weightUnit: 'lb', bodyweightKg: 80, availablePlatesKg: [20, 10] })
@@ -66,8 +102,13 @@ describe('backup round trip', () => {
 
   it('missing measurements (v1 file) restores with zero measurements and backfills settings', async () => {
     const v1 = {
-      app: 'ironlog', version: 1, exportedAt: 1,
-      exercises: [], workouts: [workout({ id: 'w1' })], routines: [], folders: [],
+      app: 'ironlog',
+      version: 1,
+      exportedAt: 1,
+      exercises: [],
+      workouts: [workout({ id: 'w1' })],
+      routines: [],
+      folders: [],
       settings: { id: 1, weightUnit: 'lb' },
     }
     await db.measurements.put({ id: 'old', type: 'waist', value: 1, takenAt: 1 })
@@ -92,7 +133,16 @@ describe('backup round trip', () => {
 })
 
 describe('parseBackup validation', () => {
-  const ok = { app: 'trana', version: 2, exportedAt: 1, exercises: [], workouts: [], routines: [], folders: [], settings: DEFAULT_SETTINGS }
+  const ok = {
+    app: 'trana',
+    version: 2,
+    exportedAt: 1,
+    exercises: [],
+    workouts: [],
+    routines: [],
+    folders: [],
+    settings: DEFAULT_SETTINGS,
+  }
 
   it('accepts current and older versions, and foreign app markers when shape is right', () => {
     expect(parseBackup(JSON.stringify(ok)).version).toBe(2)
@@ -131,7 +181,9 @@ describe('parseBackup validation', () => {
     const before = await snapshot()
     await expect(restoreBackup('{"version":99}')).rejects.toThrow()
     await expect(restoreBackup('garbage')).rejects.toThrow()
-    await expect(restoreBackup(JSON.stringify({ version: 2, exercises: [], workouts: [], routines: [] }))).rejects.toThrow()
+    await expect(
+      restoreBackup(JSON.stringify({ version: 2, exercises: [], workouts: [], routines: [] })),
+    ).rejects.toThrow()
     expect(await snapshot()).toEqual(before)
   })
 
@@ -141,9 +193,14 @@ describe('parseBackup validation', () => {
     // A workout whose exerciseIds is not indexable would still store; instead force a
     // failure with a non-clonable value to prove the transaction is atomic.
     const bad = {
-      app: 'trana', version: 2, exportedAt: 1, exercises: [{ id: 'x', name: 'x' }],
+      app: 'trana',
+      version: 2,
+      exportedAt: 1,
+      exercises: [{ id: 'x', name: 'x' }],
       workouts: [{ id: 'w-bad', exerciseIds: ['a'] }, { /* no id: primary key missing */ name: 'broken' }],
-      routines: [], folders: [], settings: DEFAULT_SETTINGS,
+      routines: [],
+      folders: [],
+      settings: DEFAULT_SETTINGS,
     }
     await expect(restoreBackup(JSON.stringify(bad))).rejects.toThrow()
     expect(await snapshot()).toEqual(before)
@@ -158,8 +215,16 @@ describe('parseBackup validation', () => {
 })
 
 describe('large fixtures', () => {
-  const cases: [string, string, { exercises: number; workouts: number; routines: number; folders: number; measurements: number }][] = [
-    ['src/dev/synthetic-dataset.json', 'synthetic', { exercises: 219, workouts: 145, routines: 22, folders: 5, measurements: 327 }],
+  const cases: [
+    string,
+    string,
+    { exercises: number; workouts: number; routines: number; folders: number; measurements: number },
+  ][] = [
+    [
+      'src/dev/synthetic-dataset.json',
+      'synthetic',
+      { exercises: 219, workouts: 145, routines: 22, folders: 5, measurements: 327 },
+    ],
     ['qa/qa-dataset.json', 'qa', { exercises: 211, workouts: 21, routines: 9, folders: 0, measurements: 16 }],
   ]
   for (const [path, label, counts] of cases) {
@@ -200,8 +265,10 @@ describe('large fixtures', () => {
     for (const [path] of cases) {
       const p = parseBackup(readFixture(path))
       const ids = new Set(p.exercises.map((e) => e.id))
-      for (const w of p.workouts) for (const le of w.exercises) expect(ids.has(le.exerciseId), `${path} ${w.id}`).toBe(true)
-      for (const r of p.routines) for (const re of r.exercises) expect(ids.has(re.exerciseId), `${path} ${r.id}`).toBe(true)
+      for (const w of p.workouts)
+        for (const le of w.exercises) expect(ids.has(le.exerciseId), `${path} ${w.id}`).toBe(true)
+      for (const r of p.routines)
+        for (const re of r.exercises) expect(ids.has(re.exerciseId), `${path} ${r.id}`).toBe(true)
     }
   })
 
@@ -210,5 +277,154 @@ describe('large fixtures', () => {
     const b = await buildBackup()
     expect('meta' in b).toBe(false)
     expect((await db.meta.get('seedVersion'))?.value).toBe(SEED_VERSION)
+  })
+})
+
+describe('backup validation', () => {
+  async function goodBackup() {
+    await populate()
+    return buildBackup()
+  }
+
+  it('accepts a real backup', async () => {
+    const text = JSON.stringify(await goodBackup())
+    expect(() => parseBackup(text)).not.toThrow()
+  })
+
+  it('refuses rows missing what the app dereferences, naming where', async () => {
+    const b = await goodBackup()
+    ;(b.workouts[0] as unknown as Record<string, unknown>).startedAt = 'yesterday'
+    ;(b.workouts[0].exercises[0] as unknown as Record<string, unknown>).sets = 'nope'
+    expect(() => parseBackup(JSON.stringify(b))).toThrow(
+      /workouts\[0\]\.startedAt.*workouts\[0\]\.exercises\[0\]\.sets/,
+    )
+  })
+
+  it('refuses an unknown exercise type, a non-object row and a bad measurement', async () => {
+    const b = await goodBackup()
+    ;(b.exercises[0] as unknown as Record<string, unknown>).kind = 'telepathy'
+    ;(b.folders as unknown[])[0] = 'oops'
+    ;(b.measurements as unknown as Record<string, unknown>[])[0].value = null
+    const err = (() => {
+      try {
+        parseBackup(JSON.stringify(b))
+      } catch (e) {
+        return String(e)
+      }
+    })()
+    expect(err).toMatch(/exercises\[0\]\.kind/)
+    expect(err).toMatch(/folders\[0\] should be an object/)
+    expect(err).toMatch(/measurements\[0\]\.value/)
+  })
+
+  it('caps the report so a wholly broken file stays readable', async () => {
+    const b = await goodBackup()
+    b.workouts = Array.from({ length: 50 }, () => ({}) as never)
+    const msg = (() => {
+      try {
+        parseBackup(JSON.stringify(b))
+      } catch (e) {
+        return (e as Error).message
+      }
+      return ''
+    })()
+    expect(msg.split(';').length).toBeLessThanOrEqual(5)
+  })
+
+  it('a refused file changes nothing', async () => {
+    const b = await goodBackup()
+    const before = await snapshot()
+    ;(b.workouts[0] as unknown as Record<string, unknown>).status = 'maybe'
+    await expect(restoreBackup(JSON.stringify(b))).rejects.toThrow(/damaged entries/)
+    expect(await snapshot()).toEqual(before)
+    expect(await getRestoreSnapshot()).toBeNull()
+  })
+})
+
+describe('restore snapshot and undo', () => {
+  async function otherBackupText(): Promise<string> {
+    await resetDb()
+    await initDb()
+    await db.workouts.put(workout({ id: 'other', startedAt: 9000, exercises: [] }))
+    const text = JSON.stringify(await buildBackup())
+    await resetDb()
+    return text
+  }
+
+  it('keeps what a restore replaced and brings it back on undo', async () => {
+    const other = await otherBackupText()
+    await populate()
+    const before = await snapshot()
+
+    await restoreBackup(other)
+    expect((await db.workouts.toArray()).map((w) => w.id)).toEqual(['other'])
+    const info = await getRestoreSnapshot()
+    expect(info?.workouts).toBe(2)
+
+    const summary = await undoRestore()
+    expect(summary.workouts).toBe(2)
+    expect(await snapshot()).toEqual(before)
+  })
+
+  it('undo is itself undoable (swaps with the current data)', async () => {
+    const other = await otherBackupText()
+    await populate()
+    await restoreBackup(other)
+    const afterRestore = await snapshot()
+
+    await undoRestore()
+    await undoRestore()
+    expect(await snapshot()).toEqual(afterRestore)
+  })
+
+  it('takes no snapshot when the device holds nothing of the user', async () => {
+    const other = await otherBackupText()
+    await restoreBackup(other) // resetDb left the database truly empty
+    expect(await getRestoreSnapshot()).toBeNull()
+    await expect(undoRestore()).rejects.toThrow(/nothing to undo/)
+  })
+
+  it('does not put the snapshot into exported backups', async () => {
+    const other = await otherBackupText()
+    await populate()
+    await restoreBackup(other)
+    const exported = JSON.parse(JSON.stringify(await buildBackup())) as Record<string, unknown>
+    expect(Object.keys(exported)).not.toContain('snapshots')
+  })
+
+  it('delete-all removes the snapshot too', async () => {
+    const other = await otherBackupText()
+    await populate()
+    await restoreBackup(other)
+    await wipeAllData()
+    expect(await getRestoreSnapshot()).toBeNull()
+  })
+})
+
+describe('backup bookkeeping', () => {
+  it('counts only sessions finished after the last backup', async () => {
+    await initDb()
+    await db.workouts.bulkPut([
+      workout({ id: 'a', startedAt: 1000, finishedAt: 2000 }),
+      workout({ id: 'b', startedAt: 3000, finishedAt: 4000 }),
+      workout({ id: 'c', startedAt: 5000, finishedAt: 6000 }),
+      workout({ id: 'live', startedAt: 7000, finishedAt: null, status: 'active' }),
+    ])
+    expect(await getBackupStatus()).toMatchObject({ lastBackupAt: null, doneWorkouts: 3, workoutsSinceBackup: 3 })
+
+    await recordBackup(4500)
+    expect(await getBackupStatus()).toMatchObject({ lastBackupAt: 4500, doneWorkouts: 3, workoutsSinceBackup: 1 })
+  })
+
+  it('a dismissal is remembered', async () => {
+    await initDb()
+    await dismissBackupReminder(123)
+    expect((await getBackupStatus()).dismissedAt).toBe(123)
+  })
+
+  it('keeps the bookkeeping out of exported backups', async () => {
+    await initDb()
+    await recordBackup(1)
+    expect(JSON.stringify(await buildBackup())).not.toContain('lastBackupAt')
   })
 })

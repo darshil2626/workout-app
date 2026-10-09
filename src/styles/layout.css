@@ -1,0 +1,181 @@
+/* ── Layout shell ───────────────────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.app-main {
+  flex: 1;
+  /* Room for the bottom nav plus whatever banners float above it. */
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3));
+}
+
+/* The running-workout bar and the rest timer both float above the tab bar,
+   so the last row needs to clear whichever of them are showing. */
+.app-main.has-active-banner {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3) + 47px);
+}
+
+.app-main.has-rest-bar {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3) + 70px);
+}
+
+.app-main.has-active-banner.has-rest-bar {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--space-3) + 117px);
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  width: 100%;
+}
+
+.page-wide {
+  max-width: 880px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  /* Same nav-tier tint as .bottom-nav below (a translucent --surface, not
+     --bg) so the top and bottom chrome bars read as one tier of the
+     elevation stack instead of the header sitting a step lower than the tab
+     bar it mirrors. */
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding-top: var(--safe-top);
+}
+
+.header-row {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+}
+
+.header-title {
+  flex: 1;
+  min-width: 0;
+  /* A line box as tall as the icon buttons beside it, so the text centres on
+     the same line as them (a bare block sat a couple of pixels low). Kept a
+     block rather than a flex container so the ellipsis below still applies. */
+  line-height: 40px;
+  /* Glyphs sit low in their line box; this lifts them level with the icons. */
+  transform: translateY(-1px);
+  font-size: var(--text-2xl);
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-action {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: var(--text-md);
+  padding: var(--space-2) var(--space-1);
+  white-space: nowrap;
+}
+
+.header-action:disabled {
+  color: var(--text-faint);
+}
+
+.header-action.danger {
+  color: var(--danger);
+}
+
+.icon-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  /* Icons size from font-size (1em), so this is what makes the glyph itself
+     a comfortable 22px instead of the 16px body size. */
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.icon-btn:active {
+  background: var(--raised);
+}
+
+/* Same fix as .set-badge/.check-btn: the visible circle stays 36px so it
+   doesn't look bigger, but the pseudo-element pads the actual hit area out
+   to a thumb's worth (44px) without touching layout. */
+.icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+/* ── Bottom navigation ──────────────────────────────────────────────────── */
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bottom);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: var(--nav-h);
+  color: var(--text-faint);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    color var(--dur) var(--ease),
+    opacity var(--dur-press) var(--ease);
+}
+
+.nav-item:active {
+  opacity: 0.6;
+}
+
+.nav-item.active {
+  color: var(--accent);
+}
+
+.nav-item svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* The middle tab is where the app starts, so its glyph runs slightly larger
+   than the other two — active state otherwise matches them exactly
+   (`.nav-item.active`), no separate treatment. */
+.nav-item-home svg {
+  width: 26px;
+  height: 26px;
+}

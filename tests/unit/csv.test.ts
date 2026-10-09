@@ -3,13 +3,22 @@ import { parseCsv, sniffDelimiter, toRecords } from '../../src/lib/importers/csv
 
 describe('parseCsv', () => {
   it('parses simple rows', () => {
-    expect(parseCsv('a,b,c\n1,2,3\n')).toEqual([['a', 'b', 'c'], ['1', '2', '3']])
+    expect(parseCsv('a,b,c\n1,2,3\n')).toEqual([
+      ['a', 'b', 'c'],
+      ['1', '2', '3'],
+    ])
   })
   it('handles a missing trailing newline', () => {
-    expect(parseCsv('a,b\n1,2')).toEqual([['a', 'b'], ['1', '2']])
+    expect(parseCsv('a,b\n1,2')).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ])
   })
   it('handles CRLF line endings', () => {
-    expect(parseCsv('a,b\r\n1,2\r\n')).toEqual([['a', 'b'], ['1', '2']])
+    expect(parseCsv('a,b\r\n1,2\r\n')).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ])
   })
   it('quoted fields keep commas', () => {
     expect(parseCsv('"Press, Bench",5')).toEqual([['Press, Bench', '5']])
@@ -26,17 +35,27 @@ describe('parseCsv', () => {
     expect(parseCsv('a,"",c')).toEqual([['a', '', 'c']])
   })
   it('keeps empty fields, including trailing delimiter', () => {
-    expect(parseCsv('a,,c\n,,\n1,2,\n')).toEqual([['a', '', 'c'], ['', '', ''], ['1', '2', '']])
+    expect(parseCsv('a,,c\n,,\n1,2,\n')).toEqual([
+      ['a', '', 'c'],
+      ['', '', ''],
+      ['1', '2', ''],
+    ])
   })
   it('drops completely blank lines', () => {
-    expect(parseCsv('a,b\n\n\n1,2\n   \n')).toEqual([['a', 'b'], ['1', '2']])
+    expect(parseCsv('a,b\n\n\n1,2\n   \n')).toEqual([
+      ['a', 'b'],
+      ['1', '2'],
+    ])
   })
   it('empty input', () => {
     expect(parseCsv('')).toEqual([])
     expect(parseCsv('\n\n')).toEqual([])
   })
   it('custom delimiter leaves commas alone', () => {
-    expect(parseCsv('a;b,c;d\n1;2;3', ';')).toEqual([['a', 'b,c', 'd'], ['1', '2', '3']])
+    expect(parseCsv('a;b,c;d\n1;2;3', ';')).toEqual([
+      ['a', 'b,c', 'd'],
+      ['1', '2', '3'],
+    ])
   })
   it('unterminated quote swallows the rest of the file but does not throw', () => {
     const rows = parseCsv('a,b\n"oops,1\n2,3\n')
@@ -71,13 +90,19 @@ describe('sniffDelimiter', () => {
 
 describe('toRecords', () => {
   it('keys rows by lowercased, trimmed header', () => {
-    expect(toRecords([[' Date ', 'Exercise Name'], ['2024-01-01', 'Squat']])).toEqual([
-      { date: '2024-01-01', 'exercise name': 'Squat' },
-    ])
+    expect(
+      toRecords([
+        [' Date ', 'Exercise Name'],
+        ['2024-01-01', 'Squat'],
+      ]),
+    ).toEqual([{ date: '2024-01-01', 'exercise name': 'Squat' }])
   })
   it('pads short rows with empty strings and ignores extra cells', () => {
     const r = toRecords([['a', 'b'], ['1'], ['1', '2', '3']])
-    expect(r).toEqual([{ a: '1', b: '' }, { a: '1', b: '2' }])
+    expect(r).toEqual([
+      { a: '1', b: '' },
+      { a: '1', b: '2' },
+    ])
   })
   it('empty and header-only input', () => {
     expect(toRecords([])).toEqual([])
@@ -87,6 +112,11 @@ describe('toRecords', () => {
     expect(toRecords(parseCsv('﻿Date,Reps\n2024,5'))[0]).toEqual({ date: '2024', reps: '5' })
   })
   it('duplicate headers: later column wins', () => {
-    expect(toRecords([['a', 'a'], ['1', '2']])).toEqual([{ a: '2' }])
+    expect(
+      toRecords([
+        ['a', 'a'],
+        ['1', '2'],
+      ]),
+    ).toEqual([{ a: '2' }])
   })
 })

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type RefObject } from 'react'
+import { listExercises, listDoneWorkouts, listMeasurements } from '../db/repo'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { Exercise, Measurement, MeasurementType, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { ChartCard } from '../components/charts/ChartCard'
@@ -61,15 +61,11 @@ export function StatsPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const workouts = useLiveQuery(
-    () => db.workouts.where('status').equals('done').toArray(),
-    [],
-    [] as Workout[],
-  )
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const workouts = useLiveQuery(() => listDoneWorkouts(), [], [] as Workout[])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
-  const measurementRows = useLiveQuery(() => db.measurements.toArray(), [], [] as Measurement[])
+  const measurementRows = useLiveQuery(() => listMeasurements(), [], [] as Measurement[])
   const measurementsByType = useMemo(() => {
     const map = new Map<MeasurementType, Measurement[]>()
     for (const m of measurementRows) {
@@ -82,10 +78,7 @@ export function StatsPage() {
   // Chips only for what's actually been logged — an empty chip for a
   // measurement the user has never taken would just be dead UI.
   const trackedTypes = useMemo(
-    () =>
-      MEASUREMENT_SPECS.filter((s) => (measurementsByType.get(s.type)?.length ?? 0) > 0).map(
-        (s) => s.type,
-      ),
+    () => MEASUREMENT_SPECS.filter((s) => (measurementsByType.get(s.type)?.length ?? 0) > 0).map((s) => s.type),
     [measurementsByType],
   )
   const [activeType, setActiveType] = useState<MeasurementType | null>(null)
@@ -103,8 +96,7 @@ export function StatsPage() {
   const previousEntry = selectedEntries[selectedEntries.length - 2]
   // Absent rather than zero: a single entry has nothing to compare against, and
   // "+0" would read as a real, measured lack of change.
-  const selectedDelta =
-    latestEntry && previousEntry ? latestEntry.value - previousEntry.value : null
+  const selectedDelta = latestEntry && previousEntry ? latestEntry.value - previousEntry.value : null
   const selectedSpec = specFor(selectedType)
 
   const firstDay = fmt.settings.firstDayOfWeek
@@ -119,8 +111,7 @@ export function StatsPage() {
   const weeks = useMemo(() => volumeByWeek(workouts, firstDay, 12), [workouts, firstDay])
   const days = useMemo(() => volumeByDay(workouts, 119), [workouts])
   const muscles = useMemo(
-    () =>
-      muscleDistribution(workouts, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets),
+    () => muscleDistribution(workouts, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets),
     [workouts, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
   const muscleMax = useMemo(() => Math.max(...muscles.map((m) => m.sets), 1), [muscles])
@@ -238,9 +229,7 @@ export function StatsPage() {
               <IconChart />
             </div>
             <h3>No stats yet</h3>
-            <p className="muted">
-              Finish a workout and your training history, streaks and muscle balance appear here.
-            </p>
+            <p className="muted">Finish a workout and your training history, streaks and muscle balance appear here.</p>
           </div>
 
           {/* Measurements track independently of logged workouts, so a brand-new
@@ -265,9 +254,7 @@ export function StatsPage() {
         {/* The one number the screen leads with: proportional figures, not tabular. */}
         <div className="hero">
           <span className="hero-value">{totals.workouts}</span>
-          <span className="hero-label">
-            workout{totals.workouts === 1 ? '' : 's'} logged
-          </span>
+          <span className="hero-label">workout{totals.workouts === 1 ? '' : 's'} logged</span>
         </div>
 
         {/* Volume, sets and reps lead as the three headline figures. Volume is
@@ -327,23 +314,19 @@ export function StatsPage() {
             title="Activity"
             subtitle="Last 17 weeks with brighter meaning more volume"
             table={{
-              columns: [{ header: 'Date' }, { header: 'Workouts', numeric: true }, { header: `Volume (${fmt.weightUnit})`, numeric: true }],
+              columns: [
+                { header: 'Date' },
+                { header: 'Workouts', numeric: true },
+                { header: `Volume (${fmt.weightUnit})`, numeric: true },
+              ],
               rows: days
                 .filter((d) => d.workouts > 0)
                 .reverse()
-                .map((d) => [
-                  new Date(d.day).toLocaleDateString(),
-                  d.workouts,
-                  fmt.volume(d.volumeKg),
-                ]),
+                .map((d) => [new Date(d.day).toLocaleDateString(), d.workouts, fmt.volume(d.volumeKg)]),
             }}
             emptyState={{
               preview: (
-                <Heatmap
-                  cells={syntheticHeatCells(days.length)}
-                  firstDayOfWeek={firstDay}
-                  formatValue={() => ''}
-                />
+                <Heatmap cells={syntheticHeatCells(days.length)} firstDayOfWeek={firstDay} formatValue={() => ''} />
               ),
               message: 'No training in this window yet so log a workout and it starts filling in.',
             }}
@@ -361,11 +344,7 @@ export function StatsPage() {
             title="Weekly volume"
             subtitle={WEEK_METRIC_SUBTITLE[weekMetric]}
             controls={(['volume', 'perSession', 'sets'] as WeekMetric[]).map((m) => (
-              <button
-                key={m}
-                className={`chip${weekMetric === m ? ' active' : ''}`}
-                onClick={() => setWeekMetric(m)}
-              >
+              <button key={m} className={`chip${weekMetric === m ? ' active' : ''}`} onClick={() => setWeekMetric(m)}>
                 {WEEK_METRIC_LABEL[m]}
               </button>
             ))}
@@ -446,10 +425,7 @@ export function StatsPage() {
               >
                 <span className="bar-label truncate">{m.muscle}</span>
                 <div className="bar-track">
-                  <div
-                    className="bar-fill"
-                    style={{ width: `${Math.max((m.sets / muscleMax) * 100, 1.5)}%` }}
-                  />
+                  <div className="bar-fill" style={{ width: `${Math.max((m.sets / muscleMax) * 100, 1.5)}%` }} />
                 </div>
                 <span className="bar-value mono">
                   {m.sets}
@@ -463,8 +439,8 @@ export function StatsPage() {
         </ChartCard>
 
         <p className="faint" style={{ marginTop: 14 }}>
-          Warm-up sets are {fmt.settings.countWarmupSets ? 'included in' : 'excluded from'} volume
-          and set counts. Sets are attributed to each exercise's primary muscle group.
+          Warm-up sets are {fmt.settings.countWarmupSets ? 'included in' : 'excluded from'} volume and set counts. Sets
+          are attributed to each exercise's primary muscle group.
         </p>
       </div>
     </>

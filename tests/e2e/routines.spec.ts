@@ -42,20 +42,29 @@ test('create, edit, and start a routine with prefilled targets', async ({ page }
 
   // --- edit: reorder, add, remove ---
   await card.getByRole('button').first().click()
-  await page.getByRole('dialog', { name: 'Push Day' }).getByRole('button', { name: /Edit routine/ }).click()
+  await page
+    .getByRole('dialog', { name: 'Push Day' })
+    .getByRole('button', { name: /Edit routine/ })
+    .click()
   await expect(page).toHaveURL(/\/routines\/[^/]+$/)
   await expect(names(page)).toHaveText(['Bench Press (Barbell)', 'Squat (Barbell)'])
 
   // Move Squat up.
   await page.locator('.ex-block').nth(1).getByRole('button', { name: 'Exercise options' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: /Move up/ }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Move up/ })
+    .click()
   await expect(names(page)).toHaveText(['Squat (Barbell)', 'Bench Press (Barbell)'])
 
   // Add a third, then remove it again.
   await addExercise(page, 'Deadlift (Barbell)')
   await expect(names(page)).toHaveCount(3)
   await page.locator('.ex-block').nth(2).getByRole('button', { name: 'Exercise options' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: /Remove exercise/ }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Remove exercise/ })
+    .click()
   await expect(names(page)).toHaveText(['Squat (Barbell)', 'Bench Press (Barbell)'])
 
   // Add a set to bench (copies the last target) then save.

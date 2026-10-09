@@ -14,7 +14,7 @@ interface SheetProps {
 /** Bottom sheet used for pickers, menus and confirmations. */
 export function Sheet({ open, title, onClose, children, footer, hideClose }: SheetProps) {
   // Stays mounted a beat after `open` goes false so the reverse animation
-  // (see .sheet-backdrop.closing / .sheet.closing in index.css) can play —
+  // (see .sheet-backdrop.closing / .sheet.closing in src/styles) can play —
   // the backdrop's own animationend is what actually unmounts it, rather
   // than a setTimeout duplicating the CSS duration as a second number.
   const [rendered, setRendered] = useState(open)
@@ -73,6 +73,9 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
   return (
     <div
       className={`sheet-backdrop${closing ? ' closing' : ''}`}
+      // Pointer shortcut only: keyboard users close with Escape (handled above)
+      // or the Close button, so the backdrop is not itself a control.
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -132,10 +135,7 @@ export function ConfirmSheet({
           <button className="btn btn-ghost grow" onClick={onCancel}>
             Cancel
           </button>
-          <button
-            className={`btn grow ${destructive ? 'btn-danger' : 'btn-primary'}`}
-            onClick={onConfirm}
-          >
+          <button className={`btn grow ${destructive ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>
             {confirmLabel}
           </button>
         </>

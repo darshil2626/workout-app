@@ -23,10 +23,7 @@ export function BarList({ items, formatValue }: Props) {
         <div className="bar-row" key={item.label}>
           <span className="bar-label truncate">{item.label}</span>
           <div className="bar-track">
-            <div
-              className="bar-fill"
-              style={{ width: `${Math.max((item.value / max) * 100, 1.5)}%` }}
-            />
+            <div className="bar-fill" style={{ width: `${Math.max((item.value / max) * 100, 1.5)}%` }} />
           </div>
           <span className="bar-value mono">
             {formatValue(item.value)}

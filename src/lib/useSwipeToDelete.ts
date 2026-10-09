@@ -18,7 +18,7 @@ import { useCallback, useRef, useState, type CSSProperties, type PointerEvent as
  * a fixed 80px would be nearly the whole row on a narrow screen) releasing
  * calls `onDelete` immediately; short of it, the row springs back. Both the
  * live drag and the spring-back are plain CSS transform/transition, so the
- * app's global prefers-reduced-motion switch (index.css) already flattens
+ * app's global prefers-reduced-motion switch (src/styles) already flattens
  * the spring-back to an instant snap without any extra handling here.
  *
  * This hook only tracks the gesture and reports it — it does not remove
@@ -83,31 +83,37 @@ export function useSwipeToDelete(onDelete: (id: string) => void, threshold = 80)
     window.removeEventListener('pointermove', handleMove)
     window.removeEventListener('pointerup', handleEnd)
     window.removeEventListener('pointercancel', handleEnd)
+    // The three handlers refer to each other, so each keeps one identity for
+    // removeEventListener to match; all state is read through refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleMove = useCallback((e: PointerEvent) => {
-    const t = track.current
-    if (!t || e.pointerId !== t.pointerId) return
-    const dx = e.clientX - t.startX
-    const dy = e.clientY - t.startY
+  const handleMove = useCallback(
+    (e: PointerEvent) => {
+      const t = track.current
+      if (!t || e.pointerId !== t.pointerId) return
+      const dx = e.clientX - t.startX
+      const dy = e.clientY - t.startY
 
-    if (!t.committed) {
-      if (Math.abs(dx) < INTENT_PX && Math.abs(dy) < INTENT_PX) return
-      if (Math.abs(dy) > Math.abs(dx)) {
-        // Vertical intent wins — this was a scroll, not a swipe. Bail out
-        // entirely and let the page's native scrolling (already under way)
-        // carry on unimpeded.
-        track.current = null
-        removeListeners()
-        return
+      if (!t.committed) {
+        if (Math.abs(dx) < INTENT_PX && Math.abs(dy) < INTENT_PX) return
+        if (Math.abs(dy) > Math.abs(dx)) {
+          // Vertical intent wins — this was a scroll, not a swipe. Bail out
+          // entirely and let the page's native scrolling (already under way)
+          // carry on unimpeded.
+          track.current = null
+          removeListeners()
+          return
+        }
+        t.committed = true
       }
-      t.committed = true
-    }
 
-    const clamped = Math.min(0, Math.max(-t.width, dx))
-    t.dx = clamped
-    setActive({ id: t.id, dx: clamped, width: t.width })
-  }, [removeListeners])
+      const clamped = Math.min(0, Math.max(-t.width, dx))
+      t.dx = clamped
+      setActive({ id: t.id, dx: clamped, width: t.width })
+    },
+    [removeListeners],
+  )
 
   const handleEnd = useCallback(() => {
     const t = track.current

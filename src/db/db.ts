@@ -11,6 +11,7 @@ import type {
   Workout,
 } from './types'
 import { SEED_EXERCISES, SEED_VERSION } from './seed'
+import type { BackupFile } from '../lib/backup'
 
 /** Internal bookkeeping that is not user-facing configuration. */
 interface MetaRow {
@@ -46,6 +47,17 @@ export const DEFAULT_SETTINGS: Settings = {
   analyticsEnabled: true,
 }
 
+/**
+ * The device's data as it was just before a restore replaced it, so a restore
+ * of the wrong file can be undone. One row, `pre-restore`; undoing swaps it
+ * with the current data, which makes the undo itself undoable.
+ */
+export interface SnapshotRow {
+  id: string
+  createdAt: number
+  backup: BackupFile
+}
+
 class TranaDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>
   workouts!: EntityTable<Workout, 'id'>
@@ -54,6 +66,7 @@ class TranaDB extends Dexie {
   settings!: EntityTable<Settings, 'id'>
   measurements!: EntityTable<Measurement, 'id'>
   meta!: EntityTable<MetaRow, 'key'>
+  snapshots!: EntityTable<SnapshotRow, 'id'>
 
   constructor() {
     super('trana')
@@ -74,6 +87,10 @@ class TranaDB extends Dexie {
     // v3 records which seed revision this device has applied.
     this.version(3).stores({
       meta: 'key',
+    })
+    // v4 adds the pre-restore snapshot. Additive, so existing data is untouched.
+    this.version(4).stores({
+      snapshots: 'id',
     })
   }
 }
@@ -118,10 +135,7 @@ export async function initDb(): Promise<void> {
     // routines or workouts — never has one appended to their list.
     const starterSeeded = (await db.meta.get('starterRoutineSeeded'))?.value ?? 0
     if (starterSeeded === 0) {
-      const [routineCount, workoutCount] = await Promise.all([
-        db.routines.count(),
-        db.workouts.count(),
-      ])
+      const [routineCount, workoutCount] = await Promise.all([db.routines.count(), db.workouts.count()])
       if (routineCount === 0 && workoutCount === 0) {
         await db.routines.add(buildStarterRoutine())
       }

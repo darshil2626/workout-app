@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { listExercises, getRoutine, countRoutines, listFolders, saveRoutine } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../db/db'
+import { newId } from '../db/db'
 import type { Exercise, Folder, Routine, RoutineExercise, RoutineSetTarget, SetType } from '../db/types'
 import { Header } from '../components/Header'
 import { ExercisePicker } from '../components/ExercisePicker'
@@ -37,10 +38,10 @@ export function RoutineEditPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const folders = useLiveQuery(() => db.folders.toArray(), [], [] as Folder[])
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const folders = useLiveQuery(() => listFolders(), [], [] as Folder[])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
-  const existing = useLiveQuery(async () => (isNew ? null : ((await db.routines.get(id!)) ?? null)), [id, isNew])
+  const existing = useLiveQuery(async () => (isNew ? null : ((await getRoutine(id!)) ?? null)), [id, isNew])
 
   const [name, setName] = useState('')
   const [folderId, setFolderId] = useState<string | null>(null)
@@ -85,12 +86,12 @@ export function RoutineEditPage() {
       name: name.trim(),
       folderId,
       exercises: items,
-      order: existing?.order ?? (await db.routines.count()),
+      order: existing?.order ?? (await countRoutines()),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       lastPerformedAt: existing?.lastPerformedAt ?? null,
     }
-    await db.routines.put(record)
+    await saveRoutine(record)
     if (isNew) track('routine_created', { exercise_count: items.length })
     navigate('/', { replace: true })
   }
@@ -237,149 +238,149 @@ export function RoutineEditPage() {
                     longPressRow.onPointerDown(e)
                   }}
                 >
-                <div className="ex-head">
-                  <div className="stack grow">
-                    <span className="ex-name truncate">{exercise?.name ?? 'Unknown exercise'}</span>
-                    <span className="ex-sub">
-                      {re.sets.length} set{re.sets.length === 1 ? '' : 's'} · rest{' '}
-                      {formatDuration(re.restSeconds ?? fmt.settings.defaultRestSeconds)}
-                      {re.supersetGroup !== null ? ` · Superset ${re.supersetGroup + 1}` : ''}
-                    </span>
+                  <div className="ex-head">
+                    <div className="stack grow">
+                      <span className="ex-name truncate">{exercise?.name ?? 'Unknown exercise'}</span>
+                      <span className="ex-sub">
+                        {re.sets.length} set{re.sets.length === 1 ? '' : 's'} · rest{' '}
+                        {formatDuration(re.restSeconds ?? fmt.settings.defaultRestSeconds)}
+                        {re.supersetGroup !== null ? ` · Superset ${re.supersetGroup + 1}` : ''}
+                      </span>
+                    </div>
+                    {re.supersetGroup !== null && <span className="superset-badge">SS</span>}
+                    <button className="icon-btn" onClick={() => setMenu(re)} aria-label="Exercise options">
+                      <IconMore />
+                    </button>
                   </div>
-                  {re.supersetGroup !== null && <span className="superset-badge">SS</span>}
-                  <button className="icon-btn" onClick={() => setMenu(re)} aria-label="Exercise options">
-                    <IconMore />
-                  </button>
-                </div>
 
-                {re.notes !== undefined && (
-                  <input
-                    className="ex-note-input"
-                    value={re.notes}
-                    onChange={(e) => updateItem(re.id, (x) => ({ ...x, notes: e.target.value }))}
-                    placeholder="Note shown every time you run this routine"
-                    aria-label="Exercise note"
-                  />
-                )}
+                  {re.notes !== undefined && (
+                    <input
+                      className="ex-note-input"
+                      value={re.notes}
+                      onChange={(e) => updateItem(re.id, (x) => ({ ...x, notes: e.target.value }))}
+                      placeholder="Note shown every time you run this routine"
+                      aria-label="Exercise note"
+                    />
+                  )}
 
-                <table className="set-table">
-                  <thead>
-                    <tr>
-                      <th className="col-set">Set</th>
-                      {f.distance && <th className="col-weight">{fmt.distanceUnit}</th>}
-                      {f.weight && <th className="col-weight">{fmt.weightUnit}</th>}
-                      {f.duration && <th>Time</th>}
-                      {f.reps && <th className="col-reps">Reps</th>}
-                      {/* 44px, not 40: this column sits flush against .ex-block's
+                  <table className="set-table">
+                    <thead>
+                      <tr>
+                        <th className="col-set">Set</th>
+                        {f.distance && <th className="col-weight">{fmt.distanceUnit}</th>}
+                        {f.weight && <th className="col-weight">{fmt.weightUnit}</th>}
+                        {f.duration && <th>Time</th>}
+                        {f.reps && <th className="col-reps">Reps</th>}
+                        {/* 44px, not 40: this column sits flush against .ex-block's
                           clipped edge, and .icon-btn's padded 44px hit area needs
                           the full column to avoid getting clipped by the card's
                           overflow: hidden. */}
-                      <th style={{ width: 44 }} aria-label="Remove" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {re.sets.map((s, i) => (
-                      <tr key={i}>
-                        <td className="col-set">
-                          <button
-                            className={`set-badge ${s.setType}`}
-                            onClick={() => setTypeMenu({ exId: re.id, index: i })}
-                            aria-label="Set type"
-                          >
-                            {badges[i]}
-                          </button>
-                        </td>
-                        {f.distance && (
-                          <td>
-                            <TargetField
-                              display={formatDistance(s.distanceM, fmt.distanceUnit)}
-                              placeholder="-"
-                              onCommit={(t) => {
-                                const n = parseNumber(t)
-                                updateTarget(re.id, i, {
-                                  distanceM: n === null ? null : displayToMetres(n, fmt.distanceUnit),
-                                })
-                              }}
-                              ariaLabel="Target distance"
-                            />
-                          </td>
-                        )}
-                        {f.weight && (
-                          <td>
-                            <TargetField
-                              display={formatWeight(s.weight, fmt.weightUnit)}
-                              placeholder="-"
-                              onCommit={(t) => {
-                                const n = parseNumber(t)
-                                updateTarget(re.id, i, {
-                                  weight: n === null ? null : displayToKg(n, fmt.weightUnit),
-                                })
-                              }}
-                              ariaLabel="Target weight"
-                            />
-                          </td>
-                        )}
-                        {f.duration && (
-                          <td>
-                            <TargetField
-                              display={s.durationSec === null ? '' : formatDuration(s.durationSec)}
-                              placeholder="-"
-                              onCommit={(t) => updateTarget(re.id, i, { durationSec: parseDuration(t) })}
-                              ariaLabel="Target time"
-                              inputMode="text"
-                            />
-                          </td>
-                        )}
-                        {f.reps && (
-                          <td>
-                            <TargetField
-                              display={s.reps === null ? '' : String(s.reps)}
-                              placeholder="-"
-                              onCommit={(t) => {
-                                const n = parseNumber(t)
-                                updateTarget(re.id, i, {
-                                  reps: n === null ? null : Math.max(0, Math.round(n)),
-                                })
-                              }}
-                              ariaLabel="Target reps"
-                              inputMode="numeric"
-                            />
-                          </td>
-                        )}
-                        <td style={{ width: 44 }}>
-                          <button
-                            className="icon-btn"
-                            aria-label="Remove set"
-                            onClick={() =>
-                              updateItem(re.id, (x) => ({
-                                ...x,
-                                sets: x.sets.filter((_, k) => k !== i),
-                              }))
-                            }
-                          >
-                            <IconTrash />
-                          </button>
-                        </td>
+                        <th style={{ width: 44 }} aria-label="Remove" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {re.sets.map((s, i) => (
+                        <tr key={i}>
+                          <td className="col-set">
+                            <button
+                              className={`set-badge ${s.setType}`}
+                              onClick={() => setTypeMenu({ exId: re.id, index: i })}
+                              aria-label="Set type"
+                            >
+                              {badges[i]}
+                            </button>
+                          </td>
+                          {f.distance && (
+                            <td>
+                              <TargetField
+                                display={formatDistance(s.distanceM, fmt.distanceUnit)}
+                                placeholder="-"
+                                onCommit={(t) => {
+                                  const n = parseNumber(t)
+                                  updateTarget(re.id, i, {
+                                    distanceM: n === null ? null : displayToMetres(n, fmt.distanceUnit),
+                                  })
+                                }}
+                                ariaLabel="Target distance"
+                              />
+                            </td>
+                          )}
+                          {f.weight && (
+                            <td>
+                              <TargetField
+                                display={formatWeight(s.weight, fmt.weightUnit)}
+                                placeholder="-"
+                                onCommit={(t) => {
+                                  const n = parseNumber(t)
+                                  updateTarget(re.id, i, {
+                                    weight: n === null ? null : displayToKg(n, fmt.weightUnit),
+                                  })
+                                }}
+                                ariaLabel="Target weight"
+                              />
+                            </td>
+                          )}
+                          {f.duration && (
+                            <td>
+                              <TargetField
+                                display={s.durationSec === null ? '' : formatDuration(s.durationSec)}
+                                placeholder="-"
+                                onCommit={(t) => updateTarget(re.id, i, { durationSec: parseDuration(t) })}
+                                ariaLabel="Target time"
+                                inputMode="text"
+                              />
+                            </td>
+                          )}
+                          {f.reps && (
+                            <td>
+                              <TargetField
+                                display={s.reps === null ? '' : String(s.reps)}
+                                placeholder="-"
+                                onCommit={(t) => {
+                                  const n = parseNumber(t)
+                                  updateTarget(re.id, i, {
+                                    reps: n === null ? null : Math.max(0, Math.round(n)),
+                                  })
+                                }}
+                                ariaLabel="Target reps"
+                                inputMode="numeric"
+                              />
+                            </td>
+                          )}
+                          <td style={{ width: 44 }}>
+                            <button
+                              className="icon-btn"
+                              aria-label="Remove set"
+                              onClick={() =>
+                                updateItem(re.id, (x) => ({
+                                  ...x,
+                                  sets: x.sets.filter((_, k) => k !== i),
+                                }))
+                              }
+                            >
+                              <IconTrash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-                <div className="ex-foot">
-                  <button
-                    className="btn btn-ghost btn-sm btn-block"
-                    onClick={() =>
-                      updateItem(re.id, (x) => ({
-                        ...x,
-                        // Copy the last target so adding "3 × 100 kg" is three taps.
-                        sets: [...x.sets, x.sets.at(-1) ? { ...x.sets[x.sets.length - 1] } : emptyTarget()],
-                      }))
-                    }
-                  >
-                    <IconPlus />
-                    Add set
-                  </button>
-                </div>
+                  <div className="ex-foot">
+                    <button
+                      className="btn btn-ghost btn-sm btn-block"
+                      onClick={() =>
+                        updateItem(re.id, (x) => ({
+                          ...x,
+                          // Copy the last target so adding "3 × 100 kg" is three taps.
+                          sets: [...x.sets, x.sets.at(-1) ? { ...x.sets[x.sets.length - 1] } : emptyTarget()],
+                        }))
+                      }
+                    >
+                      <IconPlus />
+                      Add set
+                    </button>
+                  </div>
                 </section>
               </div>
             )
@@ -387,8 +388,7 @@ export function RoutineEditPage() {
         </div>
 
         <p className="faint" style={{ margin: '14px 0 8px' }}>
-          Target weights and reps are optional so you can leave them blank and they show as placeholders while
-          you log.
+          Target weights and reps are optional so you can leave them blank and they show as placeholders while you log.
         </p>
 
         <button className="btn btn-accent-soft btn-block" onClick={() => setPicking(true)}>
@@ -471,9 +471,7 @@ export function RoutineEditPage() {
         >
           <IconTimer />
           <span className="grow">Rest timer</span>
-          <span className="faint">
-            {formatDuration(menu?.restSeconds ?? fmt.settings.defaultRestSeconds)}
-          </span>
+          <span className="faint">{formatDuration(menu?.restSeconds ?? fmt.settings.defaultRestSeconds)}</span>
         </button>
         <button
           className="sheet-list-item"

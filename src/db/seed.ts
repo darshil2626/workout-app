@@ -40,6 +40,9 @@ type Row = [string, MuscleGroup, Equipment, ExerciseKind?, MuscleGroup[]?]
  */
 export const SEED_VERSION = 3
 
+// One exercise per line on purpose: it keeps the table scannable, and
+// tests/static/exercise-art.test.ts reads this file line by line.
+// prettier-ignore
 const ROWS: Row[] = [
   // ── Chest ─────────────────────────────────────────────────────────────
   ['Bench Press (Barbell)', 'Chest', 'Barbell', 'weight_reps', ['Shoulders', 'Triceps']],

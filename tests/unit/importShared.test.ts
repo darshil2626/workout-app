@@ -1,14 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ExerciseResolver, buildSetValues, detectDistanceUnitFromHeader, detectWeightUnitFromHeader, findHeaderKey,
-  isSecondsHeader, normalizeSetType, parseClockDuration, parseFloatOrNull, setTypeFromStrongOrder,
+  ExerciseResolver,
+  buildSetValues,
+  detectDistanceUnitFromHeader,
+  detectWeightUnitFromHeader,
+  findHeaderKey,
+  isSecondsHeader,
+  normalizeSetType,
+  parseClockDuration,
+  parseFloatOrNull,
+  setTypeFromStrongOrder,
 } from '../../src/lib/importers/shared'
 import { mkEx } from './helpers'
 
 describe('normalizeSetType', () => {
   it.each([
-    ['warmup', 'warmup'], ['Warm Up', 'warmup'], ['WARM-UP', 'warmup'], ['drop', 'drop'], ['dropset', 'drop'],
-    ['failure', 'failure'], ['To Failure', 'failure'], ['normal', 'normal'], ['', 'normal'], ['  ', 'normal'], ['weird', 'normal'],
+    ['warmup', 'warmup'],
+    ['Warm Up', 'warmup'],
+    ['WARM-UP', 'warmup'],
+    ['drop', 'drop'],
+    ['dropset', 'drop'],
+    ['failure', 'failure'],
+    ['To Failure', 'failure'],
+    ['normal', 'normal'],
+    ['', 'normal'],
+    ['  ', 'normal'],
+    ['weird', 'normal'],
   ])('%j -> %s', (raw, expected) => expect(normalizeSetType(raw)).toBe(expected))
   it('undefined -> normal', () => expect(normalizeSetType(undefined)).toBe('normal'))
 })
@@ -96,33 +113,73 @@ describe('buildSetValues', () => {
   const raw = { weightKg: 50, reps: 8, durationSec: 30, distanceM: 400 }
   it('keeps only the fields the kind uses', () => {
     expect(buildSetValues('weight_reps', raw)).toEqual({ weight: 50, reps: 8, durationSec: null, distanceM: null })
-    expect(buildSetValues('bodyweight_reps', raw)).toEqual({ weight: null, reps: 8, durationSec: null, distanceM: null })
+    expect(buildSetValues('bodyweight_reps', raw)).toEqual({
+      weight: null,
+      reps: 8,
+      durationSec: null,
+      distanceM: null,
+    })
     expect(buildSetValues('duration', raw)).toEqual({ weight: null, reps: null, durationSec: 30, distanceM: null })
     expect(buildSetValues('duration_weight', raw)).toEqual({ weight: 50, reps: null, durationSec: 30, distanceM: null })
-    expect(buildSetValues('distance_duration', raw)).toEqual({ weight: null, reps: null, durationSec: 30, distanceM: 400 })
-    expect(buildSetValues('weighted_bodyweight', raw)).toEqual({ weight: 50, reps: 8, durationSec: null, distanceM: null })
+    expect(buildSetValues('distance_duration', raw)).toEqual({
+      weight: null,
+      reps: null,
+      durationSec: 30,
+      distanceM: 400,
+    })
+    expect(buildSetValues('weighted_bodyweight', raw)).toEqual({
+      weight: 50,
+      reps: 8,
+      durationSec: null,
+      distanceM: null,
+    })
   })
   it('zero durations and distances become null, zero weight/reps are kept', () => {
-    expect(buildSetValues('distance_duration', { weightKg: null, reps: null, durationSec: 0, distanceM: 0 }))
-      .toEqual({ weight: null, reps: null, durationSec: null, distanceM: null })
-    expect(buildSetValues('weight_reps', { weightKg: 0, reps: 0, durationSec: null, distanceM: null }))
-      .toEqual({ weight: 0, reps: 0, durationSec: null, distanceM: null })
+    expect(buildSetValues('distance_duration', { weightKg: null, reps: null, durationSec: 0, distanceM: 0 })).toEqual({
+      weight: null,
+      reps: null,
+      durationSec: null,
+      distanceM: null,
+    })
+    expect(buildSetValues('weight_reps', { weightKg: 0, reps: 0, durationSec: null, distanceM: null })).toEqual({
+      weight: 0,
+      reps: 0,
+      durationSec: null,
+      distanceM: null,
+    })
   })
   it('nulls stay null', () => {
-    expect(buildSetValues('weight_reps', { weightKg: null, reps: null, durationSec: null, distanceM: null }))
-      .toEqual({ weight: null, reps: null, durationSec: null, distanceM: null })
+    expect(buildSetValues('weight_reps', { weightKg: null, reps: null, durationSec: null, distanceM: null })).toEqual({
+      weight: null,
+      reps: null,
+      durationSec: null,
+      distanceM: null,
+    })
   })
 })
 
 describe('parseClockDuration', () => {
   it.each([
-    ['2h 38m', 9480], ['45m', 2700], ['1h', 3600], ['90s', 90], ['1h 2m 3s', 3723], ['1H 30M', 5400],
-    ['1.5h', 5400], ['', 0], ['soon', 0], ['12', 0],
+    ['2h 38m', 9480],
+    ['45m', 2700],
+    ['1h', 3600],
+    ['90s', 90],
+    ['1h 2m 3s', 3723],
+    ['1H 30M', 5400],
+    ['1.5h', 5400],
+    ['', 0],
+    ['soon', 0],
+    ['12', 0],
   ])('%j -> %d', (text, secs) => expect(parseClockDuration(text)).toBe(secs))
 })
 
 describe('ExerciseResolver', () => {
-  const squat = mkEx('weight_reps', { id: 'sq', name: 'Squat (Barbell)', muscleGroup: 'Quadriceps', equipment: 'Barbell' })
+  const squat = mkEx('weight_reps', {
+    id: 'sq',
+    name: 'Squat (Barbell)',
+    muscleGroup: 'Quadriceps',
+    equipment: 'Barbell',
+  })
   const shape = { hasWeight: true, hasReps: true, hasDuration: false, hasDistance: false }
 
   it('reuses a matching library exercise without creating anything', () => {
@@ -133,7 +190,13 @@ describe('ExerciseResolver', () => {
   it('creates a classified custom exercise once, then reuses it', () => {
     const r = new ExerciseResolver([squat])
     const a = r.resolve('  Hack Squat (Machine) ', shape)
-    expect(a).toMatchObject({ name: 'Hack Squat (Machine)', isCustom: true, muscleGroup: 'Quadriceps', equipment: 'Machine', kind: 'weight_reps' })
+    expect(a).toMatchObject({
+      name: 'Hack Squat (Machine)',
+      isCustom: true,
+      muscleGroup: 'Quadriceps',
+      equipment: 'Machine',
+      kind: 'weight_reps',
+    })
     const b = r.resolve('hack squat (machine)', shape)
     expect(b).toBe(a)
     expect(r.created).toHaveLength(1)

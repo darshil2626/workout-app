@@ -57,7 +57,9 @@ test.describe('History cards', () => {
   })
 
   test('empty session says nothing was logged', async ({ page }) => {
-    await expect(card(page, 'History empty').locator('.card-exercises')).toHaveText(expected.historyCards['History empty'].text)
+    await expect(card(page, 'History empty').locator('.card-exercises')).toHaveText(
+      expected.historyCards['History empty'].text,
+    )
   })
 })
 
@@ -96,10 +98,16 @@ test.describe('exercise metric chips', () => {
 test('stats: headline 3 and four small tiles in 2 rows', async ({ page }) => {
   await page.goto('/stats')
   await expect(page.locator('.headline .stat-label')).toHaveText(['Volume lifted', 'Sets', 'Reps'])
-  await expect(page.locator('.stat-grid-pairs .stat-label')).toHaveText(['Time lifting', 'Training age', 'Week streak', 'Best streak'])
-  const tops = await page.locator('.stat-grid-pairs').first().evaluate((g) =>
-    [...g.children].map((c) => Math.round(c.getBoundingClientRect().top)),
-  )
+  await expect(page.locator('.stat-grid-pairs .stat-label')).toHaveText([
+    'Time lifting',
+    'Training age',
+    'Week streak',
+    'Best streak',
+  ])
+  const tops = await page
+    .locator('.stat-grid-pairs')
+    .first()
+    .evaluate((g) => [...g.children].map((c) => Math.round(c.getBoundingClientRect().top)))
   expect(tops).toHaveLength(4)
   expect(new Set(tops).size).toBe(2)
 })
@@ -139,7 +147,9 @@ test('the last routine button clears the active-workout banner', async ({ page }
     .poll(async () =>
       page.evaluate(() => {
         const banner = document.querySelector('.active-banner')!.getBoundingClientRect().top
-        const last = Math.max(...[...document.querySelectorAll('.page .btn')].map((e) => e.getBoundingClientRect().bottom))
+        const last = Math.max(
+          ...[...document.querySelectorAll('.page .btn')].map((e) => e.getBoundingClientRect().bottom),
+        )
         return last <= banner
       }),
     )

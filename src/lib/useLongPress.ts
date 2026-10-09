@@ -55,6 +55,10 @@ export function useLongPress(onLongPress: (id: string) => void, options?: LongPr
     window.removeEventListener('pointermove', handleMove)
     window.removeEventListener('pointerup', clear)
     window.removeEventListener('pointercancel', clear)
+    // `clear` and `handleMove` refer to each other, so each must keep one identity
+    // for removeEventListener to match what addEventListener was given. Both read
+    // everything else through refs, so there is nothing to go stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleMove = useCallback(

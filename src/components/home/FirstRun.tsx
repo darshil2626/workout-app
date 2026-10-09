@@ -25,8 +25,8 @@ export function FirstRun({ onStartEmpty, onNewRoutine }: Props) {
         <div className="empty-icon">🏋️</div>
         <h3>Let’s log the first one</h3>
         <p className="muted">
-          Start a session and add exercises as you go. Once there’s a workout behind you, this
-          screen fills in with your week, your streak and what’s rested enough to train.
+          Start a session and add exercises as you go. Once there’s a workout behind you, this screen fills in with your
+          week, your streak and what’s rested enough to train.
         </p>
       </div>
 

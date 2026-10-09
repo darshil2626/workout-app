@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
+import { listExercises, listDoneWorkoutsNewestFirst } from '../db/repo'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { Exercise, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { useFormatters } from '../lib/useSettings'
@@ -16,11 +16,10 @@ export function HistoryPage() {
   // `undefined` while Dexie hasn't answered yet, distinct from a genuinely
   // empty history — collapsing that into `[]` immediately would show the
   // "No workouts yet" empty state as a flash before real history pops in.
-  const workoutsRaw = useLiveQuery(() =>
-    db.workouts.where('status').equals('done').reverse().sortBy('startedAt'),
-  )
-  const workouts = workoutsRaw ?? []
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const workoutsRaw = useLiveQuery(() => listDoneWorkoutsNewestFirst())
+  // Memoised: a fresh `[]` each render would defeat every useMemo keyed on it.
+  const workouts = useMemo(() => workoutsRaw ?? [], [workoutsRaw])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
   // Group by calendar month so long histories stay scannable.
@@ -69,9 +68,7 @@ export function HistoryPage() {
                 <div className="stat-label">Total {fmt.weightUnit}</div>
               </div>
               <div className="stat">
-                <div className="stat-value mono">
-                  {workouts.reduce((s, w) => s + w.totalSets, 0)}
-                </div>
+                <div className="stat-value mono">{workouts.reduce((s, w) => s + w.totalSets, 0)}</div>
                 <div className="stat-label">Sets</div>
               </div>
             </div>

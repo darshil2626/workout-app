@@ -74,7 +74,9 @@ describe('solvePlates', () => {
 describe('groupPlates', () => {
   it('groups with counts, heaviest first', () => {
     expect(groupPlates([25, 25, 10, 2.5, 2.5, 2.5])).toEqual([
-      { plate: 25, count: 2 }, { plate: 10, count: 1 }, { plate: 2.5, count: 3 },
+      { plate: 25, count: 2 },
+      { plate: 10, count: 1 },
+      { plate: 2.5, count: 3 },
     ])
   })
   it('sorts even when input is unordered', () => {

@@ -16,7 +16,7 @@ interface SkeletonProps {
  * a skeleton roughly draws the shape of what's coming, so the page reads as
  * "already loading the real thing" rather than flashing a generic loader.
  *
- * Pure CSS pulse (`.skeleton` in index.css); the app-wide reduced-motion
+ * Pure CSS pulse (`.skeleton` in src/styles); the app-wide reduced-motion
  * media query already zeroes every animation's duration, so this needs no
  * extra handling to respect it.
  */

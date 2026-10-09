@@ -38,6 +38,9 @@ export function CelebrationBanner({ message, onDismiss, duration = 3600 }: Celeb
   if (message === null) return null
 
   return (
+    // Tap-to-dismiss is a convenience on a banner that also dismisses itself;
+    // there is nothing here for a keyboard user to operate.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
       className="celebration-banner"
       role="status"

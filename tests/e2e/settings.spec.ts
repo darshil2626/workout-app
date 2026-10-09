@@ -1,9 +1,21 @@
 import { readFileSync } from 'node:fs'
-import { test, expect, seed, importBackup, readStore, waitForApp, logSet, waitForWorkoutSaved, SYNTHETIC } from './helpers/fixtures'
+import {
+  test,
+  expect,
+  seed,
+  importBackup,
+  readStore,
+  waitForApp,
+  logSet,
+  waitForWorkoutSaved,
+  SYNTHETIC,
+} from './helpers/fixtures'
 import type { Page } from '@playwright/test'
 
 const unitButton = (page: Page, u: 'kg' | 'lb') =>
-  page.locator('.field', { has: page.locator('.field-label', { hasText: /^Weight$/ }) }).locator('.segmented button', { hasText: u })
+  page
+    .locator('.field', { has: page.locator('.field-label', { hasText: /^Weight$/ }) })
+    .locator('.segmented button', { hasText: u })
 
 const settingRow = (page: Page, label: string) => page.locator('button.row-between', { hasText: label })
 
@@ -105,8 +117,14 @@ test('export downloads a valid backup; wipe then re-import restores it', async (
   expect(backup.routines).toHaveLength(original.routines)
 
   // Wipe.
-  await page.getByRole('button', { name: /Delete all data|Wipe|Erase/i }).first().click()
-  await page.getByRole('dialog', { name: 'Delete all data?' }).getByRole('button', { name: 'Delete everything' }).click()
+  await page
+    .getByRole('button', { name: /Delete all data|Wipe|Erase/i })
+    .first()
+    .click()
+  await page
+    .getByRole('dialog', { name: 'Delete all data?' })
+    .getByRole('button', { name: 'Delete everything' })
+    .click()
   await expect.poll(async () => (await readStore(page, 'workouts')).length).toBe(0)
   await expect.poll(async () => (await readStore(page, 'routines')).length).toBe(0)
 
@@ -132,4 +150,41 @@ test('importing a non-backup file is refused without touching data', async ({ pa
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.locator('.page')).toContainText(/missing|not valid|Unrecognized|newer version/i)
   expect((await readStore(page, 'workouts')).length).toBe(before)
+})
+
+test('a damaged backup is refused with the bad entry named, and nothing changes', async ({ page }) => {
+  await seed(page)
+  const before = (await readStore(page, 'workouts')).length
+  const backup = JSON.parse(readFileSync(SYNTHETIC, 'utf8'))
+  backup.workouts[0].startedAt = 'not a date'
+  await page.goto('/settings')
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'damaged.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(backup)),
+  })
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.locator('.page')).toContainText(/damaged entries.*workouts\[0\]\.startedAt/)
+  expect((await readStore(page, 'workouts')).length).toBe(before)
+})
+
+test('a restore can be undone from Settings', async ({ page }) => {
+  await seed(page)
+  const before = (await readStore(page, 'workouts')).length
+  expect(before).toBeGreaterThan(100)
+  await expect(page.getByRole('button', { name: 'Undo last restore' })).toHaveCount(0)
+
+  // Replace everything with a backup holding a single workout.
+  const small = JSON.parse(readFileSync(SYNTHETIC, 'utf8'))
+  small.workouts = small.workouts.slice(0, 1)
+  await importBackup(page, {
+    name: 'small.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(small)),
+  })
+  await expect.poll(async () => (await readStore(page, 'workouts')).length).toBe(1)
+
+  await page.getByRole('button', { name: 'Undo last restore' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Undo restore' }).click()
+  await expect.poll(async () => (await readStore(page, 'workouts')).length).toBe(before)
 })

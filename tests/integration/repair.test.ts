@@ -20,23 +20,32 @@ describe('repairHistory / scanHistoryIssues', () => {
       // two identical sessions; the copy with a placeholder set should be the one removed
       workout({ id: 'a1', startedAt: 1000, exercises: good, totalVolumeKg: 600, totalSets: 1, totalReps: 10 }),
       workout({
-        id: 'a2', startedAt: 1000,
+        id: 'a2',
+        startedAt: 1000,
         exercises: [logged('bench-press-barbell', [set({ weight: 60, reps: 10 }), blank()])],
-        totalVolumeKg: 600, totalSets: 2, totalReps: 10,
+        totalVolumeKg: 600,
+        totalSets: 2,
+        totalReps: 10,
       }),
       // placeholder rows only inside an otherwise real session -> rewritten
       workout({
-        id: 'b', startedAt: 2000,
-        exercises: [
-          logged('squat-barbell', [set({ weight: 100, reps: 5 }), blank()]),
-          logged('plank', [blank()]),
-        ],
-        totalVolumeKg: 500, totalSets: 2, totalReps: 5,
+        id: 'b',
+        startedAt: 2000,
+        exercises: [logged('squat-barbell', [set({ weight: 100, reps: 5 }), blank()]), logged('plank', [blank()])],
+        totalVolumeKg: 500,
+        totalSets: 2,
+        totalReps: 5,
       }),
       // nothing recorded at all -> removed
       workout({ id: 'c', startedAt: 3000, exercises: [logged('squat-barbell', [blank()])] }),
       // active workouts are left alone
-      workout({ id: 'act', startedAt: 4000, status: 'active', finishedAt: null, exercises: [logged('squat-barbell', [blank()])] }),
+      workout({
+        id: 'act',
+        startedAt: 4000,
+        status: 'active',
+        finishedAt: null,
+        exercises: [logged('squat-barbell', [blank()])],
+      }),
     ])
   }
 
@@ -69,8 +78,11 @@ describe('repairHistory / scanHistoryIssues', () => {
   it('the exerciseIds index follows the rewrite', async () => {
     await seedMess()
     await repairHistory()
-    expect((await db.workouts.where('exerciseIds').equals('plank').count())).toBe(0)
-    expect((await db.workouts.where('exerciseIds').equals('squat-barbell').toArray()).map((w) => w.id).sort()).toEqual(['act', 'b'])
+    expect(await db.workouts.where('exerciseIds').equals('plank').count()).toBe(0)
+    expect((await db.workouts.where('exerciseIds').equals('squat-barbell').toArray()).map((w) => w.id).sort()).toEqual([
+      'act',
+      'b',
+    ])
   })
 
   it('three copies of a session leave exactly one, deterministically', async () => {
@@ -93,8 +105,16 @@ describe('recomputeAllWorkoutTotals', () => {
   it('fixes stale cached totals, honours countWarmupSets, and is idempotent', async () => {
     await db.workouts.put(
       workout({
-        id: 'w', exercises: [logged('bench-press-barbell', [set({ weight: 40, reps: 10, setType: 'warmup' }), set({ weight: 80, reps: 5 })])],
-        totalVolumeKg: 99999, totalSets: 42, totalReps: 1,
+        id: 'w',
+        exercises: [
+          logged('bench-press-barbell', [
+            set({ weight: 40, reps: 10, setType: 'warmup' }),
+            set({ weight: 80, reps: 5 }),
+          ]),
+        ],
+        totalVolumeKg: 99999,
+        totalSets: 42,
+        totalReps: 1,
       }),
     )
     expect(await recomputeAllWorkoutTotals()).toBe(1)
@@ -125,7 +145,15 @@ describe('recomputeAllWorkoutTotals', () => {
   })
 
   it('skips active workouts', async () => {
-    await db.workouts.put(workout({ id: 'act', status: 'active', finishedAt: null, exercises: [logged('bench-press-barbell', [set()])], totalVolumeKg: 7 }))
+    await db.workouts.put(
+      workout({
+        id: 'act',
+        status: 'active',
+        finishedAt: null,
+        exercises: [logged('bench-press-barbell', [set()])],
+        totalVolumeKg: 7,
+      }),
+    )
     expect(await recomputeAllWorkoutTotals()).toBe(0)
     expect((await db.workouts.get('act'))!.totalVolumeKg).toBe(7)
   })
@@ -138,16 +166,32 @@ describe('mergeExercises', () => {
       customExercise({ id: 'dup2', name: 'Other custom' }),
     ])
     await db.workouts.bulkPut([
-      workout({ id: 'w1', startedAt: 1, exercises: [logged('dup', [set({ weight: 50, reps: 10 })])], totalVolumeKg: 1, totalSets: 1, totalReps: 1 }),
+      workout({
+        id: 'w1',
+        startedAt: 1,
+        exercises: [logged('dup', [set({ weight: 50, reps: 10 })])],
+        totalVolumeKg: 1,
+        totalSets: 1,
+        totalReps: 1,
+      }),
       // session holding BOTH source and target
       workout({
-        id: 'w2', startedAt: 2,
-        exercises: [logged('dup', [set({ weight: 50, reps: 10 })]), logged('bench-press-barbell', [set({ weight: 60, reps: 10 })])],
+        id: 'w2',
+        startedAt: 2,
+        exercises: [
+          logged('dup', [set({ weight: 50, reps: 10 })]),
+          logged('bench-press-barbell', [set({ weight: 60, reps: 10 })]),
+        ],
       }),
       workout({ id: 'w3', startedAt: 3, exercises: [logged('squat-barbell', [set()])] }),
     ])
     await db.routines.put({
-      id: 'r', name: 'R', folderId: null, order: 0, createdAt: 1, updatedAt: 1,
+      id: 'r',
+      name: 'R',
+      folderId: null,
+      order: 0,
+      createdAt: 1,
+      updatedAt: 1,
       exercises: [
         { id: 're1', exerciseId: 'dup', supersetGroup: null, sets: [] },
         { id: 're2', exerciseId: 'squat-barbell', supersetGroup: null, sets: [] },
@@ -168,7 +212,9 @@ describe('mergeExercises', () => {
     expect(w2.exerciseIds).toEqual(['bench-press-barbell']) // deduped
     expect(w2.exercises).toHaveLength(2)
     expect(w2.totalVolumeKg).toBe(1100)
-    expect((await db.workouts.where('exerciseIds').equals('bench-press-barbell').toArray()).map((w) => w.id).sort()).toEqual(['w1', 'w2'])
+    expect(
+      (await db.workouts.where('exerciseIds').equals('bench-press-barbell').toArray()).map((w) => w.id).sort(),
+    ).toEqual(['w1', 'w2'])
     const r = (await db.routines.get('r'))!
     expect(r.exercises.map((e) => e.exerciseId)).toEqual(['bench-press-barbell', 'squat-barbell'])
     expect(await db.workouts.get('w3')).toMatchObject({ exerciseIds: ['squat-barbell'] })
@@ -178,7 +224,9 @@ describe('mergeExercises', () => {
 
   it('refuses while the source exercise is in an active workout, and changes nothing', async () => {
     await seedMerge()
-    await db.workouts.put(workout({ id: 'act', status: 'active', finishedAt: null, startedAt: 9, exercises: [logged('dup', [set()])] }))
+    await db.workouts.put(
+      workout({ id: 'act', status: 'active', finishedAt: null, startedAt: 9, exercises: [logged('dup', [set()])] }),
+    )
     expect(await hasActiveWorkout()).toBe(true)
     const before = await snapshot()
     await expect(mergeExercises('dup', 'bench-press-barbell')).rejects.toThrow(/in progress/)
@@ -187,7 +235,15 @@ describe('mergeExercises', () => {
 
   it('an active workout elsewhere does not block merging an unrelated exercise', async () => {
     await seedMerge()
-    await db.workouts.put(workout({ id: 'act', status: 'active', finishedAt: null, startedAt: 9, exercises: [logged('squat-barbell', [set()])] }))
+    await db.workouts.put(
+      workout({
+        id: 'act',
+        status: 'active',
+        finishedAt: null,
+        startedAt: 9,
+        exercises: [logged('squat-barbell', [set()])],
+      }),
+    )
     await expect(mergeExercises('dup', 'bench-press-barbell')).resolves.toBe(2)
   })
 
@@ -201,7 +257,9 @@ describe('mergeExercises', () => {
 
   it('recomputes totals using the target kind (kind differs between source and target)', async () => {
     await db.exercises.put(customExercise({ id: 'dup', name: 'Pullup thing', kind: 'weight_reps' }))
-    await db.workouts.put(workout({ id: 'w', exercises: [logged('dup', [set({ weight: 20, reps: 5 })])], totalVolumeKg: 500 }))
+    await db.workouts.put(
+      workout({ id: 'w', exercises: [logged('dup', [set({ weight: 20, reps: 5 })])], totalVolumeKg: 500 }),
+    )
     await db.settings.update(1, { bodyweightKg: 80 })
     await mergeExercises('dup', 'pull-up')
     const byId = new Map((await db.exercises.toArray()).map((e) => [e.id, e] as const))
@@ -217,11 +275,20 @@ describe('applyExerciseFixes', () => {
       customExercise({ id: 'imp-new', name: 'Totally Unknown Move Xyzzy' }),
     ])
     await db.workouts.bulkPut([
-      workout({ id: 'w1', startedAt: 1, exercises: [logged('imp-bench', [set({ weight: 60, reps: 10 })]), logged('imp-new', [set()])] }),
+      workout({
+        id: 'w1',
+        startedAt: 1,
+        exercises: [logged('imp-bench', [set({ weight: 60, reps: 10 })]), logged('imp-new', [set()])],
+      }),
       workout({ id: 'w2', startedAt: 2, exercises: [logged('imp-bench', [set({ weight: 70, reps: 8 })])] }),
     ])
     await db.routines.put({
-      id: 'r', name: 'R', folderId: null, order: 0, createdAt: 1, updatedAt: 1,
+      id: 'r',
+      name: 'R',
+      folderId: null,
+      order: 0,
+      createdAt: 1,
+      updatedAt: 1,
       exercises: [{ id: 're', exerciseId: 'imp-bench', supersetGroup: null, sets: [] }],
     })
   }
@@ -248,8 +315,12 @@ describe('applyExerciseFixes', () => {
   })
 
   it('reclassifies only blank fields and never clobbers user-set ones', async () => {
-    await db.exercises.put(customExercise({ id: 'c', name: 'Hammer Curl', muscleGroup: 'Other', equipment: 'Dumbbell' }))
-    await db.exercises.put(customExercise({ id: 'd', name: 'Hammer Curl Mine', muscleGroup: 'Chest', equipment: 'Other' }))
+    await db.exercises.put(
+      customExercise({ id: 'c', name: 'Hammer Curl', muscleGroup: 'Other', equipment: 'Dumbbell' }),
+    )
+    await db.exercises.put(
+      customExercise({ id: 'd', name: 'Hammer Curl Mine', muscleGroup: 'Chest', equipment: 'Other' }),
+    )
     const before = await db.exercises.get('d')
     await applyExerciseFixes()
     const d = await db.exercises.get('d')
@@ -265,7 +336,15 @@ describe('applyExerciseFixes', () => {
 
   it('refuses to merge under an active workout and applyExerciseFixes surfaces the error without partial rewrite', async () => {
     await seedFixable()
-    await db.workouts.put(workout({ id: 'act', status: 'active', finishedAt: null, startedAt: 9, exercises: [logged('imp-bench', [set()])] }))
+    await db.workouts.put(
+      workout({
+        id: 'act',
+        status: 'active',
+        finishedAt: null,
+        startedAt: 9,
+        exercises: [logged('imp-bench', [set()])],
+      }),
+    )
     const before = await snapshot()
     await expect(applyExerciseFixes()).rejects.toThrow(/in progress/)
     expect(await snapshot()).toEqual(before)

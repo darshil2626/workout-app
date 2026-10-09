@@ -1,4 +1,6 @@
 import { db, DEFAULT_SETTINGS } from '../db/db'
+import { findBackupProblems } from './backupSchema'
+import { recordBackup } from './backupReminder'
 import type { Exercise, Folder, Measurement, Routine, Settings, Workout } from '../db/types'
 
 /** v2 added `measurements`; v1 files still import, they just have none. */
@@ -22,6 +24,9 @@ export interface BackupFile {
   measurements?: Measurement[]
   settings: Settings
 }
+
+/** Every table a backup covers, for transactions that read or replace them all. */
+const backupTables = () => [db.exercises, db.workouts, db.routines, db.folders, db.measurements, db.settings]
 
 export async function buildBackup(): Promise<BackupFile> {
   const [exercises, workouts, routines, folders, measurements, settings] = await Promise.all([
@@ -58,6 +63,8 @@ export async function downloadBackup(): Promise<void> {
   a.remove()
   // Revoking immediately can cancel the download in some mobile browsers.
   setTimeout(() => URL.revokeObjectURL(url), 4000)
+  // Bookkeeping for the reminder; a failure here must not undo a good export.
+  await recordBackup(backup.exportedAt).catch(() => {})
 }
 
 export interface ImportSummary {
@@ -83,6 +90,10 @@ function assertBackup(data: unknown): asserts data is BackupFile {
   for (const key of ['exercises', 'workouts', 'routines', 'folders'] as const) {
     if (!Array.isArray(b[key])) throw new Error(`Backup is missing its "${key}" section.`)
   }
+  const problems = findBackupProblems(b as Parameters<typeof findBackupProblems>[0])
+  if (problems.length > 0) {
+    throw new Error(`That backup has damaged entries, so nothing was changed. ${problems.join('; ')}.`)
+  }
 }
 
 /**
@@ -96,60 +107,109 @@ export function parseBackup(text: string): BackupFile {
   return data
 }
 
+/** Where the data a restore replaced is kept, so it can be put back. */
+const SNAPSHOT_ID = 'pre-restore'
+
+/** Whether the device holds anything a restore would destroy. */
+async function hasUserData(): Promise<boolean> {
+  const [workouts, routines, folders, measurements, custom] = await Promise.all([
+    db.workouts.count(),
+    db.routines.count(),
+    db.folders.count(),
+    db.measurements.count(),
+    db.exercises.filter((e) => e.isCustom).count(),
+  ])
+  return workouts + routines + folders + measurements + custom > 0
+}
+
 /**
- * Replaces the entire database with the backup's contents.
- * Merging is deliberately not offered: reconciling two divergent set-by-set
- * histories without a sync protocol produces silent duplicates.
+ * Replaces the tables with `data`. Must run inside a transaction over
+ * `backupTables()` plus `db.snapshots`, so the snapshot and the replacement
+ * either both land or neither does.
  */
-export async function restoreBackup(text: string): Promise<ImportSummary> {
-  const data = parseBackup(text)
+async function replaceAll(data: BackupFile): Promise<void> {
+  await Promise.all([
+    db.exercises.clear(),
+    db.workouts.clear(),
+    db.routines.clear(),
+    db.folders.clear(),
+    db.measurements.clear(),
+  ])
+  await db.exercises.bulkPut(data.exercises)
+  await db.workouts.bulkPut(data.workouts)
+  await db.routines.bulkPut(data.routines)
+  await db.folders.bulkPut(data.folders)
+  await db.measurements.bulkPut(data.measurements ?? [])
+  if (data.settings) await db.settings.put({ ...DEFAULT_SETTINGS, ...data.settings, id: 1 })
+}
 
-  const measurements = data.measurements ?? []
-
-  // Dexie's typed overloads stop at five tables, so pass them as an array.
-  await db.transaction(
-    'rw',
-    [db.exercises, db.workouts, db.routines, db.folders, db.measurements, db.settings],
-    async () => {
-      await Promise.all([
-        db.exercises.clear(),
-        db.workouts.clear(),
-        db.routines.clear(),
-        db.folders.clear(),
-        db.measurements.clear(),
-      ])
-      await db.exercises.bulkPut(data.exercises)
-      await db.workouts.bulkPut(data.workouts)
-      await db.routines.bulkPut(data.routines)
-      await db.folders.bulkPut(data.folders)
-      await db.measurements.bulkPut(measurements)
-      if (data.settings) await db.settings.put({ ...DEFAULT_SETTINGS, ...data.settings, id: 1 })
-    },
-  )
-
+function summarise(data: BackupFile): ImportSummary {
   return {
     exercises: data.exercises.length,
     workouts: data.workouts.length,
     routines: data.routines.length,
     folders: data.folders.length,
-    measurements: measurements.length,
+    measurements: (data.measurements ?? []).length,
   }
+}
+
+/**
+ * Replaces the entire database with the backup's contents.
+ * Merging is deliberately not offered: reconciling two divergent set-by-set
+ * histories without a sync protocol produces silent duplicates.
+ *
+ * What was on the device is kept as a snapshot first (in the same transaction,
+ * so a failed restore leaves both untouched), and `undoRestore` puts it back.
+ * A device with nothing of the user's on it has nothing worth keeping.
+ */
+export async function restoreBackup(text: string): Promise<ImportSummary> {
+  const data = parseBackup(text)
+  await applyRestore(data)
+  return summarise(data)
+}
+
+async function applyRestore(data: BackupFile): Promise<void> {
+  await db.transaction('rw', [...backupTables(), db.snapshots], async () => {
+    if (await hasUserData()) {
+      await db.snapshots.put({ id: SNAPSHOT_ID, createdAt: Date.now(), backup: await buildBackup() })
+    }
+    await replaceAll(data)
+  })
+}
+
+export interface SnapshotInfo extends ImportSummary {
+  createdAt: number
+}
+
+/** What an undo would bring back, or null when there is nothing to undo. */
+export async function getRestoreSnapshot(): Promise<SnapshotInfo | null> {
+  const row = await db.snapshots.get(SNAPSHOT_ID)
+  return row ? { createdAt: row.createdAt, ...summarise(row.backup) } : null
+}
+
+/**
+ * Puts back what the last restore replaced. The data being undone becomes the
+ * new snapshot, so pressing undo twice returns to where you started.
+ */
+export async function undoRestore(): Promise<ImportSummary> {
+  const row = await db.snapshots.get(SNAPSHOT_ID)
+  if (!row) throw new Error('There is nothing to undo.')
+  await applyRestore(row.backup)
+  return summarise(row.backup)
 }
 
 export async function wipeAllData(): Promise<void> {
   // Dexie's typed overloads stop at five tables, so pass them as an array.
-  await db.transaction(
-    'rw',
-    [db.exercises, db.workouts, db.routines, db.folders, db.measurements, db.settings],
-    async () => {
-      await Promise.all([
-        db.exercises.clear(),
-        db.workouts.clear(),
-        db.routines.clear(),
-        db.folders.clear(),
-        db.measurements.clear(),
-        db.settings.clear(),
-      ])
-    },
-  )
+  await db.transaction('rw', [...backupTables(), db.snapshots], async () => {
+    await Promise.all([
+      db.exercises.clear(),
+      db.workouts.clear(),
+      db.routines.clear(),
+      db.folders.clear(),
+      db.measurements.clear(),
+      db.settings.clear(),
+      // Deleting everything has to include the copy a restore kept.
+      db.snapshots.clear(),
+    ])
+  })
 }

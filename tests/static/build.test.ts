@@ -27,11 +27,11 @@ function walk(dir: string, out: string[] = []): string[] {
   return out
 }
 
-/** Dark --bg from src/index.css (the first --bg declaration is :root's dark theme). */
+/** Dark --bg from src/styles/base.css (the first --bg declaration is :root's dark theme). */
 function darkBg(): string {
-  const css = readFileSync(join(root, 'src', 'index.css'), 'utf8')
+  const css = readFileSync(join(root, 'src', 'styles', 'base.css'), 'utf8')
   const m = css.match(/--bg:\s*(#[0-9a-fA-F]{3,8})\s*;/)
-  if (!m) throw new Error('no --bg in index.css')
+  if (!m) throw new Error('no --bg in base.css')
   return m[1].toLowerCase()
 }
 

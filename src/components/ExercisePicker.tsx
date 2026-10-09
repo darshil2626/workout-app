@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
+import { listExercises } from '../db/repo'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
 import type { Exercise } from '../db/types'
 import { Sheet } from './Sheet'
 import { ExerciseFormSheet } from './ExerciseForm'
@@ -35,7 +35,7 @@ export function ExercisePicker({
   const [selected, setSelected] = useState<string[]>([])
   const [creating, setCreating] = useState(false)
 
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
 
   const muscles = useMemo(() => {
     const set = new Set(exercises.filter((e) => !e.archived).map((e) => e.muscleGroup))
@@ -86,13 +86,11 @@ export function ExercisePicker({
               <IconPlus />
               New
             </button>
-            <button
-              className="btn btn-primary grow"
-              disabled={selected.length === 0}
-              onClick={confirm}
-            >
+            <button className="btn btn-primary grow" disabled={selected.length === 0} onClick={confirm}>
               {selected.length === 0
-                ? (confirmLabel ? 'Select an exercise' : 'Select exercises')
+                ? confirmLabel
+                  ? 'Select an exercise'
+                  : 'Select exercises'
                 : (confirmLabel ?? `Add ${selected.length} exercise${selected.length > 1 ? 's' : ''}`)}
             </button>
           </>
@@ -112,11 +110,7 @@ export function ExercisePicker({
 
         <div className="chips" style={{ marginBottom: 6 }}>
           {muscles.map((m) => (
-            <button
-              key={m}
-              className={`chip${muscle === m ? ' active' : ''}`}
-              onClick={() => setMuscle(m)}
-            >
+            <button key={m} className={`chip${muscle === m ? ' active' : ''}`} onClick={() => setMuscle(m)}>
               {m}
             </button>
           ))}

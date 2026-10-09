@@ -8,9 +8,7 @@
  */
 export function playChime(): void {
   try {
-    const Ctor =
-      window.AudioContext ??
-      (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    const Ctor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!Ctor) return
     const ctx = new Ctor()
     const now = ctx.currentTime

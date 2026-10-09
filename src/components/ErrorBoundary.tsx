@@ -45,8 +45,8 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="empty-icon">⚠️</div>
             <h3>Something went wrong</h3>
             <p className="muted">
-              Trana hit an unexpected error. Your workouts and history are saved on this device
-              and are safe so reloading should get you back in.
+              Trana hit an unexpected error. Your workouts and history are saved on this device and are safe so
+              reloading should get you back in.
             </p>
             <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => window.location.reload()}>
               Reload

@@ -106,8 +106,7 @@ function stripPlaceholders(w: Workout): { exercises: LoggedExercise[]; changed: 
   const exercises = w.exercises
     .map((le) => (le.sets.every(hasLoggedValue) ? le : { ...le, sets: le.sets.filter(hasLoggedValue) }))
     .filter((le) => le.sets.length > 0)
-  const changed =
-    exercises.length !== w.exercises.length || countSets(exercises) !== countSets(w.exercises)
+  const changed = exercises.length !== w.exercises.length || countSets(exercises) !== countSets(w.exercises)
   return { exercises, changed }
 }
 
@@ -156,12 +155,7 @@ function planRepair(
 
     if (!changed) continue
     issues.placeholderSets++
-    const totals = computeTotals(
-      exercises,
-      exerciseById,
-      w.bodyweightKg ?? defaultBodyweightKg,
-      countWarmups,
-    )
+    const totals = computeTotals(exercises, exerciseById, w.bodyweightKg ?? defaultBodyweightKg, countWarmups)
     put.push({
       ...w,
       exercises,
@@ -182,12 +176,7 @@ async function loadForRepair(): Promise<RepairPlan> {
     db.settings.get(1),
   ])
   const exerciseById = new Map(exercises.map((e) => [e.id, e] as const))
-  return planRepair(
-    workouts,
-    exerciseById,
-    settings?.bodyweightKg ?? null,
-    settings?.countWarmupSets ?? false,
-  )
+  return planRepair(workouts, exerciseById, settings?.bodyweightKg ?? null, settings?.countWarmupSets ?? false)
 }
 
 /**
@@ -208,12 +197,7 @@ export async function recomputeAllWorkoutTotals(): Promise<number> {
 
     const changed: Workout[] = []
     for (const w of workouts) {
-      const totals = computeTotals(
-        w.exercises,
-        exerciseById,
-        w.bodyweightKg ?? fallbackBodyweightKg,
-        countWarmups,
-      )
+      const totals = computeTotals(w.exercises, exerciseById, w.bodyweightKg ?? fallbackBodyweightKg, countWarmups)
       if (
         totals.totalVolumeKg === w.totalVolumeKg &&
         totals.totalSets === w.totalSets &&

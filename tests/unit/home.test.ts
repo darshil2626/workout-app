@@ -1,8 +1,18 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
-  REST_OVERDUE_DAYS, REST_READY_DAYS, RECOVERY_STALE_DAYS, habitWindow, homeStatus, muscleRecovery,
-  nextMilestone, restState, suggestNextRoutine, suggestedWeeklyGoal, weekProgress,
-  type MuscleRecovery, type WeekProgress,
+  REST_OVERDUE_DAYS,
+  REST_READY_DAYS,
+  RECOVERY_STALE_DAYS,
+  habitWindow,
+  homeStatus,
+  muscleRecovery,
+  nextMilestone,
+  restState,
+  suggestNextRoutine,
+  suggestedWeeklyGoal,
+  weekProgress,
+  type MuscleRecovery,
+  type WeekProgress,
 } from '../../src/lib/home'
 import type { Routine } from '../../src/db/types'
 import { mkEx, mkLogged, mkSet, mkWorkout, uid } from './helpers'
@@ -95,7 +105,12 @@ describe('suggestedWeeklyGoal', () => {
 
 describe('suggestNextRoutine', () => {
   const mkRoutine = (exerciseIds: string[], order: number, name = `R${order}`): Routine => ({
-    id: uid('r'), name, folderId: null, order, createdAt: 0, updatedAt: 0,
+    id: uid('r'),
+    name,
+    folderId: null,
+    order,
+    createdAt: 0,
+    updatedAt: 0,
     exercises: exerciseIds.map((exerciseId) => ({ id: uid('re'), exerciseId, supersetGroup: null, sets: [] })),
   })
   const trained = (exerciseId: string, daysAgo: number, o = {}) =>
@@ -172,14 +187,24 @@ describe('muscleRecovery', () => {
   const squat = mkEx('weight_reps', { muscleGroup: 'Quadriceps' })
   const map = new Map([bench, squat].map((e) => [e.id, e]))
   const sess = (daysAgo: number, ex: typeof bench, nSets = 3, o = {}) =>
-    done(NOW - daysAgo * DAY, { exercises: [mkLogged(ex.id, Array.from({ length: nSets }, () => mkSet({ weight: 50, reps: 5 })))], ...o })
+    done(NOW - daysAgo * DAY, {
+      exercises: [
+        mkLogged(
+          ex.id,
+          Array.from({ length: nSets }, () => mkSet({ weight: 50, reps: 5 })),
+        ),
+      ],
+      ...o,
+    })
 
   it('credits primary and secondary muscles, most rested first', () => {
     const r = muscleRecovery([sess(1, bench), sess(5, squat)], map, false, NOW)
-    expect(r.map((m) => m.muscle)).toEqual(['Quadriceps', 'Chest', 'Triceps', 'Shoulders'].sort((a, b) => {
-      const d = (m: string) => (m === 'Quadriceps' ? 5 : 1)
-      return d(b) - d(a)
-    }))
+    expect(r.map((m) => m.muscle)).toEqual(
+      ['Quadriceps', 'Chest', 'Triceps', 'Shoulders'].sort((a, b) => {
+        const d = (m: string) => (m === 'Quadriceps' ? 5 : 1)
+        return d(b) - d(a)
+      }),
+    )
     expect(r[0]).toEqual({ muscle: 'Quadriceps', daysSince: 5, sets: 3 })
     expect(r.find((m) => m.muscle === 'Triceps')).toEqual({ muscle: 'Triceps', daysSince: 1, sets: 3 })
   })
@@ -196,7 +221,9 @@ describe('muscleRecovery', () => {
     const warm = done(NOW - DAY, { exercises: [mkLogged(squat.id, [mkSet({ setType: 'warmup' })])] })
     const incomplete = done(NOW - DAY, { exercises: [mkLogged(squat.id, [mkSet({ completed: false })])] })
     const ghost = done(NOW - DAY, { exercises: [mkLogged('ghost', [mkSet()])] })
-    expect(muscleRecovery([sess(1, squat, 3, { status: 'active' }), warm, incomplete, ghost], map, false, NOW)).toEqual([])
+    expect(muscleRecovery([sess(1, squat, 3, { status: 'active' }), warm, incomplete, ghost], map, false, NOW)).toEqual(
+      [],
+    )
     expect(muscleRecovery([warm], map, true, NOW)).toHaveLength(1)
   })
   it('empty', () => expect(muscleRecovery([], map, false, NOW)).toEqual([]))
@@ -215,8 +242,14 @@ describe('restState thresholds', () => {
 })
 
 describe('nextMilestone', () => {
-  const t = (o: Partial<{ workouts: number; volumeKg: number; sets: number }> = {}) =>
-    ({ workouts: 0, volumeKg: 0, sets: 0, reps: 0, durationSec: 0, ...o })
+  const t = (o: Partial<{ workouts: number; volumeKg: number; sets: number }> = {}) => ({
+    workouts: 0,
+    volumeKg: 0,
+    sets: 0,
+    reps: 0,
+    durationSec: 0,
+    ...o,
+  })
 
   it('brand new user: first workouts rung', () => {
     expect(nextMilestone(t())).toEqual({ kind: 'workouts', unitLabel: 'workouts', current: 0, target: 10 })
@@ -225,9 +258,16 @@ describe('nextMilestone', () => {
     expect(nextMilestone(t({ workouts: 10 }))).toMatchObject({ kind: 'workouts', target: 25 })
   })
   it('picks the proportionally closest ladder', () => {
-    expect(nextMilestone(t({ workouts: 5, volumeKg: 450_000, sets: 10 }))).toMatchObject({ kind: 'volumeKg', target: 500_000 })
+    expect(nextMilestone(t({ workouts: 5, volumeKg: 450_000, sets: 10 }))).toMatchObject({
+      kind: 'volumeKg',
+      target: 500_000,
+    })
     expect(nextMilestone(t({ workouts: 9, volumeKg: 1000, sets: 10 }))).toMatchObject({ kind: 'workouts', target: 10 })
-    expect(nextMilestone(t({ workouts: 1, volumeKg: 1000, sets: 480 }))).toMatchObject({ kind: 'sets', unitLabel: 'sets', target: 500 })
+    expect(nextMilestone(t({ workouts: 1, volumeKg: 1000, sets: 480 }))).toMatchObject({
+      kind: 'sets',
+      unitLabel: 'sets',
+      target: 500,
+    })
   })
   it('null once every ladder is exhausted', () => {
     expect(nextMilestone(t({ workouts: 1000, volumeKg: 10_000_000, sets: 10_000 }))).toBeNull()
@@ -239,7 +279,16 @@ describe('nextMilestone', () => {
 
 describe('habitWindow', () => {
   // Mondays at ~18:xx
-  const mondays = [L(7, 6, 18), L(7, 13, 18, 20), L(7, 20, 18, 40), L(7, 27, 18, 5), L(8, 3, 18), L(8, 10, 18), L(8, 17, 18), L(8, 24, 18)]
+  const mondays = [
+    L(7, 6, 18),
+    L(7, 13, 18, 20),
+    L(7, 20, 18, 40),
+    L(7, 27, 18, 5),
+    L(8, 3, 18),
+    L(8, 10, 18),
+    L(8, 17, 18),
+    L(8, 24, 18),
+  ]
   const monNow = L(8, 31, 18, 30) // a Monday at 18:30
   const ws = mondays.map((m) => done(m))
 
@@ -265,7 +314,13 @@ describe('habitWindow', () => {
 })
 
 describe('homeStatus', () => {
-  const goal = (o: Partial<WeekProgress> = {}): WeekProgress => ({ done: 1, goal: 4, daysLeft: 5, state: 'onTrack', ...o })
+  const goal = (o: Partial<WeekProgress> = {}): WeekProgress => ({
+    done: 1,
+    goal: 4,
+    daysLeft: 5,
+    state: 'onTrack',
+    ...o,
+  })
   const rec = (muscle: MuscleRecovery['muscle'], daysSince: number): MuscleRecovery => ({ muscle, daysSince, sets: 3 })
 
   it('day name always present', () => {
@@ -279,7 +334,9 @@ describe('homeStatus', () => {
     expect(homeStatus(goal({ state: 'atRisk' }), [rec('Chest', 10)], false, false, NOW).fact).toBeNull()
   })
   it('at-risk week reports remaining sessions, before overdue muscles', () => {
-    expect(homeStatus(goal({ done: 1, goal: 4, state: 'atRisk' }), [rec('Chest', 10)], true, false, NOW).fact).toBe('3 to go this week')
+    expect(homeStatus(goal({ done: 1, goal: 4, state: 'atRisk' }), [rec('Chest', 10)], true, false, NOW).fact).toBe(
+      '3 to go this week',
+    )
   })
   it('overdue muscle only when strictly past the overdue threshold', () => {
     expect(homeStatus(goal(), [rec('Back', 5)], true, false, NOW).fact).toBe('Back is overdue')

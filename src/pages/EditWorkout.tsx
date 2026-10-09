@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { listExercises, getWorkout, saveWorkout } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../db/db'
+import { newId } from '../db/db'
 import type { Exercise, LoggedExercise, LoggedSet, SetType, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { SetRow } from '../components/SetRow'
@@ -36,8 +37,8 @@ export function EditWorkoutPage() {
   const navigate = useNavigate()
   const fmt = useFormatters()
 
-  const stored = useLiveQuery(async () => (id ? ((await db.workouts.get(id)) ?? null) : null), [id])
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const stored = useLiveQuery(async () => (id ? ((await getWorkout(id)) ?? null) : null), [id])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
   const [name, setName] = useState('')
@@ -102,9 +103,7 @@ export function EditWorkoutPage() {
     const seconds = parseDuration(duration) ?? 0
     // Drop blank sets and now-empty exercises, matching how a session is saved
     // when it is finished normally.
-    const cleaned = items
-      .map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) }))
-      .filter((le) => le.sets.length > 0)
+    const cleaned = items.map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) })).filter((le) => le.sets.length > 0)
 
     const totals = computeTotals(
       cleaned,
@@ -125,7 +124,7 @@ export function EditWorkoutPage() {
       totalSets: totals.totalSets,
       totalReps: totals.totalReps,
     }
-    await db.workouts.put(updated)
+    await saveWorkout(updated)
     navigate(`/history/${updated.id}`, { replace: true })
   }
 
@@ -150,12 +149,7 @@ export function EditWorkoutPage() {
           <label className="field-label" htmlFor="w-name">
             Name
           </label>
-          <input
-            id="w-name"
-            className="input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <input id="w-name" className="input" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         <div className="row" style={{ gap: 10, marginTop: 12, alignItems: 'flex-end' }}>
@@ -163,25 +157,13 @@ export function EditWorkoutPage() {
             <label className="field-label" htmlFor="w-date">
               Date
             </label>
-            <input
-              id="w-date"
-              className="input"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <input id="w-date" className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div className="field grow">
             <label className="field-label" htmlFor="w-time">
               Start
             </label>
-            <input
-              id="w-time"
-              className="input"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
+            <input id="w-time" className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
         </div>
 
@@ -248,9 +230,7 @@ export function EditWorkoutPage() {
                         kind={kind}
                         fmt={fmt}
                         onChange={(patch) => updateSet(le.id, set.id, patch)}
-                        onToggleComplete={() =>
-                          updateSet(le.id, set.id, { completed: !set.completed })
-                        }
+                        onToggleComplete={() => updateSet(le.id, set.id, { completed: !set.completed })}
                         onOpenMenu={() => setSetMenu({ leId: le.id, set })}
                       />
                     ))}

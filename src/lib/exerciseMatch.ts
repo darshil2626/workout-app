@@ -71,7 +71,10 @@ export function splitName(name: string): { base: string; qualifier: string | nul
  */
 function equipmentFromQualifier(qualifier: string | null): Equipment | null {
   if (!qualifier) return null
-  const head = qualifier.split(/\s+-\s+|,/)[0].trim().toLowerCase()
+  const head = qualifier
+    .split(/\s+-\s+|,/)[0]
+    .trim()
+    .toLowerCase()
   return EQUIPMENT_ALIASES[head] ?? null
 }
 
@@ -196,7 +199,10 @@ const MUSCLE_KEYWORDS: [RegExp, MuscleGroup][] = [
   [/\b(row|pulldown|pull up|chin up|deadlift|lat|shrug)\b/, 'Back'],
   [/\b(shoulder|lateral raise|front raise|overhead press|arnold|face pull|rear delt|upright)\b/, 'Shoulders'],
   [/\b(bench|chest|fly|pushup|pec)\b/, 'Chest'],
-  [/\b(run|running|walk|walking|jog|jogging|cycling|treadmill|elliptical|bike|biking|swim|swimming|ski erg|stair|rowing)\b/, 'Cardio'],
+  [
+    /\b(run|running|walk|walking|jog|jogging|cycling|treadmill|elliptical|bike|biking|swim|swimming|ski erg|stair|rowing)\b/,
+    'Cardio',
+  ],
 ]
 
 function muscleFromKeywords(canonical: string): MuscleGroup | null {
@@ -204,15 +210,7 @@ function muscleFromKeywords(canonical: string): MuscleGroup | null {
   return null
 }
 
-export type MatchConfidence =
-  | 'exact'
-  | 'canonical'
-  | 'alias'
-  | 'variant'
-  | 'sibling'
-  | 'related'
-  | 'keyword'
-  | 'none'
+export type MatchConfidence = 'exact' | 'canonical' | 'alias' | 'variant' | 'sibling' | 'related' | 'keyword' | 'none'
 
 /** The four high-confidence rungs, the only ones allowed to claim an identity. */
 export const MERGE_CONFIDENCES: readonly MatchConfidence[] = ['exact', 'canonical', 'alias', 'variant']
@@ -332,12 +330,7 @@ export class ExerciseIndex {
         if (sameEquipment) return reuse(sameEquipment, 'variant')
       }
       const sibling = siblings[0]
-      return fallback(
-        sibling.muscleGroup,
-        'sibling',
-        sibling.secondaryMuscles,
-        equipment ?? hint.equipment,
-      )
+      return fallback(sibling.muscleGroup, 'sibling', sibling.secondaryMuscles, equipment ?? hint.equipment)
     }
 
     // 6. No shared base, but enough shared words to trust the muscle group.

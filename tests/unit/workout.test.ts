@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import {
-  computeTotals, countsTowardVolume, describeSet, effectiveWeightKg, elapsedSeconds, emptySet,
-  estimate1RM, fieldsFor, hasLoggedValue, isSetLogged, prWeightKg, setBadges, setFromTarget, setTypeBadge,
+  computeTotals,
+  countsTowardVolume,
+  describeSet,
+  effectiveWeightKg,
+  elapsedSeconds,
+  emptySet,
+  estimate1RM,
+  fieldsFor,
+  hasLoggedValue,
+  isSetLogged,
+  prWeightKg,
+  setBadges,
+  setFromTarget,
+  setTypeBadge,
 } from '../../src/lib/workout'
 import type { ExerciseKind } from '../../src/db/types'
 import { mkEx, mkLogged, mkSet, mkWorkout } from './helpers'
@@ -53,7 +65,13 @@ describe('prWeightKg', () => {
     expect(prWeightKg(mkSet({ weight: 20 }), 'weighted_bodyweight')).toBe(20)
   })
   it('is 0 for assisted, bodyweight, reps-only and duration/distance', () => {
-    for (const k of ['assisted_bodyweight', 'bodyweight_reps', 'reps_only', 'duration', 'distance_duration'] as ExerciseKind[]) {
+    for (const k of [
+      'assisted_bodyweight',
+      'bodyweight_reps',
+      'reps_only',
+      'duration',
+      'distance_duration',
+    ] as ExerciseKind[]) {
       expect(prWeightKg(mkSet({ weight: 30 }), k)).toBe(0)
     }
   })
@@ -87,16 +105,19 @@ describe('computeTotals', () => {
         mkLogged(bench.id, [mkSet({ weight: 100, reps: 5 }), mkSet({ weight: 80, reps: 10 })]),
         mkLogged(run.id, [mkSet({ durationSec: 600, distanceM: 2000 })]),
       ],
-      map, 80,
+      map,
+      80,
     )
     expect(t).toEqual({ totalVolumeKg: 1300, totalSets: 3, totalReps: 15, totalDurationSec: 600, totalDistanceM: 2000 })
   })
   it('skips incomplete and warm-up sets by default, includes warm-ups when asked', () => {
-    const ex = [mkLogged(bench.id, [
-      mkSet({ weight: 40, reps: 10, setType: 'warmup' }),
-      mkSet({ weight: 100, reps: 5, completed: false }),
-      mkSet({ weight: 100, reps: 5 }),
-    ])]
+    const ex = [
+      mkLogged(bench.id, [
+        mkSet({ weight: 40, reps: 10, setType: 'warmup' }),
+        mkSet({ weight: 100, reps: 5, completed: false }),
+        mkSet({ weight: 100, reps: 5 }),
+      ]),
+    ]
     expect(computeTotals(ex, map, null).totalVolumeKg).toBe(500)
     expect(computeTotals(ex, map, null).totalSets).toBe(1)
     expect(computeTotals(ex, map, null, true).totalVolumeKg).toBe(900)
@@ -117,14 +138,24 @@ describe('computeTotals', () => {
     expect(t.totalVolumeKg).toBe(100)
   })
   it('empty input is all zeros', () => {
-    expect(computeTotals([], map, 80)).toEqual({ totalVolumeKg: 0, totalSets: 0, totalReps: 0, totalDurationSec: 0, totalDistanceM: 0 })
+    expect(computeTotals([], map, 80)).toEqual({
+      totalVolumeKg: 0,
+      totalSets: 0,
+      totalReps: 0,
+      totalDurationSec: 0,
+      totalDistanceM: 0,
+    })
   })
 })
 
 describe('setBadges', () => {
   it('numbers only normal sets, letters the rest', () => {
     const sets = [
-      mkSet({ setType: 'warmup' }), mkSet(), mkSet({ setType: 'drop' }), mkSet(), mkSet({ setType: 'failure' }),
+      mkSet({ setType: 'warmup' }),
+      mkSet(),
+      mkSet({ setType: 'drop' }),
+      mkSet(),
+      mkSet({ setType: 'failure' }),
     ]
     expect(setBadges(sets)).toEqual(['W', '1', 'D', '2', 'F'])
   })
@@ -134,7 +165,16 @@ describe('setBadges', () => {
 
 describe('fieldsFor', () => {
   it('flags relative weight only for the bodyweight-relative kinds', () => {
-    const all: ExerciseKind[] = ['weight_reps', 'bodyweight_reps', 'weighted_bodyweight', 'assisted_bodyweight', 'duration', 'duration_weight', 'distance_duration', 'reps_only']
+    const all: ExerciseKind[] = [
+      'weight_reps',
+      'bodyweight_reps',
+      'weighted_bodyweight',
+      'assisted_bodyweight',
+      'duration',
+      'duration_weight',
+      'distance_duration',
+      'reps_only',
+    ]
     expect(all.filter((k) => fieldsFor(k).relativeWeight)).toEqual(['weighted_bodyweight', 'assisted_bodyweight'])
   })
   it('exposes the right columns', () => {
@@ -178,8 +218,13 @@ describe('elapsedSeconds', () => {
 })
 
 describe('describeSet', () => {
-  const fmt = { weight: (k: number | null) => `${k}kg`, distance: (m: number | null) => `${m}m`, duration: (s: number) => `${s}s` }
-  it('formats weight x reps', () => expect(describeSet(mkSet({ weight: 80, reps: 5 }), 'weight_reps', fmt)).toBe('80kg · 5 reps'))
+  const fmt = {
+    weight: (k: number | null) => `${k}kg`,
+    distance: (m: number | null) => `${m}m`,
+    duration: (s: number) => `${s}s`,
+  }
+  it('formats weight x reps', () =>
+    expect(describeSet(mkSet({ weight: 80, reps: 5 }), 'weight_reps', fmt)).toBe('80kg · 5 reps'))
   it('signs relative weights', () => {
     expect(describeSet(mkSet({ weight: 20, reps: 5 }), 'weighted_bodyweight', fmt)).toBe('+20kg · 5 reps')
     expect(describeSet(mkSet({ weight: 20, reps: 5 }), 'assisted_bodyweight', fmt)).toBe('−20kg · 5 reps')

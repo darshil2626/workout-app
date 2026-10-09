@@ -47,9 +47,7 @@ function trim(v: number): string {
 export function makeScale(domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) {
   const span = domainMax - domainMin
   return (v: number) =>
-    span === 0
-      ? (rangeMin + rangeMax) / 2
-      : rangeMin + ((v - domainMin) / span) * (rangeMax - rangeMin)
+    span === 0 ? (rangeMin + rangeMax) / 2 : rangeMin + ((v - domainMin) / span) * (rangeMax - rangeMin)
 }
 
 const DAY_MS = 86400000
@@ -98,8 +96,7 @@ export function timeTicks(minTs: number, maxTs: number, target = 4): number[] {
   if (span <= 0) return [minTs]
 
   const pick =
-    TIME_STEPS.find((s) => span / (APPROX_MS[s.unit] * s.step) <= target) ??
-    TIME_STEPS[TIME_STEPS.length - 1]
+    TIME_STEPS.find((s) => span / (APPROX_MS[s.unit] * s.step) <= target) ?? TIME_STEPS[TIME_STEPS.length - 1]
 
   // Floor to the step's own boundary, then walk forward into the range.
   const cursor = new Date(minTs)
@@ -134,8 +131,7 @@ export function timeTickFormatter(spanMs: number): (ts: number) => string {
     return (ts) => new Date(ts).toLocaleDateString(undefined, { month: 'short' })
   }
   if (spanMs <= 3 * 365 * DAY_MS) {
-    return (ts) =>
-      new Date(ts).toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
+    return (ts) => new Date(ts).toLocaleDateString(undefined, { month: 'short', year: '2-digit' })
   }
   return (ts) => String(new Date(ts).getFullYear())
 }

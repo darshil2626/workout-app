@@ -31,7 +31,10 @@ test.describe('synthetic dataset smoke', () => {
     await page.goto('/history')
     const ids = (await readStore(page, 'workouts')).filter((w) => w.status === 'done')
     expect(ids.length).toBeGreaterThan(100)
-    await page.locator('.page button', { has: page.locator('.history-ex-list') }).first().click()
+    await page
+      .locator('.page button', { has: page.locator('.history-ex-list') })
+      .first()
+      .click()
     await expect(page).toHaveURL(/\/history\/[^/]+$/)
     await expect(page.locator('.page')).toContainText(/sets?/i)
     await expectNoHorizontalOverflow(page)
@@ -39,7 +42,10 @@ test.describe('synthetic dataset smoke', () => {
 
   test('exercise list leads to an exercise detail with a chart', async ({ page }) => {
     await page.goto('/exercises')
-    await page.getByPlaceholder(/search/i).first().fill('Bench Press (Barbell)')
+    await page
+      .getByPlaceholder(/search/i)
+      .first()
+      .fill('Bench Press (Barbell)')
     await page.locator('.page button', { hasText: 'Bench Press (Barbell)' }).first().click()
     await expect(page).toHaveURL(/\/exercises\/bench-press-barbell$/)
     await expect(page.locator('.chart-controls .chip').first()).toBeVisible()

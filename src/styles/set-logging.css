@@ -1,0 +1,275 @@
+/* ── Set logging table ──────────────────────────────────────────────────── */
+
+.ex-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ex-block + .ex-block {
+  margin-top: var(--space-3);
+}
+
+/* Lifted clear of its neighbours while it follows the finger. */
+.ex-block.dragging {
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.35);
+  border-color: var(--accent);
+}
+
+/* Superset grouping: consecutive blocks sharing a group sit almost flush,
+   share a warm accent bar down the left edge and a faint tint, and join
+   corners at the seam between them — so A1/B1 (etc.) read as one bracketed
+   unit rather than two independent cards. Extra-specific selectors so these
+   reliably win over the plain .ex-block rules above regardless of source
+   order. */
+.ex-block.ex-block--superset {
+  border-left: 3px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 5%, var(--surface));
+}
+
+.ex-block.ex-block--superset + .ex-block.ex-block--superset {
+  margin-top: 2px;
+}
+
+.ex-block.ex-block--superset:not(.ex-block--superset-start) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.ex-block.ex-block--superset:not(.ex-block--superset-end) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ex-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-1);
+}
+
+/* Negative margins claim a comfortable drag target without widening the row. */
+.ex-grip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-1)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
+  padding: var(--space-2) var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font-size: var(--text-xl);
+  cursor: grab;
+}
+
+.ex-grip:active {
+  cursor: grabbing;
+  color: var(--accent);
+}
+
+.ex-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+}
+
+.ex-sub {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.superset-badge {
+  font-size: var(--text-2xs);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--warn) 20%, transparent);
+  color: var(--warn);
+}
+
+.set-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Fixed layout so the columns hold the widths below instead of renegotiating
+     them around whatever a row contains; a long previous value used to push
+     the other columns around and wrap onto two lines. */
+  table-layout: fixed;
+}
+
+.set-table th {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  padding: var(--space-1) 0 var(--space-2);
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+/* Every cell here is a figure and the columns are narrow, so a proportional 1
+   visibly shifts the number in the row below it. */
+.set-table td {
+  padding: var(--space-1) 2px;
+  text-align: center;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums lining-nums;
+  transition:
+    background-color 260ms var(--ease),
+    border-color 260ms var(--ease),
+    color 260ms var(--ease);
+}
+
+.set-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Settled, not just tinted: the tint alone was easy to miss at a glance, so
+   the numbers themselves step down a tier too. Still --text-dim, not
+   --text-faint — a completed set stays a real, legible record. */
+.set-table tr.done td {
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--success) 20%, var(--border));
+  color: var(--text-dim);
+}
+
+/* A record is gold, not green: the same settled row, in the colour the app
+   already reserves for "won" moments. Declared after .done so it takes over
+   a completed set, and before .swipe-armed so a delete drag still tints red. */
+.set-table tr.pr td {
+  background: color-mix(in srgb, var(--pr) 18%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--pr) 35%, var(--border));
+  color: var(--text);
+}
+
+/* A set row is a <tr>, so it skips the .swipe-row two-layer treatment used
+   elsewhere — wrapping it in a div to host a hidden action layer would break
+   the table it lives in. Instead the row itself slides (via inline
+   transform, set in SetRow.tsx) and tints red once the drag has crossed the
+   delete threshold, with the trash glyph below fading in over the existing
+   check column rather than on a separate revealed layer. */
+.set-table tr.swipe-armed td {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+}
+
+.set-swipe-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--danger);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.set-swipe-hint svg {
+  width: 18px;
+  height: 18px;
+}
+
+.set-table tr.swipe-armed .set-swipe-hint {
+  opacity: 1;
+}
+
+.col-set {
+  width: 36px;
+}
+
+/* Shares of the table rather than pixel counts, so the columns grow with the
+   card. Reps gets the widest share of the three because its +/- buttons take
+   about 40px of it before the number gets any room; any other value column
+   (time, distance) splits what is left. */
+.col-prev {
+  width: 28%;
+}
+
+/* Also used for the distance column: another short number. */
+.col-weight {
+  width: 19%;
+}
+
+.col-reps {
+  width: 28%;
+}
+
+.col-check {
+  width: 44px;
+  position: relative;
+}
+
+/* Carries a surface and border because it is a button: it opens the set menu
+   (RPE, set type, plate maths, delete), and as bare text nobody found it. */
+.set-badge {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  border-radius: var(--radius-control);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background-color var(--dur-press) var(--ease);
+}
+
+button.set-badge:active {
+  background: var(--raised);
+}
+
+/* The visible badge stays 30px so the narrow .col-set column never widens —
+   the pseudo-element pads the actual hit area out to a thumb's worth without
+   touching layout. Only real buttons get it; the static, read-only badge
+   below has nothing to tap. */
+button.set-badge::before {
+  content: '';
+  position: absolute;
+  inset: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+/* Static badges in read-only lists keep the type colour without the affordance. */
+.set-badge:not(button) {
+  background: transparent;
+  border-color: transparent;
+}
+
+.set-badge.warmup {
+  color: var(--warn);
+}
+.set-badge.drop {
+  color: var(--accent);
+}
+.set-badge.failure {
+  color: var(--danger);
+}
+
+.rpe-tag {
+  display: block;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1;
+  margin-top: 1px;
+}

@@ -1,0 +1,12 @@
+dist/
+dist-staging/
+dev-dist/
+node_modules/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+public/
+qa/qa-dataset.json
+qa/qa-expected.json
+src/dev/synthetic-dataset.json

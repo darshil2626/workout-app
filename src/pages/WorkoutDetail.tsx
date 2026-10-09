@@ -1,8 +1,17 @@
 import { useMemo, useState } from 'react'
+import {
+  listExercises,
+  getWorkout,
+  findActiveWorkout,
+  countRoutines,
+  saveWorkout,
+  deleteWorkout,
+  saveRoutine,
+} from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, newId } from '../db/db'
+import { newId } from '../db/db'
 import type { Exercise, Routine } from '../db/types'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -20,8 +29,8 @@ export function WorkoutDetailPage() {
   const fmt = useFormatters()
   const { workout: active, startFromRoutine } = useActiveWorkout()
 
-  const workout = useLiveQuery(async () => (id ? ((await db.workouts.get(id)) ?? null) : null), [id])
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
+  const workout = useLiveQuery(async () => (id ? ((await getWorkout(id)) ?? null) : null), [id])
+  const exercises = useLiveQuery(() => listExercises(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 
   const [menu, setMenu] = useState(false)
@@ -84,14 +93,14 @@ export function WorkoutDetailPage() {
           setType: s.setType,
         })),
       })),
-      order: await db.routines.count(),
+      order: await countRoutines(),
       createdAt: Date.now(),
       updatedAt: Date.now(),
       // Seed from the workout it's built from, so a routine saved from a
       // session done days ago doesn't read as "never done" on Home.
       lastPerformedAt: workout!.status === 'done' ? (workout!.finishedAt ?? null) : null,
     }
-    await db.routines.put(routine)
+    await saveRoutine(routine)
     setMenu(false)
     navigate('/')
   }
@@ -127,14 +136,14 @@ export function WorkoutDetailPage() {
     }
     await startFromRoutine(scratch)
     // The scratch routine is never persisted, so clear the link back to it.
-    const started = await db.workouts.where('status').equals('active').first()
-    if (started) await db.workouts.put({ ...started, routineId: undefined })
+    const started = await findActiveWorkout()
+    if (started) await saveWorkout({ ...started, routineId: undefined })
     setMenu(false)
     navigate('/workout')
   }
 
   async function remove() {
-    await db.workouts.delete(workout!.id)
+    await deleteWorkout(workout!.id)
     setConfirmDelete(false)
     navigate('/history', { replace: true })
   }
@@ -229,8 +238,7 @@ export function WorkoutDetailPage() {
                     </button>
                     {oneRM ? (
                       <span className="ex-sub">
-                        Best estimated 1RM {fmt.weight(Math.round(oneRM * 10) / 10)}{' '}
-                        {fmt.weightUnit}
+                        Best estimated 1RM {fmt.weight(Math.round(oneRM * 10) / 10)} {fmt.weightUnit}
                       </span>
                     ) : null}
                   </div>
@@ -260,7 +268,10 @@ export function WorkoutDetailPage() {
                       {prs.get(s.id)?.length ? (
                         <span
                           className="badge badge-pr"
-                          title={prs.get(s.id)!.map((k) => PR_LABEL[k]).join(', ')}
+                          title={prs
+                            .get(s.id)!
+                            .map((k) => PR_LABEL[k])
+                            .join(', ')}
                         >
                           PR
                         </span>

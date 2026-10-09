@@ -1,34 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { listExercises, countDoneWorkouts } from '../db/repo'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
-import type { Exercise, LoggedExercise, LoggedSet, SetType } from '../db/types'
+import type { LoggedExercise, LoggedSet, SetType } from '../db/types'
 import { useActiveWorkout, type SessionRating } from '../state/ActiveWorkoutContext'
 import { useRestTimer } from '../state/RestTimerContext'
 import { useSetTimer } from '../state/SetTimerContext'
 import { useFormatters } from '../lib/useSettings'
 import { useNow } from '../lib/useNow'
-import {
-  computeTotals,
-  elapsedSeconds,
-  fieldsFor,
-  isSetLogged,
-  SET_TYPE_LABEL,
-  setBadges,
-} from '../lib/workout'
-import {
-  getPreviousPerformance,
-  getPreviousSessionTotals,
-  type PreviousPerformance,
-} from '../lib/history'
-import {
-  emptyRecords,
-  findSessionPRs,
-  loadRecords,
-  PR_LABEL,
-  type ExerciseRecords,
-  type PRKind,
-} from '../lib/records'
+import { computeTotals, elapsedSeconds, fieldsFor, isSetLogged, SET_TYPE_LABEL, setBadges } from '../lib/workout'
+import { getPreviousSessionTotals } from '../lib/history'
+import { emptyRecords, findSessionPRs, PR_LABEL, type PRKind } from '../lib/records'
 import { isMilestoneWorkoutCount } from '../lib/stats'
 import { formatDuration } from '../lib/time'
 import { vibratePR, vibrateTick } from '../lib/chime'
@@ -44,6 +26,9 @@ import { useSortable } from '../lib/useSortable'
 import { useSwipeToDelete } from '../lib/useSwipeToDelete'
 import { useLongPress } from '../lib/useLongPress'
 import { formatVolumeCompact } from '../lib/units'
+import { RestEditorSheet } from './active-workout/RestEditorSheet'
+import { RPE_VALUES, startsRestOnCompletion, toLocalInput } from './active-workout/helpers'
+import { usePreviousPerformances, useRecordBaselines } from './active-workout/hooks'
 import {
   IconArrowDown,
   IconArrowUp,
@@ -57,56 +42,6 @@ import {
   IconTimer,
   IconTrash,
 } from '../components/Icons'
-
-/** Look up "last time" performances for every exercise in the session. */
-function usePreviousPerformances(exerciseIds: string[], excludeWorkoutId?: string) {
-  const key = exerciseIds.join('|')
-  return useLiveQuery(
-    async () => {
-      const map = new Map<string, PreviousPerformance>()
-      for (const id of key === '' ? [] : key.split('|')) {
-        const prev = await getPreviousPerformance(id, excludeWorkoutId)
-        if (prev) map.set(id, prev)
-      }
-      return map
-    },
-    [key, excludeWorkoutId],
-    new Map<string, PreviousPerformance>(),
-  )
-}
-
-/**
- * Best-ever values per exercise, excluding the session in progress, so a set
- * logged now can be compared against everything that came before it.
- */
-function useRecordBaselines(
-  exerciseIds: string[],
-  exerciseById: Map<string, Exercise>,
-  bodyweightKg: number | null,
-  countWarmups: boolean,
-  excludeWorkoutId?: string,
-) {
-  const key = exerciseIds.join('|')
-  // Keyed on the kinds actually being queried rather than the library's size:
-  // a rename, a kind change or a merge leaves the count untouched, and keying
-  // on size would then serve a baseline computed from a stale exercise map.
-  const kindKey = exerciseIds.map((id) => exerciseById.get(id)?.kind ?? '?').join('|')
-  return useLiveQuery(
-    async () => {
-      const map = new Map<string, ExerciseRecords>()
-      for (const id of key === '' ? [] : key.split('|')) {
-        const exercise = exerciseById.get(id)
-        if (!exercise) continue
-        map.set(id, await loadRecords(id, exercise.kind, bodyweightKg, countWarmups, excludeWorkoutId))
-      }
-      return map
-    },
-    [key, kindKey, excludeWorkoutId, bodyweightKg, countWarmups],
-    // Undefined until the first scan resolves, so "not loaded yet" stays
-    // distinguishable from "loaded, and this exercise has no history".
-    undefined,
-  )
-}
 
 export function ActiveWorkoutPage() {
   const navigate = useNavigate()
@@ -138,9 +73,7 @@ export function ActiveWorkoutPage() {
   // The block whose exercise is being swapped out, and the replacement chosen
   // for it while the cross-kind warning is up.
   const [replacing, setReplacing] = useState<LoggedExercise | null>(null)
-  const [replaceWarning, setReplaceWarning] = useState<{ leId: string; exerciseId: string } | null>(
-    null,
-  )
+  const [replaceWarning, setReplaceWarning] = useState<{ leId: string; exerciseId: string } | null>(null)
   const [confirmFinish, setConfirmFinish] = useState(false)
   const [rating, setRating] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
@@ -187,12 +120,13 @@ export function ActiveWorkoutPage() {
   // Undefined until the library loads. Defaulting to [] here would make every
   // exercise look unknown for a tick, which silently suppresses PR badges and
   // shows the wrong input columns for anything that is not weight × reps.
-  const exercises = useLiveQuery(() => db.exercises.toArray(), [], undefined)
+  const exercises = useLiveQuery(() => listExercises(), [], undefined)
   const byId = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
   const previous = usePreviousPerformances(workout?.exerciseIds ?? [], workout?.id)
   const baselines = useRecordBaselines(
     workout?.exerciseIds ?? [],
     byId,
+    exercises !== undefined,
     fmt.settings.bodyweightKg,
     fmt.settings.countWarmupSets,
     workout?.id,
@@ -219,11 +153,7 @@ export function ActiveWorkoutPage() {
     const owner = exercises.find((le) => le.sets.some((s) => s.id === activeId))
     if (!owner) return
     updateSet(owner.id, activeId, { durationSec: seconds, completed: true })
-    if (
-      fmt.settings.restTimerEnabled &&
-      fmt.settings.autoStartRestTimer &&
-      startsRestOnCompletion(owner, exercises)
-    ) {
+    if (fmt.settings.restTimerEnabled && fmt.settings.autoStartRestTimer && startsRestOnCompletion(owner, exercises)) {
       restTimer.start(owner.restSeconds ?? fmt.settings.defaultRestSeconds)
     }
   }, [setTimer, workout?.exercises, updateSet, restTimer, fmt.settings])
@@ -236,13 +166,7 @@ export function ActiveWorkoutPage() {
   }, [countdownFinished, commitSetTimer])
 
   const totals = useMemo(
-    () =>
-      computeTotals(
-        workout?.exercises ?? [],
-        byId,
-        fmt.settings.bodyweightKg,
-        fmt.settings.countWarmupSets,
-      ),
+    () => computeTotals(workout?.exercises ?? [], byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets),
     [workout?.exercises, byId, fmt.settings.bodyweightKg, fmt.settings.countWarmupSets],
   )
 
@@ -368,12 +292,7 @@ export function ActiveWorkoutPage() {
   // confirmed) rather than continuously, since it only ever needs to surface
   // on the finish flow, not mid-workout.
   useEffect(() => {
-    if (
-      rating &&
-      workoutNumber !== undefined &&
-      isMilestoneWorkoutCount(workoutNumber) &&
-      !milestoneShownRef.current
-    ) {
+    if (rating && workoutNumber !== undefined && isMilestoneWorkoutCount(workoutNumber) && !milestoneShownRef.current) {
       milestoneShownRef.current = true
       pushCelebration(`Workout #${workoutNumber} logged`)
     }
@@ -477,11 +396,7 @@ export function ActiveWorkoutPage() {
               {formatDuration(elapsed)}
             </div>
           </div>
-          <button
-            className="header-action"
-            onClick={() => setConfirmFinish(true)}
-            style={{ color: 'var(--success)' }}
-          >
+          <button className="header-action" onClick={() => setConfirmFinish(true)} style={{ color: 'var(--success)' }}>
             Finish
           </button>
         </div>
@@ -509,7 +424,8 @@ export function ActiveWorkoutPage() {
             setEditingStart(true)
           }}
         >
-          Started {new Date(workout.startedAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+          Started{' '}
+          {new Date(workout.startedAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
           <span className="start-time-edit">Edit</span>
         </button>
 
@@ -548,11 +464,7 @@ export function ActiveWorkoutPage() {
             aria-label="Workout notes"
           />
         ) : (
-          <button
-            className="btn btn-ghost btn-sm"
-            style={{ marginTop: 8 }}
-            onClick={() => setShowNotes(true)}
-          >
+          <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setShowNotes(true)}>
             <IconNote />
             Add workout note
           </button>
@@ -647,7 +559,11 @@ export function ActiveWorkoutPage() {
                       <th className="col-set">Set</th>
                       <th className="col-prev">Previous</th>
                       {f.distance && <th className="col-weight">{fmt.distanceUnit}</th>}
-                      {f.weight && <th className="col-weight">{f.weightLabel ? `${f.weightLabel} (${fmt.weightUnit})` : fmt.weightUnit}</th>}
+                      {f.weight && (
+                        <th className="col-weight">
+                          {f.weightLabel ? `${f.weightLabel} (${fmt.weightUnit})` : fmt.weightUnit}
+                        </th>
+                      )}
                       {f.duration && <th>Time</th>}
                       {f.reps && <th className="col-reps">Reps</th>}
                       <th className="col-check" aria-label="Completed" />
@@ -753,11 +669,7 @@ export function ActiveWorkoutPage() {
         )}
       </Sheet>
 
-      <ExercisePicker
-        open={picking}
-        onClose={() => setPicking(false)}
-        onConfirm={(ids) => addExercises(ids)}
-      />
+      <ExercisePicker open={picking} onClose={() => setPicking(false)} onConfirm={(ids) => addExercises(ids)} />
 
       {/* Replacing keeps the block's sets, so only a change of kind — which
           changes which columns are shown — is worth warning about. */}
@@ -904,9 +816,7 @@ export function ActiveWorkoutPage() {
         >
           <IconTimer />
           <span className="grow">Rest timer</span>
-          <span className="faint">
-            {formatDuration(exMenu?.restSeconds ?? fmt.settings.defaultRestSeconds)}
-          </span>
+          <span className="faint">{formatDuration(exMenu?.restSeconds ?? fmt.settings.defaultRestSeconds)}</span>
         </button>
         <button
           className="sheet-list-item"
@@ -1013,11 +923,7 @@ export function ActiveWorkoutPage() {
           // Counted once, right as the finish flow starts, rather than kept
           // live for the whole session — this only ever needs to know the
           // number this session is about to become on the summary sheet.
-          void db.workouts
-            .where('status')
-            .equals('done')
-            .count()
-            .then((n) => setWorkoutNumber(n + 1))
+          void countDoneWorkouts().then((n) => setWorkoutNumber(n + 1))
           setRating(true)
         }}
         onCancel={() => setConfirmFinish(false)}
@@ -1055,65 +961,4 @@ export function ActiveWorkoutPage() {
       <CelebrationBanner message={currentCelebration} onDismiss={dismissCelebration} />
     </>
   )
-}
-
-/**
- * A standalone exercise always starts rest on completion. One that's part of
- * a superset only starts it when it's the LAST member of the group in the
- * session's running order — Strong/Hevy-style supersets rest once per round,
- * after the whole group, not after each exercise in it. Group members are
- * built (and expected to stay) contiguous — see "Superset with exercise
- * above" below — so the last one in array order is the last one in the round.
- */
-function startsRestOnCompletion(le: LoggedExercise, exercises: LoggedExercise[]): boolean {
-  if (le.supersetGroup === null) return true
-  for (let i = exercises.length - 1; i >= 0; i--) {
-    if (exercises[i].supersetGroup === le.supersetGroup) return exercises[i].id === le.id
-  }
-  return true
-}
-
-/** RPE in half steps from "could do 4 more" up to a genuine limit set. */
-const RPE_VALUES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-
-const REST_PRESETS = [0, 30, 45, 60, 90, 120, 150, 180, 240, 300]
-
-function RestEditorSheet({
-  exercise,
-  defaultRest,
-  onClose,
-  onSave,
-}: {
-  exercise: LoggedExercise | null
-  defaultRest: number
-  onClose: () => void
-  onSave: (seconds: number | null) => void
-}) {
-  const current = exercise?.restSeconds ?? defaultRest
-  return (
-    <Sheet open={exercise !== null} title="Rest timer" onClose={onClose}>
-      <p className="muted" style={{ marginBottom: 12 }}>
-        Applies to this exercise in this workout.
-      </p>
-      <button className="sheet-list-item" onClick={() => onSave(null)}>
-        <span className="grow">Use default ({formatDuration(defaultRest)})</span>
-        {exercise?.restSeconds == null && <span style={{ color: 'var(--accent)' }}>✓</span>}
-      </button>
-      {REST_PRESETS.map((s) => (
-        <button key={s} className="sheet-list-item" onClick={() => onSave(s)}>
-          <span className="grow">{s === 0 ? 'Off' : formatDuration(s)}</span>
-          {exercise?.restSeconds === s && current === s && (
-            <span style={{ color: 'var(--accent)' }}>✓</span>
-          )}
-        </button>
-      ))}
-    </Sheet>
-  )
-}
-
-/** `datetime-local` wants local wall-clock time without a zone suffix. */
-function toLocalInput(ms: number): string {
-  const d = new Date(ms)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

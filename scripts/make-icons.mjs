@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 
-// These mirror the light theme's --accent and --bg in src/index.css: the icon
+// These mirror the light theme's --accent and --bg in src/styles/base.css: the icon
 // is the accent colour with the glyph cut out in the page colour. Nothing
 // enforces that, so they have to be changed by hand when the palette moves —
 // they were missed when the app went from blue to ember, which left a blue icon
@@ -38,7 +38,10 @@ function sampleQuad([x0, y0], [cx, cy], [x1, y1], steps = 48) {
 /** Centrelines as polylines: the stem curving into the foot, and the crossbar. */
 const STROKES = [
   [[24, 16], [24, 96], ...sampleQuad([24, 96], [24, 120], [50, 120]).slice(1)],
-  [[2, 48], [46, 48]],
+  [
+    [2, 48],
+    [46, 48],
+  ],
 ]
 
 function distToSegment(px, py, [ax, ay], [bx, by]) {

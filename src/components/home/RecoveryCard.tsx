@@ -26,9 +26,7 @@ export function RecoveryCard({ items, limit = 5 }: Props) {
         {shown.map((item) => (
           <div className="home-rest-row" key={item.muscle}>
             <span className="truncate">{item.muscle}</span>
-            <span className={`home-rest-days t${restTier(item.daysSince)}`}>
-              {restLabel(item.daysSince)}
-            </span>
+            <span className={`home-rest-days t${restTier(item.daysSince)}`}>{restLabel(item.daysSince)}</span>
           </div>
         ))}
       </div>

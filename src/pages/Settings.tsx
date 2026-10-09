@@ -1,345 +1,46 @@
 import { EXERCISE_ART_ENABLED } from '../lib/features'
-import { useRef, useState } from 'react'
+import { listDoneWorkouts } from '../db/repo'
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, initDb } from '../db/db'
-import type { DistanceUnit, Exercise, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
+import type { DistanceUnit, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
-import { ConfirmSheet, Sheet } from '../components/Sheet'
+import { Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
 import { formatDuration } from '../lib/time'
 import { displayToKg, formatWeight, parseNumber } from '../lib/units'
-import { downloadBackup, parseBackup, restoreBackup, wipeAllData, type ImportSummary } from '../lib/backup'
 import { BAR_PRESETS_KG, PLATE_PRESETS } from '../lib/plates'
 import { measurementWeightUnit } from '../lib/measurements'
 import { suggestedWeeklyGoal } from '../lib/home'
-import { useRestTimer } from '../state/RestTimerContext'
-import { detectFormat } from '../lib/importers/detect'
-import { parseStrongCsv, sniffStrongDisclosedUnits } from '../lib/importers/strong'
-import { parseHevyCsv } from '../lib/importers/hevy'
-import { applyCsvImport } from '../lib/importers/apply'
-import {
-  hasHistoryIssues,
-  partitionImport,
-  recomputeAllWorkoutTotals,
-  repairHistory,
-  scanHistoryIssues,
-  type HistoryIssues,
-} from '../lib/dedupe'
-import {
-  applyExerciseFixes,
-  hasActiveWorkout,
-  scanExerciseFixes,
-  type ExerciseFix,
-} from '../lib/exerciseRepair'
-import type { ParsedImport } from '../lib/importers/shared'
+import { recomputeAllWorkoutTotals } from '../lib/dedupe'
 import { track } from '../lib/analytics'
 import { InstallSteps } from '../components/InstallSteps'
 import { useInstall } from '../lib/install'
+import { DataDialogs, DataSection } from './settings/DataSection'
+import { useDataTransfer } from './settings/useDataTransfer'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const STEP_PRESETS_KG = [0.5, 1, 1.25, 2.5, 5]
 
-/** What a CSV import would actually do, worked out before the user commits to it. */
-interface CsvPreview {
-  parsed: ParsedImport
-  /** Workouts not already on this device — the ones that get added. */
-  fresh: Workout[]
-  /** Exercises only the fresh workouts introduce. */
-  newExercises: number
-  /** Workouts skipped because that exact session is already stored. */
-  skipped: number
-  sameTimeDifferent: number
-}
-
-function describeCsvPreview(preview: CsvPreview): string {
-  const { parsed, fresh } = preview
-  const sourceLabel = parsed.source === 'strong' ? 'Strong' : 'Hevy'
-  const dates = fresh.map((w) => w.startedAt)
-  const earliest = new Date(Math.min(...dates)).toLocaleDateString()
-  const latest = new Date(Math.max(...dates)).toLocaleDateString()
-  const range = earliest === latest ? earliest : `${earliest} – ${latest}`
-  const exerciseText =
-    preview.newExercises > 0 ? `, creating ${preview.newExercises} new exercise(s)` : ''
-  const skipText =
-    preview.skipped > 0
-      ? ` ${preview.skipped} workout(s) in this file are already in your history and will be skipped.`
-      : ''
-  const sameTimeText =
-    preview.sameTimeDifferent > 0
-      ? ` ${preview.sameTimeDifferent} start at the same time as a session you already have but log different sets so those are added as new.`
-      : ''
-  const warnText =
-    parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) couldn't be read and were skipped.` : ''
-  return `Adds ${fresh.length} workout(s) from ${sourceLabel} (${range})${exerciseText}. This does not remove anything already on this device.${skipText}${sameTimeText}${warnText}`
-}
-
-function describeHistoryIssues(issues: HistoryIssues): string {
-  const parts: string[] = []
-  if (issues.duplicates > 0) {
-    parts.push(
-      `${issues.duplicates} workout(s) are exact copies of another session so one copy of each is kept.`,
-    )
-  }
-  if (issues.placeholderSets > 0) {
-    parts.push(
-      `${issues.placeholderSets} workout(s) hold sets that record nothing (an import kept rows for sets you never performed) so those sets go and the totals are recalculated.`,
-    )
-  }
-  if (issues.emptyWorkouts > 0) {
-    parts.push(`${issues.emptyWorkouts} workout(s) record nothing at all and are deleted.`)
-  }
-  return `${parts.join(' ')} Export a backup first if you want a safety net.`
-}
-
-function describeExerciseFixes(fixes: ExerciseFix[]): string {
-  const merges = fixes.filter((f) => f.into !== null)
-  const moved = merges.reduce((n, f) => n + f.workouts, 0)
-  const reclassified = fixes.length - merges.length
-  const parts: string[] = []
-  if (merges.length > 0) {
-    parts.push(
-      `${merges.length} exercise(s) are the same movement as a built-in one and will be merged into it, moving ${moved} workout(s).`,
-    )
-  }
-  if (reclassified > 0) {
-    parts.push(`${reclassified} exercise(s) will be moved out of 'Other' into the right muscle group.`)
-  }
-  return `${parts.join(' ')} Export a backup first if you want a safety net.`
-}
-
-function describeRepair(issues: HistoryIssues): string {
-  const parts: string[] = []
-  if (issues.duplicates > 0) parts.push(`removed ${issues.duplicates} duplicate workout(s)`)
-  if (issues.placeholderSets > 0) {
-    parts.push(`cleaned empty sets out of ${issues.placeholderSets} workout(s)`)
-  }
-  if (issues.emptyWorkouts > 0) parts.push(`deleted ${issues.emptyWorkouts} empty workout(s)`)
-  return parts.length > 0 ? `History cleaned: ${parts.join(', ')}.` : 'Nothing needed cleaning.'
-}
-
 export function SettingsPage() {
   const { installed } = useInstall()
   const settings = useSettings()
-  const restTimer = useRestTimer()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const data = useDataTransfer({ setMessage, setError })
 
   const [restSheet, setRestSheet] = useState(false)
   const [stepSheet, setStepSheet] = useState(false)
   const [barSheet, setBarSheet] = useState(false)
   const [plateSheet, setPlateSheet] = useState(false)
   const [bodyweight, setBodyweight] = useState<string | null>(null)
-  const [confirmWipe, setConfirmWipe] = useState(false)
-  const [pendingImport, setPendingImport] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   // Set while a bulk rewrite of stored history is in flight.
   const [busy, setBusy] = useState(false)
-
-  const [pendingStrongText, setPendingStrongText] = useState<string | null>(null)
-  const [strongWeightUnit, setStrongWeightUnit] = useState<WeightUnit>('kg')
-  const [strongDistanceUnit, setStrongDistanceUnit] = useState<DistanceUnit>('km')
-  const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null)
-  const [historyIssues, setHistoryIssues] = useState<HistoryIssues | null>(null)
-  const [exerciseFixes, setExerciseFixes] = useState<ExerciseFix[] | null>(null)
-
-  const workoutCount = useLiveQuery(() => db.workouts.where('status').equals('done').count(), [], 0)
-  const exerciseCount = useLiveQuery(() => db.exercises.count(), [], 0)
-  const routineCount = useLiveQuery(() => db.routines.count(), [], 0)
 
   // Only the session timestamps are needed, but Dexie has no projection, so
   // this pulls the rows. It is the same read the Stats page already does, and
   // it only runs while Settings is open.
-  const doneWorkouts = useLiveQuery(
-    () => db.workouts.where('status').equals('done').toArray(),
-    [],
-    [] as Workout[],
-  )
+  const doneWorkouts = useLiveQuery(() => listDoneWorkouts(), [], [] as Workout[])
   const suggestedGoal = suggestedWeeklyGoal(doneWorkouts, settings.firstDayOfWeek)
-
-  async function onFilePicked(file: File | undefined) {
-    if (!file) return
-    setError(null)
-    setMessage(null)
-    let text: string
-    try {
-      text = await file.text()
-    } catch {
-      setError('Could not read that file.')
-      if (fileRef.current) fileRef.current.value = ''
-      return
-    }
-    if (fileRef.current) fileRef.current.value = ''
-
-    const format = detectFormat(text)
-    if (format === 'backup') {
-      // Validate before asking. Importing replaces everything on the device, so
-      // being prompted to confirm that for a file that is then rejected is a
-      // scare with nothing behind it.
-      try {
-        parseBackup(text)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'That backup could not be read.')
-        return
-      }
-      setPendingImport(text)
-    } else if (format === 'strong') {
-      const disclosed = sniffStrongDisclosedUnits(text)
-      if (disclosed.weight && disclosed.distance) {
-        // The file's own header says what unit Weight/Distance are in — no need to ask.
-        await previewCsv((existing) =>
-          parseStrongCsv(text, { weightUnit: 'kg', distanceUnit: 'km' }, existing, settings.bodyweightKg),
-        )
-      } else {
-        setStrongWeightUnit(settings.weightUnit)
-        setStrongDistanceUnit(settings.distanceUnit)
-        setPendingStrongText(text)
-      }
-    } else if (format === 'hevy') {
-      await previewCsv((existing) => parseHevyCsv(text, existing, settings.bodyweightKg))
-    } else {
-      setError('Unrecognized file. Expected a Trana backup (.json), or a CSV export from Strong or Hevy.')
-    }
-  }
-
-  async function previewCsv(build: (existing: Exercise[]) => ParsedImport) {
-    try {
-      const existing = await db.exercises.toArray()
-      const parsed = build(existing)
-      if (parsed.workouts.length === 0) {
-        setError('No workouts were found in that file.')
-        return
-      }
-      const { fresh, duplicates, sameTimeDifferent } = await partitionImport(parsed.workouts)
-      if (fresh.length === 0) {
-        setMessage('Every workout in that file is already in your history. Nothing to add.')
-        return
-      }
-      const usedIds = new Set(fresh.flatMap((w) => w.exerciseIds))
-      setCsvPreview({
-        parsed,
-        fresh,
-        newExercises: parsed.newExercises.filter((e) => usedIds.has(e.id)).length,
-        skipped: duplicates.length,
-        sameTimeDifferent,
-      })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not read that file.')
-    }
-  }
-
-  async function confirmStrongUnits() {
-    const text = pendingStrongText
-    setPendingStrongText(null)
-    if (!text) return
-    await previewCsv((existing) =>
-      parseStrongCsv(
-        text,
-        { weightUnit: strongWeightUnit, distanceUnit: strongDistanceUnit },
-        existing,
-        settings.bodyweightKg,
-      ),
-    )
-  }
-
-  async function doImport() {
-    if (!pendingImport) return
-    try {
-      const summary: ImportSummary = await restoreBackup(pendingImport)
-      setMessage(
-        `Restored ${summary.workouts} workouts, ${summary.routines} routines, ${summary.exercises} exercises and ${summary.measurements} measurements.`,
-      )
-      setError(null)
-      track('backup_imported')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import failed.')
-    } finally {
-      setPendingImport(null)
-    }
-  }
-
-  async function doCsvImport() {
-    if (!csvPreview) return
-    const { parsed } = csvPreview
-    const sourceLabel = parsed.source === 'strong' ? 'Strong' : 'Hevy'
-    try {
-      const summary = await applyCsvImport(parsed)
-      const skipText =
-        summary.skipped > 0 ? ` ${summary.skipped} were already in your history and were skipped.` : ''
-      const warnText = parsed.warnings.length > 0 ? ` ${parsed.warnings.length} row(s) were skipped.` : ''
-      setMessage(
-        `Added ${summary.workouts} workouts and ${summary.exercises} new exercises from ${sourceLabel}.${skipText}${warnText}`,
-      )
-      setError(null)
-      track('csv_import_used', { source: parsed.source })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import failed.')
-    } finally {
-      setCsvPreview(null)
-    }
-  }
-
-  async function scanHistory() {
-    setError(null)
-    setMessage(null)
-    try {
-      const issues = await scanHistoryIssues()
-      if (hasHistoryIssues(issues)) setHistoryIssues(issues)
-      else setMessage('Your history is already clean with no duplicates and no empty sets.')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not scan your history.')
-    }
-  }
-
-  async function doRepairHistory() {
-    setHistoryIssues(null)
-    try {
-      setMessage(describeRepair(await repairHistory()))
-      setError(null)
-      track('history_cleanup_run')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not clean up your history.')
-    }
-  }
-
-  async function scanExercises() {
-    setError(null)
-    setMessage(null)
-    try {
-      if (await hasActiveWorkout()) {
-        setError('Finish or discard the workout in progress first because merging exercises would change it underneath you.')
-        return
-      }
-      const fixes = await scanExerciseFixes()
-      if (fixes.length > 0) setExerciseFixes(fixes)
-      else setMessage('Every exercise is already matched to the library.')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not scan your exercises.')
-    }
-  }
-
-  async function doFixExercises() {
-    setExerciseFixes(null)
-    try {
-      const r = await applyExerciseFixes()
-      const parts: string[] = []
-      if (r.merged > 0) parts.push(`merged ${r.merged} exercise(s) into the library across ${r.workouts} workout(s)`)
-      if (r.reclassified > 0) parts.push(`gave ${r.reclassified} exercise(s) a muscle group`)
-      setMessage(parts.length > 0 ? `Exercises matched: ${parts.join(', ')}.` : 'Nothing needed matching.')
-      setError(null)
-      track('exercise_match_run')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not match your exercises.')
-    }
-  }
-
-  async function doWipe() {
-    setConfirmWipe(false)
-    restTimer.stop()
-    await wipeAllData()
-    // Restore the built-in library so the app is usable straight afterwards.
-    await initDb()
-    setMessage('All data deleted.')
-  }
 
   /**
    * History lists read each session's cached totals, so flipping this has to
@@ -466,9 +167,8 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="faint" style={{ marginTop: 10 }}>
-            Bodyweight has its own unit, so you can lift in one and weigh yourself in the other.
-            Everything is stored in kilograms and centimetres internally, so switching units never
-            changes what you lifted or measured.
+            Bodyweight has its own unit, so you can lift in one and weigh yourself in the other. Everything is stored in
+            kilograms and centimetres internally, so switching units never changes what you lifted or measured.
           </p>
         </div>
 
@@ -527,8 +227,8 @@ export function SettingsPage() {
             <div className="stack grow">
               <span>Count warm-up sets</span>
               <span className="faint">
-                Include them in volume, set counts and records. Off by default because a warm-up is
-                preparation and not a training stimulus.
+                Include them in volume, set counts and records. Off by default because a warm-up is preparation and not
+                a training stimulus.
               </span>
             </div>
             <button
@@ -567,9 +267,7 @@ export function SettingsPage() {
               <span className="faint">What your gym actually stocks</span>
             </div>
             <span className="muted mono">
-              {settings.availablePlatesKg
-                .map((p) => formatWeight(p, settings.weightUnit))
-                .join(', ')}
+              {settings.availablePlatesKg.map((p) => formatWeight(p, settings.weightUnit)).join(', ')}
             </span>
           </button>
           <div className="divider" />
@@ -595,8 +293,7 @@ export function SettingsPage() {
               </button>
             </div>
             <span className="faint">
-              Used to score pull-ups, dips and other bodyweight movements. Leave blank and they
-              count zero volume.
+              Used to score pull-ups, dips and other bodyweight movements. Leave blank and they count zero volume.
             </span>
           </div>
           <div className="divider" />
@@ -637,64 +334,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="section-title">Your data</div>
-        <div className="card">
-          <div className="row" style={{ gap: 18, marginBottom: 12 }}>
-            <div className="stack">
-              <span className="stat-value mono">{workoutCount}</span>
-              <span className="stat-label">Workouts</span>
-            </div>
-            <div className="stack">
-              <span className="stat-value mono">{routineCount}</span>
-              <span className="stat-label">Routines</span>
-            </div>
-            <div className="stack">
-              <span className="stat-value mono">{exerciseCount}</span>
-              <span className="stat-label">Exercises</span>
-            </div>
-          </div>
-          <p className="faint" style={{ marginBottom: 12 }}>
-            Your workouts, routines and exercises live on this device only. Export regularly because
-            clearing your browser data or deleting the app will erase them.
-          </p>
-          <div className="list">
-            <button
-              className="btn btn-ghost btn-block"
-              onClick={() => {
-                void downloadBackup()
-                track('backup_exported')
-              }}
-            >
-              Export backup (.json)
-            </button>
-            <button className="btn btn-ghost btn-block" onClick={() => fileRef.current?.click()}>
-              Import backup or CSV
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json,text/csv,.csv"
-              hidden
-              onChange={(e) => void onFilePicked(e.target.files?.[0])}
-            />
-            <button className="btn btn-ghost btn-block" onClick={() => void scanHistory()}>
-              Clean up history
-            </button>
-            <button className="btn btn-ghost btn-block" onClick={() => void scanExercises()}>
-              Match imported exercises
-            </button>
-            <button className="btn btn-danger btn-block" onClick={() => setConfirmWipe(true)}>
-              Delete all data
-            </button>
-          </div>
-          <p className="faint" style={{ marginTop: 10 }}>
-            Import accepts a Trana backup (.json, replaces everything), or a CSV export from Strong
-            or Hevy (added alongside what's already here). Re-importing a CSV is safe because sessions you
-            already have are skipped so a longer export only adds what's new. Clean up history finds
-            duplicates and empty sets left behind by older imports; Match imported exercises folds
-            differently-named imports into the built-in library.
-          </p>
-        </div>
+        <DataSection data={data} />
 
         <div className="section-title">Privacy</div>
         <div className="card">
@@ -702,8 +342,8 @@ export function SettingsPage() {
             <div className="stack grow">
               <span>Share anonymous usage data</span>
               <span className="faint">
-                Which screens and features get used, and whether the app gets reopened but never your
-                workouts, routines, weights or measurements. Helps me improve Trana while it's early.
+                Which screens and features get used, and whether the app gets reopened but never your workouts,
+                routines, weights or measurements. Helps me improve Trana while it's early.
               </span>
             </div>
             <button
@@ -719,8 +359,8 @@ export function SettingsPage() {
         <div className="section-title">About</div>
         <div className="card">
           <p className="muted">
-            Trana is an offline-first workout tracker. Add it to your home screen and it behaves
-            like a native app and needs no account or subscription or internet.
+            Trana is an offline-first workout tracker. Add it to your home screen and it behaves like a native app and
+            needs no account or subscription or internet.
           </p>
           {installed ? (
             <p className="faint" style={{ marginTop: 10 }}>
@@ -728,7 +368,9 @@ export function SettingsPage() {
             </p>
           ) : (
             <>
-              <div className="section-title" style={{ marginTop: 14 }}>Install</div>
+              <div className="section-title" style={{ marginTop: 14 }}>
+                Install
+              </div>
               <InstallSteps />
             </>
           )}
@@ -794,9 +436,7 @@ export function SettingsPage() {
             <span className="grow">
               {formatWeight(kg, settings.weightUnit)} {settings.weightUnit}
             </span>
-            {Math.abs(settings.barWeightKg - kg) < 0.01 && (
-              <span style={{ color: 'var(--accent)' }}>✓</span>
-            )}
+            {Math.abs(settings.barWeightKg - kg) < 0.01 && <span style={{ color: 'var(--accent)' }}>✓</span>}
           </button>
         ))}
       </Sheet>
@@ -821,8 +461,7 @@ export function SettingsPage() {
               <div className="stack grow">
                 <span>{preset.label}</span>
                 <span className="faint mono">
-                  {preset.platesKg.map((p) => formatWeight(p, settings.weightUnit)).join(', ')}{' '}
-                  {settings.weightUnit}
+                  {preset.platesKg.map((p) => formatWeight(p, settings.weightUnit)).join(', ')} {settings.weightUnit}
                 </span>
               </div>
               {selected && <span style={{ color: 'var(--accent)' }}>✓</span>}
@@ -831,103 +470,7 @@ export function SettingsPage() {
         })}
       </Sheet>
 
-      <ConfirmSheet
-        open={pendingImport !== null}
-        title="Replace everything?"
-        message="Importing overwrites all workouts, routines and exercises on this device with the contents of the backup file."
-        confirmLabel="Import"
-        destructive
-        onConfirm={() => void doImport()}
-        onCancel={() => setPendingImport(null)}
-      />
-
-      <Sheet
-        open={pendingStrongText !== null}
-        title="What units was Strong using?"
-        onClose={() => setPendingStrongText(null)}
-        footer={
-          <>
-            <button className="btn btn-ghost grow" onClick={() => setPendingStrongText(null)}>
-              Cancel
-            </button>
-            <button className="btn btn-primary grow" onClick={() => void confirmStrongUnits()}>
-              Continue
-            </button>
-          </>
-        }
-      >
-        <p className="muted" style={{ marginBottom: 12 }}>
-          Strong's export doesn't record which units it used, so pick what your app was set to when
-          you exported this file.
-        </p>
-        <div className="field">
-          <span className="field-label">Weight</span>
-          <div className="segmented">
-            {(['kg', 'lb'] as WeightUnit[]).map((u) => (
-              <button
-                key={u}
-                className={strongWeightUnit === u ? 'active' : ''}
-                onClick={() => setStrongWeightUnit(u)}
-              >
-                {u}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="field" style={{ marginTop: 12 }}>
-          <span className="field-label">Distance</span>
-          <div className="segmented">
-            {(['km', 'mi'] as DistanceUnit[]).map((u) => (
-              <button
-                key={u}
-                className={strongDistanceUnit === u ? 'active' : ''}
-                onClick={() => setStrongDistanceUnit(u)}
-              >
-                {u}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Sheet>
-
-      <ConfirmSheet
-        open={csvPreview !== null}
-        title="Add this history?"
-        message={csvPreview ? describeCsvPreview(csvPreview) : undefined}
-        confirmLabel="Import"
-        onConfirm={() => void doCsvImport()}
-        onCancel={() => setCsvPreview(null)}
-      />
-
-      <ConfirmSheet
-        open={historyIssues !== null}
-        title="Clean up history?"
-        message={historyIssues ? describeHistoryIssues(historyIssues) : undefined}
-        confirmLabel="Clean up"
-        destructive
-        onConfirm={() => void doRepairHistory()}
-        onCancel={() => setHistoryIssues(null)}
-      />
-
-      <ConfirmSheet
-        open={exerciseFixes !== null}
-        title="Match imported exercises?"
-        message={exerciseFixes ? describeExerciseFixes(exerciseFixes) : undefined}
-        confirmLabel="Match"
-        destructive
-        onConfirm={() => void doFixExercises()}
-        onCancel={() => setExerciseFixes(null)}
-      />
-
-      <ConfirmSheet
-        open={confirmWipe}
-        title="Delete all data?"
-        message="Every workout, routine and custom exercise will be erased. Export a backup first if you might want any of it back."
-        confirmLabel="Delete everything"
-        destructive
-        onConfirm={() => void doWipe()}
-        onCancel={() => setConfirmWipe(false)}
-      />
+      <DataDialogs data={data} />
     </>
   )
 }

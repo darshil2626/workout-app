@@ -1,0 +1,72 @@
+/* ── Misc ───────────────────────────────────────────────────────────────── */
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-4) 0;
+}
+
+.badge {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+}
+
+.badge-pr {
+  background: color-mix(in srgb, var(--pr) 20%, transparent);
+  color: var(--pr);
+  /* A hairline edge on top of the tint so a PR still reads gold at a glance
+     next to an RPE badge, rather than blurring into it. */
+  border: 1px solid color-mix(in srgb, var(--pr) 45%, transparent);
+}
+
+/* A set's (or a session's) number against a fixed comparison point — see
+   DeltaBadge.tsx. Same up/down convention as `.home-trend-delta`: an
+   increase is gold, a decrease stays a dim neutral rather than `--danger`,
+   since a lighter set is not a failure. The icon alone never carries the
+   meaning — the signed number sits right next to it. */
+.delta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text-dim);
+}
+
+.delta-badge svg {
+  width: 0.75em;
+  height: 0.75em;
+}
+
+.delta-badge.up {
+  color: var(--gold);
+}
+
+/* Session-total delta sits inline with a stat tile's headline number rather
+   than stacked under it like the per-set one in .col-prev. */
+.stat-delta {
+  margin-top: 0;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+
+/* The dateline atop a finished session's record: a touch heavier than
+   `.muted` so the page it belongs to reads as worth a second look. */
+.workout-dateline {
+  color: var(--text-dim);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.fab-row {
+  position: sticky;
+  bottom: 12px;
+  padding-top: var(--space-3);
+}

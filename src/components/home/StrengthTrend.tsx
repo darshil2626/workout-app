@@ -42,9 +42,7 @@ export function StrengthTrend({ lifts, fmt }: Props) {
             </span>
           </div>
         ))}
-        <p className="home-trend-foot">
-          Estimated 1RM · change across the last {TREND_WEEKS} weeks
-        </p>
+        <p className="home-trend-foot">Estimated 1RM · change across the last {TREND_WEEKS} weeks</p>
       </div>
     </section>
   )

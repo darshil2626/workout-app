@@ -1,12 +1,5 @@
 import { db, newId } from '../db/db'
-import type {
-  LengthUnit,
-  Measurement,
-  MeasurementKind,
-  MeasurementType,
-  Settings,
-  WeightUnit,
-} from '../db/types'
+import type { LengthUnit, Measurement, MeasurementKind, MeasurementType, Settings, WeightUnit } from '../db/types'
 import { cmToDisplay, displayToCm, displayToKg, kgToDisplay, trimNumber } from './units'
 
 export interface MeasurementSpec {

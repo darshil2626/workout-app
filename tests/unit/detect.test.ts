@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { detectFormat } from '../../src/lib/importers/detect'
 import { APP_MARKER } from '../../src/lib/backup'
 
-const STRONG_HEADER = 'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE'
-const HEVY_HEADER = 'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe'
+const STRONG_HEADER =
+  'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE'
+const HEVY_HEADER =
+  'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe'
 
 describe('detectFormat', () => {
   it('recognises our own backup by shape', () => {

@@ -11,8 +11,8 @@ subscription, no paywalled features, and it works with no signal in the basement
 There is nothing to download from an app store and **no account to make**. Just open
 the link above on your phone and install it from the browser:
 
-- **iPhone** (use Safari): tap Share → *Add to Home Screen*.
-- **Android** (Chrome): tap the menu → *Install app*.
+- **iPhone** (use Safari): tap Share → _Add to Home Screen_.
+- **Android** (Chrome): tap the menu → _Install app_.
 
 It gets its own icon, opens full-screen without browser chrome, and keeps working in
 aeroplane mode. Updates arrive automatically; the app offers a reload when a new
@@ -77,7 +77,7 @@ internally, so switching never rewrites your history.
 In your browser's IndexedDB, on your device only. There is no server and no account,
 and your workouts are never uploaded. The app does send anonymous usage analytics
 (which screens get opened, no workout data) to help improve it; switch it off any
-time in **Settings**.
+time in **Settings**. [PRIVACY.md](PRIVACY.md) lists exactly what is sent.
 
 The trade-off is that **clearing your browser data or deleting the app erases your
 history**. Use **Settings → Export backup** now and then; it saves a `.json` file you
@@ -122,9 +122,11 @@ src/
   db/                  Dexie (IndexedDB) schema, types, seeded exercise library
   lib/                 Units, time, workout maths, stats, records, plates, backup
   state/               Active-workout and rest-timer React contexts
+  db/repo.ts           Named reads and changes; screens use this, never raw Dexie
   components/          Reusable UI: set rows, sheets, pickers, nav
   components/charts/   SVG line/column/bar/heatmap primitives, each with a table twin
   pages/               One file per screen
+  styles/              Stylesheets by feature, imported in order from src/index.css
 public/exercise-art/   Exercise illustrations, three frames each (CC BY-SA 4.0)
 scripts/               Icon generator (no image dependencies), illustration matcher
 ```
@@ -134,16 +136,16 @@ timestamps in epoch milliseconds — conversion happens only at the UI edge.
 
 ## Commands
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Dev server with hot reload |
-| `npm run build` | Type-check and build to `dist/` |
-| `npm run preview` | Serve the built app locally |
-| `npm run typecheck` | Type-check only |
-| `npm run test:unit` | Unit tests (Vitest) |
-| `npm run test:e2e` | End-to-end tests (Playwright) |
-| `npm run icons` | Regenerate the app icons |
-| `npm run art` | Re-match exercises to illustrations and download any new frames |
+| Command             | What it does                                                    |
+| ------------------- | --------------------------------------------------------------- |
+| `npm run dev`       | Dev server with hot reload                                      |
+| `npm run build`     | Type-check and build to `dist/`                                 |
+| `npm run preview`   | Serve the built app locally                                     |
+| `npm run typecheck` | Type-check only                                                 |
+| `npm run test:unit` | Unit tests (Vitest)                                             |
+| `npm run test:e2e`  | End-to-end tests (Playwright)                                   |
+| `npm run icons`     | Regenerate the app icons                                        |
+| `npm run art`       | Re-match exercises to illustrations and download any new frames |
 
 ### A note for WSL
 
@@ -170,3 +172,9 @@ The permanent fix is to add the following to `/etc/wsl.conf` and run
 [automount]
 options = "metadata"
 ```
+
+## Licence
+
+The code is released under the [GNU AGPL-3.0](LICENSE). The exercise illustrations in
+`public/exercise-art/` are separate work under CC BY-SA 4.0; see the licence file in that
+folder.

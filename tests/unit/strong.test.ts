@@ -37,7 +37,11 @@ describe('parseStrongCsv', () => {
   it('maps set order codes to set types, skips Rest Timer, keeps rpe and exercise notes', () => {
     const bench = parsed.workouts[0].exercises[0]
     expect(bench.sets.map((s) => s.setType)).toEqual(['normal', 'normal', 'warmup'])
-    expect(bench.sets.map((s) => [s.weight, s.reps])).toEqual([[100, 5], [100, 5], [60, 10]])
+    expect(bench.sets.map((s) => [s.weight, s.reps])).toEqual([
+      [100, 5],
+      [100, 5],
+      [60, 10],
+    ])
     expect(bench.sets.map((s) => s.rpe)).toEqual([8, null, null])
     expect(bench.sets.every((s) => s.completed)).toBe(true)
     expect(bench.notes).toBe('Paused, slow')
@@ -76,7 +80,8 @@ describe('parseStrongCsv', () => {
       expect(w.exercises[0].sets[0].weight).toBeCloseTo(225 / LB_PER_KG, 6)
     })
     it('a unit in the header overrides the option', () => {
-      const w = parseStrongCsv(row('Weight (kg)', '100'), { weightUnit: 'lb', distanceUnit: 'km' }, [], null).workouts[0]
+      const w = parseStrongCsv(row('Weight (kg)', '100'), { weightUnit: 'lb', distanceUnit: 'km' }, [], null)
+        .workouts[0]
       expect(w.exercises[0].sets[0].weight).toBe(100)
       const w2 = parseStrongCsv(row('Weight (lbs)', '225'), KG, [], null).workouts[0]
       expect(w2.exercises[0].sets[0].weight).toBeCloseTo(225 / LB_PER_KG, 6)
@@ -84,13 +89,22 @@ describe('parseStrongCsv', () => {
     it('distance units', () => {
       const csv = (dh: string, v: string) =>
         `Date,Workout Name,Exercise Name,Set Order,${dh},Seconds\n2024-03-04 10:00:00,A,Run,1,${v},600`
-      expect(parseStrongCsv(csv('Distance', '1'), { weightUnit: 'kg', distanceUnit: 'mi' }, [], null).workouts[0].exercises[0].sets[0].distanceM).toBeCloseTo(1609.344, 6)
+      expect(
+        parseStrongCsv(csv('Distance', '1'), { weightUnit: 'kg', distanceUnit: 'mi' }, [], null).workouts[0]
+          .exercises[0].sets[0].distanceM,
+      ).toBeCloseTo(1609.344, 6)
       expect(parseStrongCsv(csv('Distance', '2'), KG, [], null).workouts[0].exercises[0].sets[0].distanceM).toBe(2000)
-      expect(parseStrongCsv(csv('Distance (meters)', '800'), { weightUnit: 'kg', distanceUnit: 'mi' }, [], null).workouts[0].exercises[0].sets[0].distanceM).toBe(800)
+      expect(
+        parseStrongCsv(csv('Distance (meters)', '800'), { weightUnit: 'kg', distanceUnit: 'mi' }, [], null).workouts[0]
+          .exercises[0].sets[0].distanceM,
+      ).toBe(800)
     })
     it('sniffStrongDisclosedUnits', () => {
       expect(sniffStrongDisclosedUnits('Date,Weight,Distance,Reps')).toEqual({ weight: false, distance: false })
-      expect(sniffStrongDisclosedUnits('Date,Weight (kg),Distance (meters),Reps')).toEqual({ weight: true, distance: true })
+      expect(sniffStrongDisclosedUnits('Date,Weight (kg),Distance (meters),Reps')).toEqual({
+        weight: true,
+        distance: true,
+      })
       expect(sniffStrongDisclosedUnits('Date,Weight (lb),Distance')).toEqual({ weight: true, distance: false })
       expect(sniffStrongDisclosedUnits('')).toEqual({ weight: false, distance: false })
     })
@@ -132,7 +146,8 @@ describe('parseStrongCsv', () => {
       expect(r.workouts[0].startedAt).toBe(local(2024, 3, 4, 18, 30))
     })
     it('semicolon-delimited files', () => {
-      const csv = 'Date;Workout Name;Duration;Exercise Name;Set Order;Weight;Reps\n2024-03-04 18:30:00;A;30m;Squat;1;50;5'
+      const csv =
+        'Date;Workout Name;Duration;Exercise Name;Set Order;Weight;Reps\n2024-03-04 18:30:00;A;30m;Squat;1;50;5'
       const r = parseStrongCsv(csv, KG, [], null)
       expect(r.workouts[0].exercises[0].sets[0]).toMatchObject({ weight: 50, reps: 5 })
     })
@@ -144,7 +159,8 @@ describe('parseStrongCsv', () => {
 
   describe('duration column', () => {
     it('a "(sec)" header is read as seconds', () => {
-      const csv = 'Date,Workout Name,Duration (sec),Exercise Name,Set Order,Weight,Reps\n2024-03-04 10:00:00,A,3900,Squat,1,50,5'
+      const csv =
+        'Date,Workout Name,Duration (sec),Exercise Name,Set Order,Weight,Reps\n2024-03-04 10:00:00,A,3900,Squat,1,50,5'
       const w = parseStrongCsv(csv, KG, [], null).workouts[0]
       expect(w.finishedAt! - w.startedAt).toBe(3_900_000)
     })
@@ -156,7 +172,12 @@ describe('parseStrongCsv', () => {
 
   describe('exercise resolution and bodyweight', () => {
     it('reuses a library exercise by name and creates nothing', () => {
-      const squat = mkEx('weight_reps', { id: 'sq', name: 'Squat (Barbell)', muscleGroup: 'Quadriceps', equipment: 'Barbell' })
+      const squat = mkEx('weight_reps', {
+        id: 'sq',
+        name: 'Squat (Barbell)',
+        muscleGroup: 'Quadriceps',
+        equipment: 'Barbell',
+      })
       const r = parseStrongCsv(`${H}\n2024-03-04 10:00:00,A,,squat (barbell),1,100,5,0,0,,,`, KG, [squat], null)
       expect(r.newExercises).toEqual([])
       expect(r.workouts[0].exercises[0].exerciseId).toBe('sq')
@@ -176,7 +197,12 @@ describe('parseStrongCsv', () => {
       expect(r.workouts[0].exercises[0].exerciseId).toBe(r.workouts[1].exercises[0].exerciseId)
     })
     it('the same exercise listed twice in a session is merged into one entry', () => {
-      const csv = [H, '2024-03-04 10:00:00,A,,Squat,1,50,5,0,0,,,', '2024-03-04 10:00:00,A,,Bench,1,50,5,0,0,,,', '2024-03-04 10:00:00,A,,Squat,2,60,5,0,0,,,'].join('\n')
+      const csv = [
+        H,
+        '2024-03-04 10:00:00,A,,Squat,1,50,5,0,0,,,',
+        '2024-03-04 10:00:00,A,,Bench,1,50,5,0,0,,,',
+        '2024-03-04 10:00:00,A,,Squat,2,60,5,0,0,,,',
+      ].join('\n')
       const w = parseStrongCsv(csv, KG, [], null).workouts[0]
       expect(w.exercises).toHaveLength(2)
       expect(w.exercises[0].sets).toHaveLength(2)

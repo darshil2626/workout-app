@@ -18,6 +18,11 @@ It gets its own icon, opens full-screen without browser chrome, and keeps workin
 aeroplane mode. Updates arrive automatically; the app offers a reload when a new
 version is ready, never mid-set.
 
+**Works on:** iPhone and iPad with iOS 16.2 or later, and current Chrome, Edge (111+) and Firefox
+(113+) on Android and desktop. On anything older Trana says so rather than drawing a broken screen.
+
+**Not medical advice.** Trana records your training. Its suggestions are a guide, not a prescription.
+
 ## Why you'll like it
 
 - **Fast where it counts.** Last session's numbers sit beside every set, so repeating a

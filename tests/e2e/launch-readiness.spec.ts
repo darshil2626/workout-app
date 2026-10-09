@@ -78,3 +78,21 @@ test('a tab left behind by another tab upgrading the database is told to reload'
   await expect(toast).toBeVisible()
   await expect(toast.getByRole('button', { name: 'Reload' })).toBeVisible()
 })
+
+test('a browser without colour-mix gets an explanation, not a broken app', async ({ page }) => {
+  await page.addInitScript(() => {
+    const supports = CSS.supports.bind(CSS)
+    CSS.supports = ((...args: string[]) =>
+      args.join(' ').includes('color-mix')
+        ? false
+        : (supports as (...a: string[]) => boolean)(...args)) as typeof CSS.supports
+  })
+  await page.goto('/')
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText('Trana needs a newer browser')
+  await expect(alert).toContainText('iOS 16.2')
+  await expect(alert).toContainText('have not been touched')
+  // The database was never opened.
+  const dbs = await page.evaluate(() => indexedDB.databases().then((d) => d.map((x) => x.name)))
+  expect(dbs).not.toContain('trana')
+})

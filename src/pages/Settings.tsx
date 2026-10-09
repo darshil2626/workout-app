@@ -383,6 +383,11 @@ export function SettingsPage() {
             Trana is an offline-first workout tracker. Add it to your home screen and it behaves like a native app and
             needs no account or subscription or internet.
           </p>
+          <p className="faint" style={{ marginTop: 10 }}>
+            Trana is a place to record your training. It is not medical or coaching advice, and its suggestions (such as
+            which routine is most rested) are a guide, not a prescription. If you have a health condition or an injury,
+            check with a professional before changing how you train.
+          </p>
           {installed ? (
             <p className="faint" style={{ marginTop: 10 }}>
               Installed. You're running Trana as an app.

@@ -11,6 +11,7 @@ import {
   undoRestore,
   wipeAllData,
 } from '../../src/lib/backup'
+import { dismissBackupReminder, getBackupStatus, recordBackup } from '../../src/lib/backupReminder'
 import { detectFormat } from '../../src/lib/importers/detect'
 import { logged, readFixture, resetDb, set, snapshot, workout } from './helpers'
 
@@ -397,5 +398,33 @@ describe('restore snapshot and undo', () => {
     await restoreBackup(other)
     await wipeAllData()
     expect(await getRestoreSnapshot()).toBeNull()
+  })
+})
+
+describe('backup bookkeeping', () => {
+  it('counts only sessions finished after the last backup', async () => {
+    await initDb()
+    await db.workouts.bulkPut([
+      workout({ id: 'a', startedAt: 1000, finishedAt: 2000 }),
+      workout({ id: 'b', startedAt: 3000, finishedAt: 4000 }),
+      workout({ id: 'c', startedAt: 5000, finishedAt: 6000 }),
+      workout({ id: 'live', startedAt: 7000, finishedAt: null, status: 'active' }),
+    ])
+    expect(await getBackupStatus()).toMatchObject({ lastBackupAt: null, doneWorkouts: 3, workoutsSinceBackup: 3 })
+
+    await recordBackup(4500)
+    expect(await getBackupStatus()).toMatchObject({ lastBackupAt: 4500, doneWorkouts: 3, workoutsSinceBackup: 1 })
+  })
+
+  it('a dismissal is remembered', async () => {
+    await initDb()
+    await dismissBackupReminder(123)
+    expect((await getBackupStatus()).dismissedAt).toBe(123)
+  })
+
+  it('keeps the bookkeeping out of exported backups', async () => {
+    await initDb()
+    await recordBackup(1)
+    expect(JSON.stringify(await buildBackup())).not.toContain('lastBackupAt')
   })
 })

@@ -1,5 +1,6 @@
 import { db, DEFAULT_SETTINGS } from '../db/db'
 import { findBackupProblems } from './backupSchema'
+import { recordBackup } from './backupReminder'
 import type { Exercise, Folder, Measurement, Routine, Settings, Workout } from '../db/types'
 
 /** v2 added `measurements`; v1 files still import, they just have none. */
@@ -62,6 +63,8 @@ export async function downloadBackup(): Promise<void> {
   a.remove()
   // Revoking immediately can cancel the download in some mobile browsers.
   setTimeout(() => URL.revokeObjectURL(url), 4000)
+  // Bookkeeping for the reminder; a failure here must not undo a good export.
+  await recordBackup(backup.exportedAt).catch(() => {})
 }
 
 export interface ImportSummary {

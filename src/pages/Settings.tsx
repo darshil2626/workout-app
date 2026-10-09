@@ -7,6 +7,7 @@ import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { updateSettings, useSettings } from '../lib/useSettings'
 import { formatDuration, formatRelative } from '../lib/time'
+import { getBackupStatus } from '../lib/backupReminder'
 import { displayToKg, formatWeight, parseNumber } from '../lib/units'
 import {
   downloadBackup,
@@ -133,6 +134,7 @@ export function SettingsPage() {
   const [confirmUndo, setConfirmUndo] = useState(false)
   // What the last restore replaced, while it can still be put back.
   const restoreSnapshot = useLiveQuery(() => getRestoreSnapshot(), [], null)
+  const backupStatus = useLiveQuery(() => getBackupStatus(), [])
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Set while a bulk rewrite of stored history is in flight.
@@ -663,7 +665,12 @@ export function SettingsPage() {
           </div>
           <p className="faint" style={{ marginBottom: 12 }}>
             Your workouts, routines and exercises live on this device only. Export regularly because clearing your
-            browser data or deleting the app will erase them.
+            browser data or deleting the app will erase them.{' '}
+            <strong>
+              {backupStatus?.lastBackupAt
+                ? `Last backup ${formatRelative(backupStatus.lastBackupAt)}.`
+                : 'You have not made a backup yet.'}
+            </strong>
           </p>
           <div className="list">
             <button

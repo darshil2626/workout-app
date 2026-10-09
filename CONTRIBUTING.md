@@ -16,6 +16,16 @@ integration tests, a production build, and the Playwright end-to-end suite
 Useful on their own: `npm run lint`, `npm run format` (rewrites files),
 `npm run test:unit`, `npm run test:e2e` (build first).
 
+## Trying a change on a phone first (staging)
+
+Run **Actions -> Deploy staging** and pick a branch. It publishes a build to a
+separate GitHub Pages site (default `<owner>/<repo>-staging`), labelled
+"Staging" on the home screen and in Settings, with analytics off. Because it is
+a different origin its storage is separate, so you can install it next to the
+real app, import a backup into it, and watch a schema change upgrade real data
+without touching the install you train with. One-time setup is described at the
+top of `.github/workflows/staging.yml`.
+
 ## Things that matter here
 
 - **Stored data is precious.** The real history lives on people's phones. Any

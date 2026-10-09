@@ -11,11 +11,18 @@ const base = process.env.BASE_PATH ?? '/'
 // and it is skipped elsewhere because it costs noticeably more CPU.
 const onWindowsMount = process.cwd().startsWith('/mnt/')
 
+// 'staging' marks a build meant for trying changes on a real phone before they
+// reach the installed app. It is renamed so the two icons are told apart, and
+// the deploy workflow gives it no analytics key.
+const channel = process.env.BUILD_CHANNEL
+const nameSuffix = channel === 'staging' ? ' Staging' : ''
+
 // Stamped into the About card so it is possible to tell, on a phone, exactly
 // which deploy is installed. Actions sets GITHUB_SHA; local builds say so.
 const buildId = [
   new Date().toISOString().slice(0, 16).replace('T', ' '),
   process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : 'local',
+  ...(channel ? [channel] : []),
 ].join(' · ')
 
 export default defineConfig({
@@ -24,6 +31,12 @@ export default defineConfig({
   server: onWindowsMount ? { watch: { usePolling: true, interval: 300 } } : undefined,
   plugins: [
     react(),
+    {
+      // iOS names the home-screen icon from this tag, not from the manifest.
+      name: 'channel-title',
+      transformIndexHtml: (html: string) =>
+        nameSuffix ? html.replace('content="Trana"', `content="Trana${nameSuffix}"`) : html,
+    },
     VitePWA({
       // 'prompt' keeps the new worker waiting instead of reloading the page
       // out from under whoever is mid-set. UpdatePrompt offers the reload, and
@@ -34,8 +47,8 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Trana Gym Tracker',
-        short_name: 'Trana',
+        name: `Trana Gym Tracker${nameSuffix}`,
+        short_name: `Trana${nameSuffix}`,
         description:
           'Offline-first strength log: routines, set-by-set logging, rest timer, personal records, muscle recovery and progress charts.',
         // theme_color must track the dark --bg in src/index.css: it colours the

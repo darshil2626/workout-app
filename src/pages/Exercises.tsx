@@ -48,7 +48,8 @@ export function ExercisesPage() {
   // empty library — the deep-link effect below needs that distinction so it
   // doesn't apply `?muscle=` against a muscle list that hasn't loaded.
   const exercisesRaw = useLiveQuery(() => db.exercises.toArray())
-  const exercises = exercisesRaw ?? []
+  // Memoised: a fresh `[]` each render would defeat every useMemo keyed on it.
+  const exercises = useMemo(() => exercisesRaw ?? [], [exercisesRaw])
 
   // One bulk load, not one query per row: `exerciseSparklines` groups these
   // in memory, so a ~150-row library costs a single Dexie read here rather

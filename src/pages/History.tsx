@@ -17,7 +17,8 @@ export function HistoryPage() {
   // empty history — collapsing that into `[]` immediately would show the
   // "No workouts yet" empty state as a flash before real history pops in.
   const workoutsRaw = useLiveQuery(() => db.workouts.where('status').equals('done').reverse().sortBy('startedAt'))
-  const workouts = workoutsRaw ?? []
+  // Memoised: a fresh `[]` each render would defeat every useMemo keyed on it.
+  const workouts = useMemo(() => workoutsRaw ?? [], [workoutsRaw])
   const exercises = useLiveQuery(() => db.exercises.toArray(), [], [] as Exercise[])
   const byId = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
 

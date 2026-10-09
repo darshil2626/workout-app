@@ -55,6 +55,9 @@ export function FinishSheet({ open, summary, onClose, onSave }: Props) {
   // sheet's lifetime, not something that changes while it's up.
   useEffect(() => {
     if (open && summary.prCount > 0 && settings.restTimerVibrate) vibratePR()
+    // Deliberately only `open`: summary and settings are a snapshot for the
+    // sheet's lifetime, and re-running on them would buzz twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   function reset() {

@@ -21,7 +21,7 @@ export default tseslint.config(
       // Only the two classic rules: v7's "recommended" adds React Compiler checks
       // (purity, set-state-in-effect) that need component refactors, not lint fixes.
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'error',
       'no-console': ['error', { allow: ['error', 'warn'] }],
       '@typescript-eslint/consistent-type-imports': 'error',
     },

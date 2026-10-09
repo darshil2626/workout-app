@@ -83,6 +83,9 @@ export function useSwipeToDelete(onDelete: (id: string) => void, threshold = 80)
     window.removeEventListener('pointermove', handleMove)
     window.removeEventListener('pointerup', handleEnd)
     window.removeEventListener('pointercancel', handleEnd)
+    // The three handlers refer to each other, so each keeps one identity for
+    // removeEventListener to match; all state is read through refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleMove = useCallback(

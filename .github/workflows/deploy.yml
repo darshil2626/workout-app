@@ -13,9 +13,12 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than cancelling it mid-publish.
+# Let a running deploy finish rather than cancelling it mid-publish. Only pushes to
+# main share the "pages" group. Pull requests get a group each: GitHub keeps just one
+# *pending* run per group, so with a shared group a second PR cancelled the first
+# one's checks, which is how Dependabot's PRs ended up with no results.
 concurrency:
-  group: pages
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: false
 
 jobs:

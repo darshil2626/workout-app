@@ -1,6 +1,7 @@
 import { inlineScriptHashes } from '../../scripts/csp'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
+import { gzipSync } from 'node:zlib'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -101,6 +102,28 @@ describe.each(BASES)('production build with base $base', ({ base, name }) => {
     const hashes = inlineScriptHashes(html)
     expect(hashes.length).toBeGreaterThan(0)
     for (const h of hashes) expect(scriptSrc).toContain(h)
+  })
+
+  it('stays within the bundle budget', () => {
+    // What every launch downloads: the scripts and styles index.html names. The analytics
+    // library is a separate chunk, fetched only once someone opts in, so it is not here.
+    // Limits sit about 20% above today's sizes; raise one on purpose, not by accident.
+    const html = readFileSync(join(dir(), 'index.html'), 'utf8')
+    const gz = (rel: string) => gzipSync(readFileSync(join(dir(), rel))).length
+    const referenced = [...html.matchAll(/assets\/[^"']+\.(js|css)/g)].map((m) => m[0])
+    const entryJs = referenced.filter((f) => f.endsWith('.js')).reduce((n, f) => n + gz(f), 0)
+    const entryCss = referenced.filter((f) => f.endsWith('.css')).reduce((n, f) => n + gz(f), 0)
+    expect(entryJs, 'entry JS (gzip)').toBeLessThan(150 * 1024)
+    expect(entryCss, 'entry CSS (gzip)').toBeLessThan(12 * 1024)
+
+    // No single lazily-loaded screen should grow into a second entry bundle.
+    const chunks = walk(join(dir(), 'assets')).filter((f) => f.endsWith('.js'))
+    const lazy = chunks
+      .map((f) => f.slice(dir().length + 1).replaceAll('\\', '/'))
+      .filter((f) => !referenced.includes(f))
+    expect(lazy.length, 'lazy chunks found').toBeGreaterThan(5)
+    const largestLazy = Math.max(...lazy.map(gz))
+    expect(largestLazy, 'largest lazy chunk (gzip)').toBeLessThan(130 * 1024)
   })
 
   it('leaves dev-only seed hooks out of the production bundle', () => {

@@ -1,56 +1,84 @@
-import posthog from 'posthog-js'
+import type { PostHog } from 'posthog-js'
 
 /**
  * Usage metrics only — never workout content. Every capture() call site in
  * this app passes bucketed/categorical properties, never exercise names,
  * weights, reps, routine names or measurements. Content stays in IndexedDB
  * and is never touched by this module.
+ *
+ * The PostHog library is a large part of the app's weight, and most people will
+ * not opt in, so it is fetched only after someone says yes.
  */
 
 const apiKey = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 
-let initialized = false
+let client: PostHog | null = null
+let loading: Promise<void> | null = null
 /** Whether the person has said yes. Nothing is captured, or even set up, otherwise. */
 let allowed = false
+/** Events raised while the library was still downloading, sent once it is ready. */
+let pending: Array<[string, Record<string, string | number | boolean> | undefined]> = []
+/** A runaway loop must not grow this without bound while offline. */
+const MAX_PENDING = 50
 
 /** Analytics runs only with an explicit yes; see Settings.analyticsConsentAt. */
 export function analyticsAllowed(settings: { analyticsEnabled: boolean; analyticsConsentAt: number | null }): boolean {
   return settings.analyticsEnabled && settings.analyticsConsentAt !== null
 }
 
-function ensureInit() {
-  if (initialized || !apiKey) return
-  posthog.init(apiKey, {
-    api_host: 'https://us.i.posthog.com',
-    autocapture: false,
-    capture_pageview: false,
-    disable_session_recording: true,
-    persistence: 'localStorage',
-    sanitize_properties: (properties) => sanitizeEventProperties(properties),
-  })
-  initialized = true
+function load(): Promise<void> {
+  if (loading) return loading
+  loading = import('posthog-js')
+    .then(({ default: posthog }) => {
+      // The answer may have changed to no while the library downloaded.
+      if (!allowed) {
+        loading = null
+        return
+      }
+      posthog.init(apiKey!, {
+        api_host: 'https://us.i.posthog.com',
+        autocapture: false,
+        capture_pageview: false,
+        disable_session_recording: true,
+        persistence: 'localStorage',
+        sanitize_properties: (properties) => sanitizeEventProperties(properties),
+      })
+      posthog.opt_in_capturing()
+      client = posthog
+      for (const [event, properties] of pending) posthog.capture(event, properties)
+      pending = []
+    })
+    .catch(() => {
+      // Offline or blocked: analytics is optional, and the next launch tries again.
+      loading = null
+    })
+  return loading
 }
 
 /**
  * Called once settings have loaded, and again whenever the answer changes.
- * PostHog is not started, and nothing is written to the browser, until the
- * answer is yes. Taking it back stops capture and discards the identifier.
+ * PostHog is not downloaded or started, and nothing is written to the browser,
+ * until the answer is yes. Taking it back stops capture and discards the identifier.
  */
 export function syncAnalyticsConsent(isAllowed: boolean): void {
   allowed = isAllowed
   if (!apiKey) return
   if (isAllowed) {
-    ensureInit()
-    posthog.opt_in_capturing()
-  } else if (initialized) {
-    posthog.opt_out_capturing()
-    posthog.reset()
+    if (client) client.opt_in_capturing()
+    else void load()
+  } else {
+    pending = []
+    if (client) {
+      client.opt_out_capturing()
+      client.reset()
+    }
   }
 }
 
 export function track(event: string, properties?: Record<string, string | number | boolean>): void {
-  if (!apiKey || !initialized || !allowed) return
-  posthog.capture(event, properties)
+  if (!apiKey || !allowed) return
+  if (client) client.capture(event, properties)
+  else if (pending.length < MAX_PENDING) pending.push([event, properties])
 }
 
 /**

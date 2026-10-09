@@ -41,19 +41,34 @@ describe('consent gates everything', () => {
     expect(ph.capture).not.toHaveBeenCalled()
   })
 
-  it('a yes starts it once and lets events through', async () => {
+  it('a yes downloads and starts it once, and events raised meanwhile are sent', async () => {
     const a = await load()
     a.syncAnalyticsConsent(true)
     a.syncAnalyticsConsent(true)
+    // Raised before the library has arrived: held, not lost.
     a.track('workout_started', { from_routine: true })
+    await vi.waitFor(() => expect(ph.capture).toHaveBeenCalledWith('workout_started', { from_routine: true }))
     expect(ph.init).toHaveBeenCalledTimes(1)
     expect(ph.opt_in_capturing).toHaveBeenCalled()
-    expect(ph.capture).toHaveBeenCalledWith('workout_started', { from_routine: true })
+    // And once running, events go straight through.
+    a.track('workout_completed')
+    expect(ph.capture).toHaveBeenCalledWith('workout_completed', undefined)
+  })
+
+  it('a no while the library is still downloading means it never starts', async () => {
+    const a = await load()
+    a.syncAnalyticsConsent(true)
+    a.syncAnalyticsConsent(false)
+    a.track('workout_started')
+    await new Promise((r) => setTimeout(r, 20))
+    expect(ph.init).not.toHaveBeenCalled()
+    expect(ph.capture).not.toHaveBeenCalled()
   })
 
   it('taking the yes back stops capture and discards the identifier', async () => {
     const a = await load()
     a.syncAnalyticsConsent(true)
+    await vi.waitFor(() => expect(ph.init).toHaveBeenCalled())
     a.syncAnalyticsConsent(false)
     a.track('workout_started')
     expect(ph.opt_out_capturing).toHaveBeenCalled()

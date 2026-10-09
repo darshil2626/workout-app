@@ -70,3 +70,14 @@
   bottom: 12px;
   padding-top: var(--space-3);
 }
+
+/* A link inside a sentence must be told apart by more than its colour (WCAG 1.4.1),
+   so it is underlined wherever it sits in running text. */
+.faint a,
+.muted a,
+.install-banner a,
+.install-note a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

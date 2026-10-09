@@ -13,6 +13,7 @@ import { measurementWeightUnit } from '../lib/measurements'
 import { suggestedWeeklyGoal } from '../lib/home'
 import { recomputeAllWorkoutTotals } from '../lib/dedupe'
 import { track } from '../lib/analytics'
+import { PRIVACY_URL } from '../lib/links'
 import { InstallSteps } from '../components/InstallSteps'
 import { useInstall } from '../lib/install'
 import { DataDialogs, DataSection } from './settings/DataSection'
@@ -343,15 +344,20 @@ export function SettingsPage() {
               <span>Share anonymous usage data</span>
               <span className="faint">
                 Which screens and features get used, and whether the app gets reopened but never your workouts,
-                routines, weights or measurements. Helps me improve Trana while it's early.
+                routines, weights or measurements. Helps me improve Trana while it's early. Off until you say yes.{' '}
+                <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">
+                  Privacy policy
+                </a>
               </span>
             </div>
             <button
-              className={`switch${settings.analyticsEnabled ? ' on' : ''}`}
+              className={`switch${settings.analyticsEnabled && settings.analyticsConsentAt !== null ? ' on' : ''}`}
               role="switch"
-              aria-checked={settings.analyticsEnabled}
+              aria-checked={settings.analyticsEnabled && settings.analyticsConsentAt !== null}
               aria-label="Share anonymous usage data"
-              onClick={() => void updateSettings({ analyticsEnabled: !settings.analyticsEnabled })}
+              onClick={() =>
+                void updateSettings({ analyticsEnabled: !settings.analyticsEnabled, analyticsConsentAt: Date.now() })
+              }
             />
           </div>
         </div>

@@ -10,6 +10,13 @@ import posthog from 'posthog-js'
 const apiKey = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 
 let initialized = false
+/** Whether the person has said yes. Nothing is captured, or even set up, otherwise. */
+let allowed = false
+
+/** Analytics runs only with an explicit yes; see Settings.analyticsConsentAt. */
+export function analyticsAllowed(settings: { analyticsEnabled: boolean; analyticsConsentAt: number | null }): boolean {
+  return settings.analyticsEnabled && settings.analyticsConsentAt !== null
+}
 
 function ensureInit() {
   if (initialized || !apiKey) return
@@ -24,16 +31,25 @@ function ensureInit() {
   initialized = true
 }
 
-/** Called once settings have loaded, and again whenever the toggle changes. */
-export function syncAnalyticsConsent(enabled: boolean): void {
+/**
+ * Called once settings have loaded, and again whenever the answer changes.
+ * PostHog is not started, and nothing is written to the browser, until the
+ * answer is yes. Taking it back stops capture and discards the identifier.
+ */
+export function syncAnalyticsConsent(isAllowed: boolean): void {
+  allowed = isAllowed
   if (!apiKey) return
-  ensureInit()
-  if (enabled) posthog.opt_in_capturing()
-  else posthog.opt_out_capturing()
+  if (isAllowed) {
+    ensureInit()
+    posthog.opt_in_capturing()
+  } else if (initialized) {
+    posthog.opt_out_capturing()
+    posthog.reset()
+  }
 }
 
 export function track(event: string, properties?: Record<string, string | number | boolean>): void {
-  if (!apiKey || !initialized) return
+  if (!apiKey || !initialized || !allowed) return
   posthog.capture(event, properties)
 }
 

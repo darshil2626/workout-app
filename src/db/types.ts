@@ -247,4 +247,11 @@ export interface Settings {
    * content, only which features get used.
    */
   analyticsEnabled: boolean
+  /**
+   * When the person answered the analytics question, or null if they have not.
+   * Analytics runs only with a yes recorded here, so a stored `analyticsEnabled:
+   * true` from before the question existed (it used to default to on) is not
+   * taken as consent. Kept per device: a restored backup never overwrites it.
+   */
+  analyticsConsentAt: number | null
 }

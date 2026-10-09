@@ -41,6 +41,7 @@ import { StrengthTrend } from '../components/home/StrengthTrend'
 import { Skeleton } from '../components/Skeleton'
 import { InstallBanner } from '../components/InstallBanner'
 import { BackupReminder } from '../components/BackupReminder'
+import { AnalyticsConsent } from '../components/AnalyticsConsent'
 
 /**
  * How many finished sessions are scanned for personal records.
@@ -342,6 +343,7 @@ export function HomePage() {
       <div className="page">
         {loaded && <InstallBanner />}
         {loaded && <BackupReminder />}
+        {loaded && <AnalyticsConsent />}
         {!loaded ? (
           <HomeSkeleton />
         ) : firstRun ? (

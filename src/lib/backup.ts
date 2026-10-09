@@ -178,7 +178,18 @@ async function replaceAll(data: BackupFile): Promise<void> {
   await db.routines.bulkPut(data.routines)
   await db.folders.bulkPut(data.folders)
   await db.measurements.bulkPut(data.measurements ?? [])
-  if (data.settings) await db.settings.put({ ...DEFAULT_SETTINGS, ...data.settings, id: 1 })
+  if (data.settings) {
+    // Consent belongs to this device and its owner's answer, not to the file: a
+    // backup from elsewhere must not switch analytics on, or off, here.
+    const mine = await db.settings.get(1)
+    await db.settings.put({
+      ...DEFAULT_SETTINGS,
+      ...data.settings,
+      analyticsEnabled: mine?.analyticsEnabled ?? DEFAULT_SETTINGS.analyticsEnabled,
+      analyticsConsentAt: mine?.analyticsConsentAt ?? DEFAULT_SETTINGS.analyticsConsentAt,
+      id: 1,
+    })
+  }
 }
 
 function summarise(data: BackupFile): ImportSummary {

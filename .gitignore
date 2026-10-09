@@ -10,3 +10,5 @@ CurrentProblems.md
 
 # Per-machine Claude Code permissions, not project configuration.
 .claude/settings.local.json
+test-results/
+playwright-report/

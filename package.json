@@ -10,7 +10,10 @@
     "preview": "node node_modules/vite/bin/vite.js preview --host",
     "typecheck": "node node_modules/typescript/bin/tsc -b --noEmit",
     "icons": "node scripts/make-icons.mjs",
-    "art": "node scripts/match-exercise-illustrations.mjs"
+    "art": "node scripts/match-exercise-illustrations.mjs",
+    "test:unit": "node node_modules/vitest/vitest.mjs run",
+    "test:e2e": "node node_modules/@playwright/test/cli.js test",
+    "test": "npm run typecheck && npm run test:unit && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "dexie": "^4.0.11",
@@ -21,12 +24,15 @@
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^26.1.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "^5.8.3",
     "vite": "^7.0.0",
-    "vite-plugin-pwa": "^1.0.0"
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^5.0.3"
   }
 }

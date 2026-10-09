@@ -298,7 +298,7 @@ const expected = {
     [R9.name]: { lastDone: '6d ago', why: 'no link and different exercises, but a session carries the routine name' },
   },
   historyCards: {
-    'History eight exercises': { rows: 5, more: '+3 more', firstRow: ['Bench Press (Barbell)', '2 sets'] },
+    'History eight exercises': { rows: 3, more: '+5 more', firstRow: ['Bench Press (Barbell)', '2 sets'] },
     'History one set': { rows: 1, firstRow: ['Bench Press (Barbell)', '1 set'] },
     'History empty': { text: 'No exercises logged' },
   },

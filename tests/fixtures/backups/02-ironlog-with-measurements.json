@@ -1,0 +1,545 @@
+{
+  "app": "ironlog",
+  "version": 2,
+  "exportedAt": 1789493400000,
+  "exercises": [
+    {
+      "id": "squat-barbell",
+      "name": "Squat (Barbell)",
+      "muscleGroup": "Quadriceps",
+      "equipment": "Barbell",
+      "kind": "weight_reps",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "bench-press-barbell",
+      "name": "Bench Press (Barbell)",
+      "muscleGroup": "Chest",
+      "equipment": "Barbell",
+      "kind": "weight_reps",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "deadlift-barbell",
+      "name": "Deadlift (Barbell)",
+      "muscleGroup": "Back",
+      "equipment": "Barbell",
+      "kind": "weight_reps",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "overhead-press-barbell",
+      "name": "Overhead Press (Barbell)",
+      "muscleGroup": "Shoulders",
+      "equipment": "Barbell",
+      "kind": "weight_reps",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "pull-up",
+      "name": "Pull Up",
+      "muscleGroup": "Back",
+      "equipment": "Bodyweight",
+      "kind": "weighted_bodyweight",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "dead-hang",
+      "name": "Dead Hang",
+      "muscleGroup": "Forearms",
+      "equipment": "Bodyweight",
+      "kind": "duration",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "sled-push",
+      "name": "Sled Push",
+      "muscleGroup": "Full Body",
+      "equipment": "Machine",
+      "kind": "distance_duration",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "farmers-walk",
+      "name": "Farmers Walk",
+      "muscleGroup": "Forearms",
+      "equipment": "Dumbbell",
+      "kind": "duration_weight",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "box-jump",
+      "name": "Box Jump",
+      "muscleGroup": "Full Body",
+      "equipment": "Bodyweight",
+      "kind": "reps_only",
+      "isCustom": false,
+      "createdAt": 1
+    },
+    {
+      "id": "custom-zercher",
+      "name": "Zercher Squat",
+      "muscleGroup": "Quadriceps",
+      "equipment": "Barbell",
+      "kind": "weight_reps",
+      "isCustom": true,
+      "createdAt": 1785691800000,
+      "notes": "elbows tight"
+    }
+  ],
+  "workouts": [
+    {
+      "id": "w-legs",
+      "name": "Legs",
+      "status": "done",
+      "startedAt": 1788283800000,
+      "finishedAt": 1788287100000,
+      "pausedSec": 0,
+      "exercises": [
+        {
+          "id": "le-33",
+          "exerciseId": "squat-barbell",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-29",
+              "weight": 60,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "warmup",
+              "completed": true
+            },
+            {
+              "id": "set-30",
+              "weight": 100,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-31",
+              "weight": 100,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-32",
+              "weight": 100,
+              "reps": 4,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "failure",
+              "completed": true
+            }
+          ]
+        },
+        {
+          "id": "le-36",
+          "exerciseId": "custom-zercher",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-34",
+              "weight": 70,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-35",
+              "weight": 70,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "drop",
+              "completed": true
+            }
+          ]
+        }
+      ],
+      "exerciseIds": ["squat-barbell", "custom-zercher"],
+      "totalVolumeKg": 2520,
+      "totalSets": 5,
+      "totalReps": 30
+    },
+    {
+      "id": "w-push",
+      "name": "Push A",
+      "status": "done",
+      "startedAt": 1788456600000,
+      "finishedAt": 1788459900000,
+      "pausedSec": 0,
+      "exercises": [
+        {
+          "id": "le-40",
+          "exerciseId": "bench-press-barbell",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-37",
+              "weight": 80,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-38",
+              "weight": 80,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-39",
+              "weight": 77.5,
+              "reps": 6,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ],
+          "restSeconds": 150
+        },
+        {
+          "id": "le-43",
+          "exerciseId": "overhead-press-barbell",
+          "supersetGroup": 1,
+          "sets": [
+            {
+              "id": "set-41",
+              "weight": 45,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-42",
+              "weight": 45,
+              "reps": 7,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ]
+        },
+        {
+          "id": "le-46",
+          "exerciseId": "pull-up",
+          "supersetGroup": 1,
+          "sets": [
+            {
+              "id": "set-44",
+              "weight": null,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-45",
+              "weight": 10,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ]
+        }
+      ],
+      "exerciseIds": ["bench-press-barbell", "overhead-press-barbell", "pull-up"],
+      "totalVolumeKg": 1990,
+      "totalSets": 7,
+      "totalReps": 44,
+      "routineId": "routine-push",
+      "bodyweightKg": 82
+    },
+    {
+      "id": "w-conditioning",
+      "name": "Conditioning",
+      "status": "done",
+      "startedAt": 1788629400000,
+      "finishedAt": 1788632700000,
+      "pausedSec": 0,
+      "exercises": [
+        {
+          "id": "le-49",
+          "exerciseId": "dead-hang",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-47",
+              "weight": null,
+              "reps": null,
+              "durationSec": 45,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-48",
+              "weight": null,
+              "reps": null,
+              "durationSec": 38,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ]
+        },
+        {
+          "id": "le-51",
+          "exerciseId": "sled-push",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-50",
+              "weight": null,
+              "reps": null,
+              "durationSec": 40,
+              "distanceM": 30,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ]
+        },
+        {
+          "id": "le-53",
+          "exerciseId": "farmers-walk",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-52",
+              "weight": 32,
+              "reps": null,
+              "durationSec": 50,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ]
+        },
+        {
+          "id": "le-56",
+          "exerciseId": "box-jump",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-54",
+              "weight": null,
+              "reps": 10,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-55",
+              "weight": null,
+              "reps": 10,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            }
+          ]
+        }
+      ],
+      "exerciseIds": ["dead-hang", "sled-push", "farmers-walk", "box-jump"],
+      "totalVolumeKg": 0,
+      "totalSets": 6,
+      "totalReps": 20
+    },
+    {
+      "id": "w-active",
+      "name": "Pull day (unfinished)",
+      "status": "active",
+      "startedAt": 1788802200000,
+      "finishedAt": null,
+      "pausedSec": 0,
+      "exercises": [
+        {
+          "id": "le-59",
+          "exerciseId": "deadlift-barbell",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "id": "set-57",
+              "weight": 120,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": true
+            },
+            {
+              "id": "set-58",
+              "weight": null,
+              "reps": null,
+              "durationSec": null,
+              "distanceM": null,
+              "rpe": null,
+              "setType": "normal",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "exerciseIds": ["deadlift-barbell"],
+      "totalVolumeKg": 600,
+      "totalSets": 1,
+      "totalReps": 5
+    }
+  ],
+  "routines": [
+    {
+      "id": "routine-push",
+      "name": "Push A",
+      "folderId": "folder-upper",
+      "order": 0,
+      "createdAt": 1786555800000,
+      "updatedAt": 1787851800000,
+      "exercises": [
+        {
+          "id": "rx-1",
+          "exerciseId": "bench-press-barbell",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "weight": 60,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "setType": "warmup"
+            },
+            {
+              "weight": 80,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "setType": "normal"
+            },
+            {
+              "weight": 80,
+              "reps": 5,
+              "durationSec": null,
+              "distanceM": null,
+              "setType": "normal"
+            }
+          ]
+        },
+        {
+          "id": "rx-2",
+          "exerciseId": "overhead-press-barbell",
+          "supersetGroup": null,
+          "sets": [
+            {
+              "weight": null,
+              "reps": 8,
+              "durationSec": null,
+              "distanceM": null,
+              "setType": "normal"
+            }
+          ]
+        }
+      ],
+      "lastPerformedAt": 1788456600000
+    }
+  ],
+  "folders": [
+    {
+      "id": "folder-upper",
+      "name": "Upper body",
+      "order": 0,
+      "createdAt": 1786469400000
+    }
+  ],
+  "measurements": [
+    {
+      "id": "m-bw-1",
+      "type": "bodyweight",
+      "value": 82,
+      "takenAt": 1788283800000
+    },
+    {
+      "id": "m-bw-2",
+      "type": "bodyweight",
+      "value": 81.4,
+      "takenAt": 1788888600000
+    },
+    {
+      "id": "m-waist",
+      "type": "waist",
+      "value": 84.5,
+      "takenAt": 1788888600000,
+      "notes": "morning"
+    },
+    {
+      "id": "m-fat",
+      "type": "bodyFat",
+      "value": 17.2,
+      "takenAt": 1788888600000
+    }
+  ],
+  "settings": {
+    "id": 1,
+    "weightUnit": "lb",
+    "distanceUnit": "km",
+    "lengthUnit": "cm",
+    "defaultRestSeconds": 90,
+    "restTimerEnabled": true,
+    "restTimerSound": true,
+    "restTimerVibrate": true,
+    "autoStartRestTimer": true,
+    "barWeightKg": 20,
+    "availablePlatesKg": [25, 20, 15, 10, 5, 2.5, 1.25],
+    "firstDayOfWeek": 1,
+    "weightStepKg": 2.5,
+    "bodyweightKg": 81.4
+  }
+}

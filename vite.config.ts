@@ -39,6 +39,19 @@ export default defineConfig({
       transformIndexHtml: { order: 'post', handler: (html: string) => withCsp(html) },
     },
     {
+      // GitHub Pages serves 404.html for any path it has no file for, so a copy of the
+      // shell lets a deep link (a shared /history, a refresh before the service worker
+      // exists) open the app rather than GitHub's error page. Taken from the bundle after
+      // the CSP is added, so the copy carries the same policy.
+      name: 'spa-fallback',
+      apply: 'build',
+      enforce: 'post',
+      generateBundle(_, bundle) {
+        const index = bundle['index.html']
+        if (index?.type === 'asset') this.emitFile({ type: 'asset', fileName: '404.html', source: index.source })
+      },
+    },
+    {
       // iOS names the home-screen icon from this tag, not from the manifest.
       name: 'channel-title',
       transformIndexHtml: (html: string) =>
@@ -86,7 +99,7 @@ export default defineConfig({
         // The exercise illustrations are ~7 MB across 480 files. Precaching
         // them would block the first load on downloading the lot, so they are
         // fetched and kept on first view instead.
-        globIgnores: ['**/exercise-art/**'],
+        globIgnores: ['**/exercise-art/**', '404.html'],
         runtimeCaching: [
           {
             // Stale-while-revalidate rather than cache-first: the drawings live

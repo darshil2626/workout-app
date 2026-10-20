@@ -11,7 +11,8 @@ you, and GitHub's own signals.
 - **Errors** are reported as a kind and a class name (`unhandled_error`, `render_error`),
   never a message or stack, so you can see _that_ something is failing and roughly how
   often, not _why_. The why comes from a user's **Copy debug info**.
-- **GitHub** shows deploy failures, CI, Dependabot and CodeQL alerts.
+- **GitHub** shows deploy failures, CI, Dependabot and CodeQL alerts, and the `smoke` job
+  that checks the live site after each deploy.
 
 ## Set up once in PostHog (needs your login)
 

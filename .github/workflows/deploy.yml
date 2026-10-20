@@ -104,6 +104,40 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+
+  # Looks at the real site once it is live. A green build says the code is fine; this
+  # says a stranger at the real address can open, use and reload it. It cannot undo a
+  # deploy, so a failure here is a prompt to look (and usually to revert), not a rollback.
+  smoke:
+    needs: [deploy]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:smoke
+        env:
+          SMOKE_URL: ${{ needs.deploy.outputs.page_url }}
+          EXPECT_SHA: ${{ github.sha }}
+          # The project-site address people may still have bookmarked.
+          SMOKE_LEGACY_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: smoke-results
+          path: test-results
+          if-no-files-found: ignore

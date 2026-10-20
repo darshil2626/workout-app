@@ -79,6 +79,14 @@ describe.each(BASES)('production build with base $base', ({ base, name }) => {
     expect(text).toMatch(/url:\s*["']index\.html["']/)
   })
 
+  // GitHub Pages answers a path it has no file for (a shared /history link, or a refresh
+  // before the service worker exists) with 404.html. It must be the app itself, or that
+  // visitor sees GitHub's error page instead of Trana.
+  it('ships 404.html as a copy of index.html, and does not precache it', () => {
+    expect(readFileSync(join(dir(), '404.html'), 'utf8')).toBe(readFileSync(join(dir(), 'index.html'), 'utf8'))
+    expect(readFileSync(join(dir(), 'sw.js'), 'utf8')).not.toMatch(/404\.html/)
+  })
+
   it('index.html asset URLs use the base path and point at real files', () => {
     const html = readFileSync(join(dir(), 'index.html'), 'utf8')
     const urls = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]

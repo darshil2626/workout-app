@@ -18,6 +18,7 @@
     "art": "node scripts/match-exercise-illustrations.mjs",
     "test:unit": "node node_modules/vitest/vitest.mjs run",
     "test:e2e": "node node_modules/@playwright/test/cli.js test",
+    "test:smoke": "node node_modules/@playwright/test/cli.js test -c playwright.smoke.config.ts",
     "test": "npm run lint && npm run format:check && npm run typecheck && npm run test:unit && npm run build && npm run test:e2e"
   },
   "dependencies": {

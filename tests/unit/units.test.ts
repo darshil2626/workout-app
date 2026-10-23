@@ -154,6 +154,10 @@ describe('parseNumber', () => {
     expect(parseNumber('.5')).toBe(0.5)
     expect(parseNumber('0')).toBe(0)
   })
+  it('rejects negatives instead of dropping the sign', () => {
+    expect(parseNumber('-20')).toBeNull()
+    expect(parseNumber('−5')).toBeNull()
+  })
   it('accepts a comma decimal separator', () => expect(parseNumber('82,5')).toBe(82.5))
   it('strips stray characters and units', () => {
     expect(parseNumber('82.5kg')).toBe(82.5)
@@ -165,6 +169,6 @@ describe('parseNumber', () => {
     expect(parseNumber('.')).toBeNull()
     expect(parseNumber(',')).toBeNull()
   })
-  it('drops a minus sign (negatives are not supported)', () => expect(parseNumber('-5')).toBe(5))
+  it('rejects a minus sign rather than dropping it', () => expect(parseNumber('-5')).toBeNull())
   it('returns null when multiple dots make NaN', () => expect(parseNumber('1.2.3')).toBeNull())
 })

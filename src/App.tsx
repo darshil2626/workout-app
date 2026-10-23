@@ -39,6 +39,7 @@ const ExerciseDetailPage = lazy(() => import('./pages/ExerciseDetail').then((m) 
 const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })))
 const StatsPage = lazy(() => import('./pages/Stats').then((m) => ({ default: m.StatsPage })))
 const MeasurementsPage = lazy(() => import('./pages/Measurements').then((m) => ({ default: m.MeasurementsPage })))
+const FeedbackPage = lazy(() => import('./pages/Feedback').then((m) => ({ default: m.FeedbackPage })))
 const EditWorkoutPage = lazy(() => import('./pages/EditWorkout').then((m) => ({ default: m.EditWorkoutPage })))
 
 function Shell() {
@@ -188,6 +189,7 @@ function Shell() {
             <Route path="/exercises" element={<ExercisesPage />} />
             <Route path="/exercises/:id" element={<ExerciseDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

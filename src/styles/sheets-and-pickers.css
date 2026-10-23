@@ -15,6 +15,10 @@
   animation: fade 0.14s var(--ease) reverse;
 }
 
+.sheet:focus {
+  outline: none;
+}
+
 .sheet {
   /* One step above --surface (see the elevation comment in :root): a sheet
      is a full rung forward of the cards it covers, not a shadow on the same

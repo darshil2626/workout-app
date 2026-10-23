@@ -92,8 +92,10 @@ app by importing its CSV export.
 ## Known limits of the PWA approach
 
 - No Apple Health or Google Fit integration.
-- On iOS the rest-timer chime only sounds while the app is open; iOS does not allow
-  background notifications for home-screen web apps. Android is unrestricted.
+- On iOS the rest-timer chime only sounds while the app is open. Home Screen web apps
+  can receive Web Push on iOS 16.4 and later, but that needs a push server to send it
+  and is not built for a precisely timed alarm. Trana has no server, so it cannot
+  fire a rest-timer alert in the background. Android is unrestricted.
 - Vibration on timer completion works on Android only.
 
 ---

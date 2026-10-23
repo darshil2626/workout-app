@@ -121,6 +121,24 @@ export function ActiveWorkoutPage() {
   // exercise look unknown for a tick, which silently suppresses PR badges and
   // shows the wrong input columns for anything that is not weight × reps.
   const exercises = useLiveQuery(() => listExercises(), [], undefined)
+  // A one-time tip for someone who has never finished a workout. It goes away
+  // for good when dismissed, and on its own once a set has been ticked.
+  const doneCount = useLiveQuery(() => countDoneWorkouts(), [], undefined)
+  const [tickHintSeen, setTickHintSeen] = useState(() => {
+    try {
+      return localStorage.getItem('trana.tickHintSeen') === '1'
+    } catch {
+      return false
+    }
+  })
+  const dismissTickHint = () => {
+    setTickHintSeen(true)
+    try {
+      localStorage.setItem('trana.tickHintSeen', '1')
+    } catch {
+      /* private mode: the tip just shows again next time */
+    }
+  }
   const byId = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
   const previous = usePreviousPerformances(workout?.exerciseIds ?? [], workout?.id)
   const baselines = useRecordBaselines(
@@ -373,6 +391,12 @@ export function ActiveWorkoutPage() {
 
   const anyCompleted = workout.exercises.some((le) => le.sets.some((s) => s.completed))
 
+  const showTickHint =
+    !tickHintSeen &&
+    doneCount === 0 &&
+    workout.exercises.length > 0 &&
+    !workout.exercises.some((le) => le.sets.some((st) => st.completed))
+
   return (
     <>
       <header className="header">
@@ -468,6 +492,22 @@ export function ActiveWorkoutPage() {
             <IconNote />
             Add workout note
           </button>
+        )}
+
+        {showTickHint && (
+          <div
+            className="card"
+            role="note"
+            style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-start' }}
+          >
+            <p style={{ margin: 0, flex: 1, fontSize: '0.875rem' }}>
+              <strong>How logging works:</strong> type the weight and reps, then tap the tick when a set is done. Tick
+              each set as you finish it. Ticked sets are the ones saved.
+            </p>
+            <button className="btn btn-ghost btn-sm" onClick={dismissTickHint}>
+              Got it
+            </button>
+          </div>
         )}
 
         <div style={{ marginTop: 16 }}>
@@ -577,6 +617,7 @@ export function ActiveWorkoutPage() {
                         badge={badges[i]}
                         kind={kind}
                         previous={prev?.sets[i]}
+                        above={i > 0 ? le.sets[i - 1] : undefined}
                         prs={prs.get(set.id)}
                         fmt={fmt}
                         timer={setTimer.active?.setId === set.id ? setTimer.active : undefined}

@@ -89,6 +89,9 @@ export function HistoryPage() {
             <div className="empty-icon">📈</div>
             <h3>No workouts yet</h3>
             <p className="muted">Finished sessions land here with every set you logged.</p>
+            <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => navigate('/')}>
+              Start your first workout
+            </button>
           </div>
         ) : (
           <>

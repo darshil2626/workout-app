@@ -7,7 +7,8 @@ interface Props {
 }
 
 /**
- * What has rested and what has been neglected, as a day count per muscle.
+ * Days since each muscle was last trained, most neglected first. A day count,
+ * not a readiness or recovery estimate.
  *
  * This used to carry a Recovering/Ready/Overdue chip alongside the count, but
  * with `REST_OVERDUE_DAYS` tight relative to `RECOVERY_STALE_DAYS`, "Overdue"
@@ -21,7 +22,7 @@ export function RecoveryCard({ items, limit = 5 }: Props) {
 
   return (
     <section className="home-sect">
-      <div className="section-title">Ready to train</div>
+      <div className="section-title">Last trained</div>
       <div className="card">
         {shown.map((item) => (
           <div className="home-rest-row" key={item.muscle}>

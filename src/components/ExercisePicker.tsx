@@ -5,6 +5,7 @@ import type { Exercise } from '../db/types'
 import { Sheet } from './Sheet'
 import { ExerciseFormSheet } from './ExerciseForm'
 import { IconCheck, IconPlus, IconSearch } from './Icons'
+import { exerciseRank, matchesExercise } from '../lib/exerciseSearch'
 
 interface Props {
   open: boolean
@@ -47,8 +48,8 @@ export function ExercisePicker({
     return exercises
       .filter((e) => !e.archived && e.id !== excludeId)
       .filter((e) => muscle === ALL || e.muscleGroup === muscle)
-      .filter((e) => q === '' || e.name.toLowerCase().includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter((e) => matchesExercise(e.name, q))
+      .sort((a, b) => exerciseRank(a.name, q) - exerciseRank(b.name, q) || a.name.localeCompare(b.name))
   }, [exercises, query, muscle, excludeId])
 
   function toggle(id: string) {

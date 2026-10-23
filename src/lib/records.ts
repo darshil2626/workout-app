@@ -180,6 +180,11 @@ export function findSessionPRs(
   const kinds = setPRKinds(exercise.kind)
   const best = new Map<PRKind, { setId: string; value: number }>()
 
+  // The first time an exercise is ever logged sets the baseline; there is
+  // nothing to beat, so nothing is a record. Without this a first workout
+  // announces "8 PRs" for every set.
+  if (kinds.every((k) => baseline[k] <= 0)) return new Map()
+
   for (const s of sets) {
     if (!s.completed) continue
     if (!countWarmups && s.setType === 'warmup') continue

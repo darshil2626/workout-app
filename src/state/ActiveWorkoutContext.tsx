@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { db, newId } from '../db/db'
 import type { LoggedExercise, LoggedSet, Routine, Workout } from '../db/types'
-import { computeTotals, emptySet, hasLoggedValue, isSetLogged, setFromTarget } from '../lib/workout'
+import { computeTotals, emptySet, hasLoggedValue, keepCompletedSets, setFromTarget } from '../lib/workout'
 import { bucketDurationMinutes, bucketSetCount, track } from '../lib/analytics'
 
 /** How the session felt overall; both halves are optional, and skipping is fine. */
@@ -323,10 +323,9 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       const all = await db.exercises.bulkGet([...new Set(workout.exercises.map((e) => e.exerciseId))])
       const byId = new Map(all.filter((e) => e !== undefined).map((e) => [e.id, e]))
 
-      // Drop empty placeholder sets and exercises so history stays clean.
-      const exercises = workout.exercises
-        .map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) }))
-        .filter((le) => le.sets.length > 0)
+      // Keep only sets ticked complete, matching the "unfinished sets will be
+      // discarded" prompt. Untouched routine presets must not reach history.
+      const exercises = keepCompletedSets(workout.exercises)
 
       const totals = computeTotals(exercises, byId, settings?.bodyweightKg ?? null, settings?.countWarmupSets ?? false)
       const finished: Workout = {

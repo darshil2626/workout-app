@@ -8,6 +8,9 @@ import { syncThemeColor } from './theme'
  */
 const HOLD_MS = 1150
 const FADE_MS = 450
+/** Returning launches skip the draw-on and only hold briefly, then fade. */
+const QUICK_HOLD_MS = 150
+const SEEN_KEY = 'trana.splashSeen'
 
 /**
  * Fades out the launch splash that index.html paints.
@@ -22,10 +25,16 @@ export function dismissSplash(): void {
   const el = document.getElementById('splash')
   if (!el) return
 
+  const quick = el.classList.contains('quick')
   const paintedAt = (window as unknown as { __splashAt?: number }).__splashAt ?? performance.now()
-  const wait = Math.max(0, HOLD_MS - (performance.now() - paintedAt))
+  const wait = Math.max(0, (quick ? QUICK_HOLD_MS : HOLD_MS) - (performance.now() - paintedAt))
   window.setTimeout(() => {
     el.classList.add('leaving')
+    try {
+      window.localStorage.setItem(SEEN_KEY, '1')
+    } catch {
+      // Storage blocked: every launch just plays the full splash.
+    }
     // The status bar stops matching the splash as it fades, not after.
     syncThemeColor()
     window.setTimeout(() => el.remove(), FADE_MS + 50)

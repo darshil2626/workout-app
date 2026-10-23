@@ -80,11 +80,20 @@ export function formatLength(cm: number | null | undefined, unit: LengthUnit): s
   return trimNumber(cmToDisplay(cm, unit), 1)
 }
 
+/** Largest values a set field accepts. Generous for real lifting, small enough to catch a stuck key. */
+export const MAX_WEIGHT_KG = 1000
+export const MAX_REPS = 999
+export const MAX_DISTANCE_M = 1_000_000
+export const MAX_SET_DURATION_SEC = 86_400
+
 /**
  * Parses user text into a number, tolerating commas as decimal separators and
  * stripping stray characters. Returns null for anything unusable.
  */
 export function parseNumber(text: string): number | null {
+  // A minus sign is a typo here, never a negative value. Stripping it would
+  // quietly log -20 as 20, so treat the text as unusable instead.
+  if (text.includes('-') || text.includes('−')) return null
   const cleaned = text.replace(',', '.').replace(/[^0-9.]/g, '')
   if (cleaned === '' || cleaned === '.') return null
   const n = Number(cleaned)

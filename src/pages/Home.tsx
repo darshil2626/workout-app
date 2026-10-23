@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  getSettings,
   listExercises,
   listDoneWorkouts,
   listRoutines,
@@ -17,7 +18,7 @@ import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
-import { IconList, IconPlay, IconPlus, IconSettings, IconTrash } from '../components/Icons'
+import { IconPlay, IconPlus, IconSettings, IconTrash } from '../components/Icons'
 import { useFormatters } from '../lib/useSettings'
 import { computeStreaks, overallTotals, volumeByDay } from '../lib/stats'
 import {
@@ -81,6 +82,24 @@ function HomeSkeleton() {
       <Skeleton height={96} radius={16} style={{ marginBottom: 16 }} />
       <Skeleton height={64} radius={14} style={{ marginBottom: 12 }} />
       <Skeleton height={64} radius={14} />
+    </>
+  )
+}
+
+/**
+ * Nothing until there is a workout in history, so a new lifter's first screen is
+ * just Start. Then one notice at a time: the analytics question, then the
+ * install offer, then the backup reminder.
+ */
+function HomeNotices({ hasHistory }: { hasHistory: boolean }) {
+  const settings = useLiveQuery(() => getSettings(), [])
+  const [installShown, setInstallShown] = useState(false)
+  if (!settings || !hasHistory) return null
+  if (settings.analyticsConsentAt === null) return <AnalyticsConsent />
+  return (
+    <>
+      <InstallBanner onShownChange={setInstallShown} />
+      <BackupReminder hidden={installShown} />
     </>
   )
 }
@@ -326,11 +345,12 @@ export function HomePage() {
           </span>
         }
         left={
-          <button className="icon-btn" aria-label="Exercise library" onClick={() => navigate('/exercises')}>
-            {/* A magnifier promised search; this button opens the library. The
-                Exercises page keeps its own search field, and IconSearch with
-                it. */}
-            <IconList />
+          <button
+            className="header-action"
+            style={{ marginLeft: -4, marginRight: 8 }}
+            onClick={() => navigate('/exercises')}
+          >
+            Exercises
           </button>
         }
         right={
@@ -341,13 +361,14 @@ export function HomePage() {
       />
 
       <div className="page">
-        {loaded && <InstallBanner />}
-        {loaded && <BackupReminder />}
-        {loaded && <AnalyticsConsent />}
         {!loaded ? (
           <HomeSkeleton />
         ) : firstRun ? (
-          <FirstRun onStartEmpty={() => void start()} onNewRoutine={() => navigate('/routines/new')} />
+          <>
+            <FirstRun onStartEmpty={() => void start()} onNewRoutine={() => navigate('/routines/new')} />
+            {/* Below the main action, so the first thing on screen is starting a workout. */}
+            <HomeNotices hasHistory={hasHistory} />
+          </>
         ) : (
           <>
             <PrimaryAction
@@ -360,6 +381,8 @@ export function HomePage() {
               onStartEmpty={() => void start()}
               onChoose={scrollToRoutines}
             />
+            {/* Below the main action, so the first thing on screen is starting a workout. */}
+            <HomeNotices hasHistory={hasHistory} />
 
             {showGoal && <GoalRing progress={goal} streaks={streaks} />}
             {showConsistency && (

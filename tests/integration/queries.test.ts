@@ -174,10 +174,8 @@ describe('records', () => {
     const w1 = (await db.workouts.get('w1'))!
     const w2 = (await db.workouts.get('w2'))!
     const w3 = (await db.workouts.get('w3'))!
-    // First ever session: everything is a record (warmup set excluded).
-    const p1 = await prsForWorkout(w1, byId, null)
-    expect([...p1.keys()]).toEqual([w1.exercises[0].sets[0].id])
-    expect(p1.get(w1.exercises[0].sets[0].id)!.sort()).toEqual(['oneRm', 'reps', 'volume', 'weight'])
+    // First ever session sets the baseline: no records.
+    expect((await prsForWorkout(w1, byId, null)).size).toBe(0)
     // w2: more reps, no weight record.
     const p2 = await prsForWorkout(w2, byId, null)
     const kinds2 = p2.get(w2.exercises[0].sets[0].id)!
@@ -188,7 +186,7 @@ describe('records', () => {
     expect(kinds3).toContain('weight')
     expect(kinds3).not.toContain('reps')
     // Judging w1 is not affected by later bigger sessions.
-    expect((await prsForWorkout(w1, byId, null)).size).toBe(1)
+    expect((await prsForWorkout(w1, byId, null)).size).toBe(0)
   })
 
   it('loadSetRecords: heaviest per rep count, first achieved date wins ties', async () => {

@@ -196,7 +196,7 @@ export interface MuscleRecovery {
  * than "neglected" and dropped from the list, instead of climbing to an
  * ever-larger overdue count. Without a ceiling, a muscle the user has simply
  * stopped training — a dropped lift, a program change, an injury — sits at
- * the top of "Ready to train" forever, eventually reading "312 days" and
+ * the top of "Last trained" forever, eventually reading "312 days" and
  * crowding out muscles actually worth nudging about. A rule of thumb, not
  * physiology, same spirit as `REST_READY_DAYS`/`REST_OVERDUE_DAYS`.
  */

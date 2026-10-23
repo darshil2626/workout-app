@@ -7,10 +7,9 @@ test.beforeEach(async ({ context }) => {
 test('Settings offers feedback, and copy-debug-info holds facts but no workout content', async ({ page }) => {
   await seed(page)
   await page.goto('/settings')
-  await expect(page.getByRole('link', { name: 'Send feedback or report a bug' })).toHaveAttribute(
-    'href',
-    /github\.com\/.*\/issues\/new\/choose/,
-  )
+  await page.getByRole('button', { name: 'Send feedback', exact: true }).click()
+  await expect(page).toHaveURL(/\/feedback$/)
+  await page.goBack()
 
   await page.getByRole('button', { name: 'Copy debug info' }).click()
   await expect(page.getByRole('status').filter({ hasText: /^Copied/ })).toBeVisible()

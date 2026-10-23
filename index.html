@@ -11,7 +11,7 @@
     <!--
       Launch splash. Inline on purpose: it has to paint before the app bundle
       downloads, so it cannot live in the stylesheets. Colours are the light theme's
-      accent and background, the same pair as the app icon. Timing (1.6s overall:
+      accent and background, the same pair as the app icon. Timing (first launch 1.6s overall:
       draw-on, hold, fade) is split between this file and src/lib/splash.ts —
       keep the numbers in step.
     -->
@@ -59,6 +59,15 @@
           transform: scale(1.03);
         }
       }
+      /* Returning launches: no draw-on, just a brief hold and fade (src/lib/splash.ts). */
+      #splash.quick svg {
+        animation: none;
+      }
+      #splash.quick .l path,
+      #splash.quick .l circle {
+        animation: none;
+        stroke-dashoffset: 0;
+      }
       @media (prefers-reduced-motion: reduce) {
         #splash svg {
           animation: none;
@@ -104,6 +113,14 @@
       </svg>
     </div>
     <div id="root"></div>
+    <script>
+      // The full splash plays on the first launch only; after that it is a short hold.
+      try {
+        if (localStorage.getItem('trana.splashSeen') === '1') {
+          document.getElementById('splash').classList.add('quick')
+        }
+      } catch (e) {}
+    </script>
     <script>
       // The splash's clock starts when it is first painted, not when navigation
       // began: on a cold start the two can be several hundred ms apart, and

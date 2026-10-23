@@ -2,6 +2,12 @@ import { test, expect, seed, waitForApp } from './helpers/fixtures'
 
 test('Home nudges towards a backup, and making one clears the nudge', async ({ page }) => {
   await seed(page)
+  // The analytics question comes first; the reminder follows once it is answered.
+  await page.getByRole('region', { name: 'Usage data' }).getByRole('button', { name: 'No thanks' }).click()
+  // One notice at a time: if the install offer is up, it goes first.
+  const install = page.getByRole('region', { name: 'Install Trana' })
+  await expect(install.or(page.getByRole('region', { name: 'Back up your data' }))).toBeVisible()
+  if (await install.isVisible()) await install.getByRole('button', { name: 'Dismiss' }).click()
   const reminder = page.getByRole('region', { name: 'Back up your data' })
   await expect(reminder).toBeVisible()
   await expect(reminder).toContainText(/workouts live only on this device/)
@@ -17,6 +23,12 @@ test('Home nudges towards a backup, and making one clears the nudge', async ({ p
 
 test('dismissing the reminder keeps it away', async ({ page }) => {
   await seed(page)
+  // The analytics question comes first; the reminder follows once it is answered.
+  await page.getByRole('region', { name: 'Usage data' }).getByRole('button', { name: 'No thanks' }).click()
+  // One notice at a time: if the install offer is up, it goes first.
+  const install = page.getByRole('region', { name: 'Install Trana' })
+  await expect(install.or(page.getByRole('region', { name: 'Back up your data' }))).toBeVisible()
+  if (await install.isVisible()) await install.getByRole('button', { name: 'Dismiss' }).click()
   const reminder = page.getByRole('region', { name: 'Back up your data' })
   await reminder.getByRole('button', { name: 'Dismiss' }).click()
   await expect(reminder).toHaveCount(0)

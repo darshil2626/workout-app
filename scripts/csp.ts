@@ -13,12 +13,15 @@ import { createHash } from 'node:crypto'
  *   cannot leave the policy stale, and no 'unsafe-inline' is needed for scripts.
  * - style-src keeps 'unsafe-inline': the splash has a <style> block and inline
  *   style attributes, and style injection is a far smaller risk than script.
- * - connect-src allows only this origin and the analytics hosts.
+ * - connect-src allows only this origin, the analytics host and the feedback form host.
  * - Dev builds get no policy, because the dev server injects inline scripts.
  */
 
 /** Where events are sent. No scripts are loaded from PostHog (disable_external_dependency_loading). */
 const ANALYTICS_API = 'https://us.i.posthog.com'
+
+/** Where the in-app feedback form posts (only when the user taps Send). */
+const FEEDBACK_API = 'https://api.web3forms.com'
 
 /** SHA-256 CSP source for each inline <script> (those without a src). */
 export function inlineScriptHashes(html: string): string[] {
@@ -40,7 +43,7 @@ export function contentSecurityPolicy(html: string): string {
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:'],
     'font-src': ["'self'", 'data:'],
-    'connect-src': ["'self'", ANALYTICS_API],
+    'connect-src': ["'self'", ANALYTICS_API, FEEDBACK_API],
     'manifest-src': ["'self'"],
     'worker-src': ["'self'"],
     'object-src': ["'none'"],

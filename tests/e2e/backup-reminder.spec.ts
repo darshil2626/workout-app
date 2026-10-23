@@ -42,3 +42,16 @@ test('a fresh install is not nagged', async ({ page }) => {
   await waitForApp(page)
   await expect(page.getByRole('region', { name: 'Back up your data' })).toHaveCount(0)
 })
+
+test('notices keep clear of the start buttons above them', async ({ page }) => {
+  await seed(page)
+  const notice = page.getByRole('region', { name: 'Usage data' })
+  await expect(notice).toBeVisible()
+  const gap = await notice.evaluate((el) => {
+    const above = el.previousElementSibling
+    if (!above) return null
+    return el.getBoundingClientRect().top - above.getBoundingClientRect().bottom
+  })
+  expect(gap).not.toBeNull()
+  expect(gap as number).toBeGreaterThanOrEqual(16)
+})

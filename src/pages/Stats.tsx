@@ -160,7 +160,9 @@ export function StatsPage() {
                 formatDate={() => ''}
               />
             </div>
-            <p className="muted">Log an entry to see the trend in your bodyweight and circumferences.</p>
+            <p className="muted">
+              Example trend, not your data. Log an entry to see your own bodyweight and circumferences.
+            </p>
             <button className="btn btn-accent-soft btn-sm" onClick={() => navigate('/measurements')}>
               Log an entry
             </button>

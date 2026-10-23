@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   detectInstallPlatform,
   isInstallSnoozed,
@@ -16,14 +16,17 @@ import { IconClose } from './Icons'
  * when the browser can install in one click, so it never nags with steps for a
  * browser that may not support it.
  */
-export function InstallBanner() {
+export function InstallBanner({ onShownChange }: { onShownChange?: (shown: boolean) => void }) {
   const { installed, canPromptNatively, install } = useInstall()
   const [snoozed, setSnoozed] = useState(isInstallSnoozed)
   const [stepsOpen, setStepsOpen] = useState(false)
 
   const atRisk = uninstalledDataAtRisk(installed)
-  if (installed || snoozed) return null
-  if (detectInstallPlatform() === 'desktop' && !canPromptNatively) return null
+  const hidden = installed || snoozed || (detectInstallPlatform() === 'desktop' && !canPromptNatively)
+  useEffect(() => {
+    onShownChange?.(!hidden)
+  }, [hidden, onShownChange])
+  if (hidden) return null
 
   function dismiss() {
     snoozeInstall()

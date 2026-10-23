@@ -11,6 +11,7 @@ import { IconPlus, IconSearch } from '../components/Icons'
 import { exerciseSparklines } from '../lib/stats'
 import { useFormatters } from '../lib/useSettings'
 import { Skeleton } from '../components/Skeleton'
+import { matchesExercise } from '../lib/exerciseSearch'
 
 const ALL = 'All'
 
@@ -83,7 +84,7 @@ export function ExercisesPage() {
     return exercises
       .filter((e) => !e.archived)
       .filter((e) => muscle === ALL || e.muscleGroup === muscle)
-      .filter((e) => q === '' || e.name.toLowerCase().includes(q))
+      .filter((e) => matchesExercise(e.name, q))
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [exercises, query, muscle])
 

@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react'
 import { getExercise, saveExercise, deleteExercise } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
+import { useActiveWorkout } from '../state/ActiveWorkoutContext'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Header } from '../components/Header'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
@@ -90,6 +91,7 @@ function recordTile(
 export function ExerciseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const active = useActiveWorkout()
   const fmt = useFormatters()
   const [menu, setMenu] = useState(false)
   const [mergePicker, setMergePicker] = useState(false)
@@ -208,6 +210,26 @@ export function ExerciseDetailPage() {
     navigate('/exercises', { replace: true })
   }
 
+  // Start a workout with this exercise. If one is already running, add the
+  // exercise to it (never start a second one, never discard the running one);
+  // if it is already in the running workout, just go there.
+  const running = active.workout
+  const inRunning = !!running && running.exercises.some((le) => le.exerciseId === exercise.id)
+  const performLabel = !running
+    ? 'Start workout with this'
+    : inRunning
+      ? 'Go to current workout'
+      : 'Add to current workout'
+  async function perform() {
+    if (!running) {
+      await active.startEmpty()
+      active.addExercises([exercise!.id])
+    } else if (!inRunning) {
+      active.addExercises([exercise!.id])
+    }
+    navigate('/workout')
+  }
+
   return (
     <>
       <Header
@@ -231,6 +253,10 @@ export function ExerciseDetailPage() {
           {exercise.muscleGroup} · {exercise.equipment}
           {exercise.isCustom ? ' · Custom' : ''}
         </p>
+
+        <button className="btn btn-primary btn-block" style={{ margin: '12px 0 0' }} onClick={() => void perform()}>
+          {performLabel}
+        </button>
 
         {/* The animated illustration is archived behind EXERCISE_ART_ENABLED
             (lib/features.ts); the muscle readout shows while it is off. */}

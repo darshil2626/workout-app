@@ -178,6 +178,7 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
                   <button
                     key={u}
                     className={measurementWeightUnit(settings) === u ? 'active' : ''}
+                    aria-pressed={measurementWeightUnit(settings) === u}
                     onClick={() => void updateSettings({ measurementWeightUnit: u })}
                   >
                     {u}
@@ -191,6 +192,7 @@ function EntrySheet({ type, onClose }: { type: MeasurementType | null; onClose: 
                   <button
                     key={u}
                     className={measurementLengthUnit(settings) === u ? 'active' : ''}
+                    aria-pressed={measurementLengthUnit(settings) === u}
                     onClick={() => void updateSettings({ lengthUnit: u })}
                   >
                     {u}

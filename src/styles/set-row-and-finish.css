@@ -178,6 +178,11 @@
   background: var(--bg);
 }
 
+.set-input-invalid,
+.set-input-invalid:focus {
+  border-color: var(--danger);
+}
+
 .set-input::placeholder {
   color: var(--text-faint);
   font-weight: 500;

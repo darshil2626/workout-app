@@ -157,17 +157,23 @@ describe('findSessionPRs', () => {
     expect(findSessionPRs([warm, todo], ex, base, null).size).toBe(0)
     expect(findSessionPRs([warm], ex, base, null, true).has(warm.id)).toBe(true)
   })
-  it('first-ever session with empty baseline badges the best set', () => {
+  it('first-ever session sets a baseline: nothing is a record', () => {
     const s = mkSet({ weight: 50, reps: 5 })
-    expect(findSessionPRs([s], ex, emptyRecords(), null).get(s.id)).toEqual(expect.arrayContaining(['weight', 'reps']))
+    expect(findSessionPRs([s], ex, emptyRecords(), null).size).toBe(0)
+  })
+  it('the second session is judged against the first', () => {
+    const s = mkSet({ weight: 50, reps: 5 })
+    const prs = findSessionPRs([s], ex, { ...emptyRecords(), weight: 40, reps: 5 }, null).get(s.id)
+    expect(prs).toContain('weight')
+    expect(prs).not.toContain('reps')
   })
   it('assisted and bodyweight exercises only earn reps PRs', () => {
     const asst = mkEx('assisted_bodyweight')
     const s = mkSet({ weight: 20, reps: 8 })
-    expect(findSessionPRs([s], asst, emptyRecords(), 80).get(s.id)).toEqual(['reps'])
+    expect(findSessionPRs([s], asst, { ...emptyRecords(), reps: 5 }, 80).get(s.id)).toEqual(['reps'])
     const bw = mkEx('bodyweight_reps')
     const s2 = mkSet({ reps: 12 })
-    expect(findSessionPRs([s2], bw, emptyRecords(), 80).get(s2.id)).toEqual(['reps'])
+    expect(findSessionPRs([s2], bw, { ...emptyRecords(), reps: 5 }, 80).get(s2.id)).toEqual(['reps'])
   })
   it('weighted bodyweight: weight PR compares added load only', () => {
     const wb = mkEx('weighted_bodyweight')
@@ -208,7 +214,7 @@ describe('DB-backed record loading', () => {
     const m = new Map([[ex.id, ex]])
     const prsMid = await prsForWorkout(mid, m, null)
     expect([...prsMid.values()].flat()).toContain('weight') // 100 > 60
-    expect((await prsForWorkout(early, m, null)).size).toBe(1) // first ever
+    expect((await prsForWorkout(early, m, null)).size).toBe(0) // first ever: baseline, not a record
     // late is judged against early+mid only (not the active session)
     expect([...(await prsForWorkout(late, m, null)).values()].flat()).toContain('weight')
   })

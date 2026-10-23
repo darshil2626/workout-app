@@ -125,14 +125,14 @@ test('PR set turns gold while an ordinary completed set stays green', async ({ p
   await expect(page.locator('.badge-pr')).toHaveCount(0)
 })
 
-test('Home header icons share a centre line with the title', async ({ page }) => {
+test('Home header buttons share a centre line with the title', async ({ page }) => {
   const centre = (loc: ReturnType<Page['locator']>) =>
     loc.evaluate((e) => {
       const r = e.getBoundingClientRect()
       return r.top + r.height / 2
     })
-  const a = await centre(page.locator('.header .icon-btn').nth(0))
-  const b = await centre(page.locator('.header .icon-btn').nth(1))
+  const a = await centre(page.locator('.header .header-action').nth(0))
+  const b = await centre(page.locator('.header .icon-btn').nth(0))
   const t = await centre(page.locator('.home-status'))
   expect(Math.abs(a - b)).toBeLessThan(0.5)
   expect(Math.abs(t - a)).toBeLessThanOrEqual(1.5)

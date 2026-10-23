@@ -73,3 +73,11 @@ The app is served by GitHub Pages, which keeps its own ordinary access logs.
 
 If this changes, it will change here, and any new kind of data collection will
 be opt-in or announced in the app.
+
+## Feedback, only if you send it
+
+**Settings → Send feedback** opens a form. Nothing is sent until you tap Send. The
+message, and your email and rating if you add them, go to the app's author through
+[Web3Forms](https://web3forms.com), which stores submissions for up to 3 years. If you
+tick "attach app version/device info" it adds the build id and your browser/device
+description. Workout data is never attached.

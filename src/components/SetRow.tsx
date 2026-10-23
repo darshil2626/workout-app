@@ -1,8 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type Ref } from 'react'
 import type { ExerciseKind, LoggedSet } from '../db/types'
-import { fieldsFor } from '../lib/workout'
+import { blankFill, fieldsFor, missingWeight } from '../lib/workout'
 import type { Formatters } from '../lib/useSettings'
-import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
+import {
+  displayToKg,
+  displayToMetres,
+  formatDistance,
+  formatWeight,
+  MAX_DISTANCE_M,
+  MAX_REPS,
+  MAX_SET_DURATION_SEC,
+  MAX_WEIGHT_KG,
+  parseNumber,
+} from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
 import { IconCheck, IconTimer, IconTrash } from './Icons'
 import { vibrateTick } from '../lib/chime'
@@ -22,12 +32,17 @@ function NumberField({
   onCommit,
   ariaLabel,
   inputMode = 'decimal',
+  invalid,
+  inputRef,
 }: {
   display: string
   placeholder: string
   onCommit: (text: string) => void
   ariaLabel: string
   inputMode?: 'decimal' | 'numeric' | 'text'
+  /** Marks the field as needing a value, visually and for screen readers. */
+  invalid?: boolean
+  inputRef?: Ref<HTMLInputElement>
 }) {
   const [text, setText] = useState(display)
   const [focused, setFocused] = useState(false)
@@ -38,7 +53,9 @@ function NumberField({
 
   return (
     <input
-      className="set-input"
+      ref={inputRef}
+      aria-invalid={invalid || undefined}
+      className={`set-input${invalid ? ' set-input-invalid' : ''}`}
       type="text"
       inputMode={inputMode}
       enterKeyHint="done"
@@ -61,12 +78,18 @@ function NumberField({
   )
 }
 
+function hasMinus(text: string): boolean {
+  return text.includes('-') || text.includes('−')
+}
+
 interface Props {
   set: LoggedSet
   badge: string
   kind: ExerciseKind
   /** Same-numbered set from the last time this exercise was performed. */
   previous?: LoggedSet
+  /** The set above this one in the same exercise, used to fill blanks when there is no previous session. */
+  above?: LoggedSet
   /** Record kinds this set beats; empty or absent for an ordinary set. */
   prs?: PRKind[]
   fmt: Formatters
@@ -107,6 +130,7 @@ export function SetRow({
   badge,
   kind,
   previous,
+  above,
   prs,
   fmt,
   timer,
@@ -141,9 +165,13 @@ export function SetRow({
 
   // The previous session's numbers become placeholders, so tapping the check
   // with empty inputs is never ambiguous about what was actually lifted.
-  const weightPlaceholder =
-    previous?.weight !== null && previous?.weight !== undefined ? formatWeight(previous.weight, weightUnit) : '0'
-  const repsPlaceholder = previous?.reps != null ? String(previous.reps) : '0'
+  // With no previous session, the set above stands in, so a repeat set is one
+  // tap instead of retyping the same weight.
+  const ref = previous ?? above
+  const weightPlaceholder = ref?.weight != null ? formatWeight(ref.weight, weightUnit) : '0'
+  const repsPlaceholder = ref?.reps != null ? String(ref.reps) : '0'
+  const weightRef = useRef<HTMLInputElement>(null)
+  const [weightNeeded, setWeightNeeded] = useState(false)
   const durationPlaceholder = previous?.durationSec != null ? formatDuration(previous.durationSec) : '0:00'
   const distancePlaceholder = previous?.distanceM != null ? formatDistance(previous.distanceM, distanceUnit) : '0'
 
@@ -162,23 +190,35 @@ export function SetRow({
     e.stopPropagation()
   }
 
+  // Typed text that is a negative or beyond the limits is not stored, so the
+  // last good value stays and the field shows it again on blur.
   function commitWeight(text: string) {
+    if (hasMinus(text)) return
     const n = parseNumber(text)
-    onChange({ weight: n === null ? null : round3(displayToKg(n, weightUnit)) })
+    const kg = n === null ? null : round3(displayToKg(n, weightUnit))
+    if (kg !== null && kg > MAX_WEIGHT_KG) return
+    onChange({ weight: kg })
   }
 
   function commitReps(text: string) {
+    if (hasMinus(text)) return
     const n = parseNumber(text)
+    if (n !== null && n > MAX_REPS) return
     onChange({ reps: n === null ? null : Math.max(0, Math.round(n)) })
   }
 
   function commitDuration(text: string) {
-    onChange({ durationSec: parseDuration(text) })
+    const sec = parseDuration(text)
+    if (sec !== null && sec > MAX_SET_DURATION_SEC) return
+    onChange({ durationSec: sec })
   }
 
   function commitDistance(text: string) {
+    if (hasMinus(text)) return
     const n = parseNumber(text)
-    onChange({ distanceM: n === null ? null : round3(displayToMetres(n, distanceUnit)) })
+    const m = n === null ? null : round3(displayToMetres(n, distanceUnit))
+    if (m !== null && m > MAX_DISTANCE_M) return
+    onChange({ distanceM: m })
   }
 
   /**
@@ -202,12 +242,14 @@ export function SetRow({
    */
   function toggle() {
     if (!set.completed) {
-      const patch: Partial<LoggedSet> = {}
-      if (f.weight && set.weight === null && previous?.weight != null) patch.weight = previous.weight
-      if (f.reps && set.reps === null && previous?.reps != null) patch.reps = previous.reps
-      if (f.duration && set.durationSec === null && previous?.durationSec != null)
-        patch.durationSec = previous.durationSec
-      if (f.distance && set.distanceM === null && previous?.distanceM != null) patch.distanceM = previous.distanceM
+      // A plain lift with no weight and nothing to copy would log 0 kg. Ask for
+      // the weight instead of completing the set.
+      if (missingWeight(set, ref, kind)) {
+        setWeightNeeded(true)
+        window.requestAnimationFrame(() => weightRef.current?.focus())
+        return
+      }
+      const patch = blankFill(set, ref, kind)
       if (Object.keys(patch).length > 0) onChange(patch)
       // Only on the completing tap, not on un-checking — that's a correction,
       // not a confirmation worth a buzz.
@@ -277,8 +319,13 @@ export function SetRow({
           <NumberField
             display={formatWeight(set.weight, weightUnit)}
             placeholder={weightPlaceholder}
-            onCommit={commitWeight}
+            onCommit={(text) => {
+              setWeightNeeded(false)
+              commitWeight(text)
+            }}
             ariaLabel="Weight"
+            invalid={weightNeeded}
+            inputRef={weightRef}
           />
         </td>
       )}

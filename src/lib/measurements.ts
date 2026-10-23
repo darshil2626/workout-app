@@ -93,11 +93,21 @@ export async function saveMeasurement(
   takenAt: number,
   notes?: string,
 ): Promise<void> {
+  // The date picker gives every entry on a day the same timestamp, so a second
+  // weigh-in the same day would tie with the first and "latest" would be
+  // arbitrary. Nudge it a millisecond past the day's latest entry instead.
+  const dayStart = new Date(takenAt)
+  dayStart.setHours(0, 0, 0, 0)
+  const sameDay = await db.measurements
+    .where('[type+takenAt]')
+    .between([type, dayStart.getTime()], [type, dayStart.getTime() + 86_400_000], true, false)
+    .toArray()
+  const newest = sameDay.reduce((m, r) => Math.max(m, r.takenAt), -Infinity)
   const record: Measurement = {
     id: newId(),
     type,
     value: canonicalValue,
-    takenAt,
+    takenAt: newest >= takenAt ? newest + 1 : takenAt,
     notes: notes?.trim() || undefined,
   }
   await db.measurements.put(record)
@@ -106,7 +116,7 @@ export async function saveMeasurement(
     const latest = await latestOf('bodyweight')
     // Only sync when this is the newest reading; back-filling an old weigh-in
     // must not overwrite the current one.
-    if (!latest || latest.takenAt <= takenAt) {
+    if (!latest || latest.takenAt <= record.takenAt) {
       const settings = await db.settings.get(1)
       if (settings) await db.settings.put({ ...settings, bodyweightKg: canonicalValue })
     }

@@ -47,7 +47,7 @@ describe('contentSecurityPolicy', () => {
   })
 
   it('limits network calls to this origin and the analytics host', () => {
-    expect(directive('connect-src')).toBe("connect-src 'self' https://us.i.posthog.com")
+    expect(directive('connect-src')).toBe("connect-src 'self' https://us.i.posthog.com https://api.web3forms.com")
   })
 
   it('blocks plugins and base-tag hijacking', () => {

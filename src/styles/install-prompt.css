@@ -5,7 +5,10 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-  margin-bottom: var(--space-3);
+  /* These sit right under the start buttons on Home; the top margin keeps them
+     from touching Empty workout / Choose another. */
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-4);
   background: var(--surface);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
   border-radius: var(--radius);

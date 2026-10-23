@@ -8,6 +8,7 @@ import {
   formatRelative,
   formatTimeOfDay,
   parseDuration,
+  parseWorkoutDuration,
 } from '../../src/lib/time'
 
 const DAY = 86_400_000
@@ -169,5 +170,21 @@ describe('formatRelative', () => {
     expect(formatRelative(now - 364 * DAY, now)).toBe('12mo ago')
     expect(formatRelative(now - 365 * DAY, now)).toBe('1y ago')
     expect(formatRelative(now - 800 * DAY, now)).toBe('2y ago')
+  })
+})
+
+describe('parseWorkoutDuration', () => {
+  it('accepts normal lengths', () => {
+    expect(parseWorkoutDuration('')).toBe(0)
+    expect(parseWorkoutDuration('45:00')).toBe(2700)
+    expect(parseWorkoutDuration('1:05:00')).toBe(3900)
+    expect(parseWorkoutDuration('90:30')).toBe(5430)
+  })
+  it('rejects 99:99:99, out-of-range parts and more than a day', () => {
+    expect(parseWorkoutDuration('99:99:99')).toBeNull()
+    expect(parseWorkoutDuration('1:90')).toBeNull()
+    expect(parseWorkoutDuration('1:75:00')).toBeNull()
+    expect(parseWorkoutDuration('25:00:00')).toBeNull()
+    expect(parseWorkoutDuration('abc')).toBeNull()
   })
 })

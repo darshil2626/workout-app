@@ -1,6 +1,7 @@
 import { EXERCISE_ART_ENABLED } from '../lib/features'
 import { listDoneWorkouts } from '../db/repo'
 import { useState } from 'react'
+import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { DistanceUnit, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
@@ -13,7 +14,7 @@ import { measurementWeightUnit } from '../lib/measurements'
 import { suggestedWeeklyGoal } from '../lib/home'
 import { recomputeAllWorkoutTotals } from '../lib/dedupe'
 import { track } from '../lib/analytics'
-import { ISSUES_URL, PRIVACY_URL } from '../lib/links'
+import { PRIVACY_URL } from '../lib/links'
 import { CopyDebugInfo } from '../components/CopyDebugInfo'
 import { InstallSteps } from '../components/InstallSteps'
 import { useInstall } from '../lib/install'
@@ -24,6 +25,7 @@ const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 const STEP_PRESETS_KG = [0.5, 1, 1.25, 2.5, 5]
 
 export function SettingsPage() {
+  const navigate = useNavigate()
   const { installed } = useInstall()
   const settings = useSettings()
   const [message, setMessage] = useState<string | null>(null)
@@ -89,6 +91,17 @@ export function SettingsPage() {
           </div>
         )}
 
+        <div className="section-title">Tracking</div>
+        <div className="card">
+          <button className="row-between" style={{ width: '100%' }} onClick={() => navigate('/measurements')}>
+            <div className="stack grow" style={{ textAlign: 'left' }}>
+              <span>Body measurements</span>
+              <span className="faint">Bodyweight, body fat and circumferences</span>
+            </div>
+            <span className="muted">›</span>
+          </button>
+        </div>
+
         <div className="section-title">Appearance</div>
         <div className="card">
           <div className="field">
@@ -98,6 +111,7 @@ export function SettingsPage() {
                 <button
                   key={t}
                   className={settings.theme === t ? 'active' : ''}
+                  aria-pressed={settings.theme === t}
                   onClick={() => {
                     void updateSettings({ theme: t })
                     track('theme_changed', { theme: t })
@@ -119,6 +133,7 @@ export function SettingsPage() {
                 <button
                   key={u}
                   className={settings.weightUnit === u ? 'active' : ''}
+                  aria-pressed={settings.weightUnit === u}
                   onClick={() => void updateSettings({ weightUnit: u })}
                 >
                   {u}
@@ -133,6 +148,7 @@ export function SettingsPage() {
                 <button
                   key={u}
                   className={settings.distanceUnit === u ? 'active' : ''}
+                  aria-pressed={settings.distanceUnit === u}
                   onClick={() => void updateSettings({ distanceUnit: u })}
                 >
                   {u}
@@ -147,6 +163,7 @@ export function SettingsPage() {
                 <button
                   key={u}
                   className={measurementWeightUnit(settings) === u ? 'active' : ''}
+                  aria-pressed={measurementWeightUnit(settings) === u}
                   onClick={() => void updateSettings({ measurementWeightUnit: u })}
                 >
                   {u}
@@ -161,6 +178,7 @@ export function SettingsPage() {
                 <button
                   key={u}
                   className={settings.lengthUnit === u ? 'active' : ''}
+                  aria-pressed={settings.lengthUnit === u}
                   onClick={() => void updateSettings({ lengthUnit: u })}
                 >
                   {u}
@@ -370,9 +388,9 @@ export function SettingsPage() {
             into your message. It holds versions and counts, nothing from your workouts.
           </p>
           <div className="list">
-            <a className="btn btn-ghost btn-block" href={ISSUES_URL} target="_blank" rel="noopener noreferrer">
-              Send feedback or report a bug
-            </a>
+            <button className="btn btn-ghost btn-block" onClick={() => navigate('/feedback')}>
+              Send feedback
+            </button>
             <CopyDebugInfo className="btn btn-ghost btn-block" />
           </div>
         </div>

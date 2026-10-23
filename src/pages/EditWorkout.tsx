@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { listExercises, getWorkout, saveWorkout } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
@@ -10,8 +10,16 @@ import { SetRow } from '../components/SetRow'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { useFormatters } from '../lib/useSettings'
-import { computeTotals, emptySet, fieldsFor, isSetLogged, SET_TYPE_LABEL, setBadges } from '../lib/workout'
-import { formatDuration, parseDuration } from '../lib/time'
+import {
+  computeTotals,
+  emptySet,
+  fieldsFor,
+  isSetSaveable,
+  SET_TYPE_LABEL,
+  setBadges,
+  workoutChangedSince,
+} from '../lib/workout'
+import { formatDuration, parseWorkoutDuration } from '../lib/time'
 import { IconMore, IconPlus, IconTrash } from '../components/Icons'
 
 function toDateInput(ts: number): string {
@@ -46,6 +54,7 @@ export function EditWorkoutPage() {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [duration, setDuration] = useState('')
+  const [durationError, setDurationError] = useState<string | null>(null)
   const [items, setItems] = useState<LoggedExercise[]>([])
   const [hydrated, setHydrated] = useState(false)
 
@@ -53,6 +62,9 @@ export function EditWorkoutPage() {
   const [exMenu, setExMenu] = useState<LoggedExercise | null>(null)
   const [setMenu, setSetMenu] = useState<{ leId: string; set: LoggedSet } | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false)
+  // The record as loaded, to notice if another tab saved it in the meantime.
+  const baseline = useRef<Workout | null>(null)
 
   useEffect(() => {
     if (hydrated || stored === undefined) return
@@ -60,6 +72,7 @@ export function EditWorkoutPage() {
       setHydrated(true)
       return
     }
+    baseline.current = stored
     setName(stored.name)
     setNotes(stored.notes ?? '')
     setDate(toDateInput(stored.startedAt))
@@ -98,12 +111,25 @@ export function EditWorkoutPage() {
     }))
   }
 
-  async function save() {
+  async function save(force = false) {
     const startedAt = combine(date, time)
-    const seconds = parseDuration(duration) ?? 0
+    const seconds = parseWorkoutDuration(duration)
+    if (seconds === null) {
+      setDurationError(
+        'Enter a duration like 45:00 or 1:05:00, with minutes and seconds under 60 and at most 24 hours.',
+      )
+      return
+    }
+    setDurationError(null)
+    if (!force && baseline.current && workoutChangedSince(baseline.current, await getWorkout(baseline.current.id))) {
+      setConfirmOverwrite(true)
+      return
+    }
     // Drop blank sets and now-empty exercises, matching how a session is saved
     // when it is finished normally.
-    const cleaned = items.map((le) => ({ ...le, sets: le.sets.filter(isSetLogged) })).filter((le) => le.sets.length > 0)
+    const cleaned = items
+      .map((le) => ({ ...le, sets: le.sets.filter(isSetSaveable) }))
+      .filter((le) => le.sets.length > 0)
 
     const totals = computeTotals(
       cleaned,
@@ -178,7 +204,9 @@ export function EditWorkoutPage() {
             onChange={(e) => setDuration(e.target.value)}
             placeholder="1:05:00"
             inputMode="text"
+            aria-invalid={durationError !== null}
           />
+          {durationError && <p style={{ color: 'var(--danger)', fontSize: '0.875rem' }}>{durationError}</p>}
         </div>
 
         <div className="field" style={{ marginTop: 12 }}>
@@ -347,6 +375,18 @@ export function EditWorkoutPage() {
         </button>
       </Sheet>
 
+      <ConfirmSheet
+        open={confirmOverwrite}
+        title="Changed in another tab"
+        message="This workout was saved elsewhere since you opened it. Saving now replaces those changes with what is on this screen."
+        confirmLabel="Overwrite"
+        destructive
+        onConfirm={() => {
+          setConfirmOverwrite(false)
+          void save(true)
+        }}
+        onCancel={() => setConfirmOverwrite(false)}
+      />
       <ConfirmSheet
         open={confirmLeave}
         title="Discard changes?"

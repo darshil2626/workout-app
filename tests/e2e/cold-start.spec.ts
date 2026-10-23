@@ -53,7 +53,7 @@ test.describe('cold start with an empty database', () => {
 
   test('header shortcuts open the exercise library and settings', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: 'Exercise library' }).click()
+    await page.getByRole('button', { name: 'Exercises', exact: true }).click()
     await expect(page).toHaveURL(/\/exercises$/)
     await page.goBack()
     await page.getByRole('button', { name: 'Settings' }).click()

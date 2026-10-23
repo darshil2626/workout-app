@@ -10,6 +10,11 @@ import {
   fieldsFor,
   hasLoggedValue,
   isSetLogged,
+  isSetSaveable,
+  blankFill,
+  missingWeight,
+  keepCompletedSets,
+  workoutChangedSince,
   prWeightKg,
   setBadges,
   setFromTarget,
@@ -233,4 +238,61 @@ describe('describeSet', () => {
     expect(describeSet(mkSet({ distanceM: 5000, durationSec: 1500 }), 'distance_duration', fmt)).toBe('5000m · 1500s')
   })
   it('returns "-" when empty', () => expect(describeSet(mkSet(), 'weight_reps', fmt)).toBe('-'))
+})
+
+describe('keepCompletedSets', () => {
+  const ex = (id: string, sets: ReturnType<typeof mkSet>[]) => ({ id, sets })
+  it('drops preset rows that were never ticked, and exercises left empty', () => {
+    const preset = () => mkSet({ completed: false, weight: 40, reps: 8 })
+    const out = keepCompletedSets([
+      ex('squat', [mkSet({ completed: true, weight: 40, reps: 8 }), preset(), preset()]),
+      ex('bench', [preset(), preset(), preset()]),
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0]?.id).toBe('squat')
+    expect(out[0]?.sets).toHaveLength(1)
+  })
+  it('returns nothing when no set is ticked', () => {
+    expect(keepCompletedSets([ex('a', [mkSet({ completed: false, reps: 5 })])])).toEqual([])
+  })
+})
+
+describe('zero-value ticked sets', () => {
+  const zero = () => mkSet({ completed: true, weight: 0, reps: 0 })
+  it('a ticked 0 x 0 set is not kept on finish', () => {
+    expect(keepCompletedSets([{ id: 'a', sets: [zero()] }])).toEqual([])
+  })
+  it('a ticked 0 x 0 set is not saved when editing, but an unticked value is', () => {
+    expect(isSetSaveable(zero())).toBe(false)
+    expect(isSetSaveable(mkSet({ completed: false, weight: 0 }))).toBe(true)
+    expect(isSetSaveable(mkSet({ completed: true, weight: 0, reps: 8 }))).toBe(true)
+  })
+})
+
+describe('workoutChangedSince', () => {
+  it('is false for an identical copy and true once a field differs', () => {
+    const loaded = mkWorkout({ id: 'w', notes: 'a' })
+    expect(workoutChangedSince(loaded, structuredClone(loaded))).toBe(false)
+    expect(workoutChangedSince(loaded, { ...loaded, notes: 'b' })).toBe(true)
+  })
+  it('is true when the record was deleted', () => {
+    expect(workoutChangedSince(mkWorkout({ id: 'w' }), undefined)).toBe(true)
+  })
+})
+
+describe('blankFill and missingWeight', () => {
+  const blank = () => mkSet({ weight: null, reps: null, completed: false })
+  it('copies weight and reps from the reference set into blanks only', () => {
+    const ref = mkSet({ weight: 60, reps: 5 })
+    expect(blankFill(blank(), ref, 'weight_reps')).toEqual({ weight: 60, reps: 5 })
+    expect(blankFill(mkSet({ weight: 80, reps: null, completed: false }), ref, 'weight_reps')).toEqual({ reps: 5 })
+    expect(blankFill(blank(), undefined, 'weight_reps')).toEqual({})
+  })
+  it('only a loaded lift with no weight and nothing to copy is missing its weight', () => {
+    expect(missingWeight(blank(), undefined, 'weight_reps')).toBe(true)
+    expect(missingWeight(blank(), mkSet({ weight: 60 }), 'weight_reps')).toBe(false)
+    expect(missingWeight(mkSet({ weight: 0, completed: false }), undefined, 'weight_reps')).toBe(false)
+    expect(missingWeight(blank(), undefined, 'bodyweight_reps')).toBe(false)
+    expect(missingWeight(blank(), undefined, 'weighted_bodyweight')).toBe(false)
+  })
 })

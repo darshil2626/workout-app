@@ -1,4 +1,4 @@
-import { useEffect, useState, type AnimationEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type AnimationEvent, type ReactNode } from 'react'
 import { IconClose } from './Icons'
 
 interface SheetProps {
@@ -11,6 +11,9 @@ interface SheetProps {
   hideClose?: boolean
 }
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 /** Bottom sheet used for pickers, menus and confirmations. */
 export function Sheet({ open, title, onClose, children, footer, hideClose }: SheetProps) {
   // Stays mounted a beat after `open` goes false so the reverse animation
@@ -19,6 +22,7 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
   // than a setTimeout duplicating the CSS duration as a second number.
   const [rendered, setRendered] = useState(open)
   const [closing, setClosing] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) {
@@ -42,6 +46,48 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
     }, 260)
     return () => window.clearTimeout(timeout)
   }, [closing])
+
+  // Focus moves into the dialog when it opens, Tab stays inside it, and focus
+  // goes back to whatever opened it on close. The dialog itself takes focus
+  // rather than the first field, so a phone keyboard does not pop up unasked.
+  useEffect(() => {
+    if (!open || !rendered) return
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const dialog = dialogRef.current
+    if (dialog && !dialog.contains(document.activeElement)) dialog.focus({ preventScroll: true })
+    return () => {
+      if (opener?.isConnected) opener.focus({ preventScroll: true })
+    }
+  }, [open, rendered])
+
+  useEffect(() => {
+    if (!open) return
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      const dialog = dialogRef.current
+      if (!dialog) return
+      const active = document.activeElement
+      // A sheet stacked on top owns the keys while focus is in it.
+      if (active && active !== document.body && !dialog.contains(active)) return
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE))
+      if (items.length === 0) {
+        e.preventDefault()
+        dialog.focus()
+        return
+      }
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && (active === first || active === dialog || active === document.body)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || active === document.body)) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onTab)
+    return () => document.removeEventListener('keydown', onTab)
+  }, [open])
 
   // Lock the page behind the sheet so scrolling stays inside it.
   useEffect(() => {
@@ -82,6 +128,8 @@ export function Sheet({ open, title, onClose, children, footer, hideClose }: She
     >
       <div
         className={`sheet${closing ? ' closing' : ''}`}
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}

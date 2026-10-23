@@ -40,6 +40,22 @@ export function parseDuration(text: string): number | null {
   return null
 }
 
+/**
+ * A workout length typed by hand: "" is zero, otherwise h:mm:ss, m:ss or plain
+ * seconds. Null when it is not a real length: minutes or seconds of 60 or more
+ * after a larger unit ("99:99:99"), or longer than a day.
+ */
+export function parseWorkoutDuration(text: string): number | null {
+  if (text.trim() === '') return 0
+  const parts = text.trim().split(':')
+  const nums = parts.map((p) => (p === '' ? 0 : Number(p)))
+  const total = parseDuration(text)
+  if (total === null) return null
+  if (parts.length >= 2 && nums[nums.length - 1] >= 60) return null
+  if (parts.length === 3 && nums[1] >= 60) return null
+  return total <= 86_400 ? total : null
+}
+
 const DAY_MS = 86400000
 
 /** "Today", "Yesterday", "Mon, 12 May" or "12 May 2024" for older dates. */

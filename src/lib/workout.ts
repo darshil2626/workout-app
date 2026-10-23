@@ -200,6 +200,25 @@ export function hasLoggedValue(set: LoggedSet): boolean {
   return Boolean(set.weight) || Boolean(set.reps) || Boolean(set.durationSec) || Boolean(set.distanceM)
 }
 
+/** A set ticked complete that records something: a 0 kg x 0 rep tick is not work done. */
+export function isPerformedSet(set: LoggedSet): boolean {
+  return set.completed && hasLoggedValue(set)
+}
+
+/** For editing a saved session: a ticked set must be performed, an unticked one just needs a value. */
+export function isSetSaveable(set: LoggedSet): boolean {
+  return set.completed ? hasLoggedValue(set) : isSetLogged(set)
+}
+
+/**
+ * What a finished session keeps: only sets ticked complete, and only exercises
+ * that still have at least one. Routine targets prefill weight and reps, so
+ * "has a number" (isSetLogged) would keep every untouched preset row.
+ */
+export function keepCompletedSets<T extends { sets: LoggedSet[] }>(exercises: T[]): T[] {
+  return exercises.map((le) => ({ ...le, sets: le.sets.filter(isPerformedSet) })).filter((le) => le.sets.length > 0)
+}
+
 /** Human-readable summary of one set, e.g. "80 kg × 5" or "5.00 km in 25:00". */
 export function describeSet(
   set: LoggedSet,
@@ -253,4 +272,38 @@ export function setBadges(sets: LoggedSet[]): string[] {
     if (s.setType === 'normal') n += 1
     return setTypeBadge(s.setType, n)
   })
+}
+
+/**
+ * Whether a saved workout was changed since an edit screen loaded it, for
+ * example by saving the same workout in another tab. Workouts carry no version
+ * field, so this compares the whole record.
+ */
+export function workoutChangedSince(baseline: unknown, current: unknown): boolean {
+  return JSON.stringify(baseline) !== JSON.stringify(current)
+}
+
+/**
+ * Numbers a blank set takes from a reference set when it is ticked: last
+ * time's matching set, or failing that the set above it in this session.
+ */
+export function blankFill(set: LoggedSet, ref: LoggedSet | undefined, kind: ExerciseKind): Partial<LoggedSet> {
+  const f = fieldsFor(kind)
+  const patch: Partial<LoggedSet> = {}
+  if (!ref) return patch
+  if (f.weight && set.weight === null && ref.weight != null) patch.weight = ref.weight
+  if (f.reps && set.reps === null && ref.reps != null) patch.reps = ref.reps
+  if (f.duration && set.durationSec === null && ref.durationSec != null) patch.durationSec = ref.durationSec
+  if (f.distance && set.distanceM === null && ref.distanceM != null) patch.distanceM = ref.distanceM
+  return patch
+}
+
+/**
+ * A plain loaded lift ticked with no weight, and nothing to fill it from, would
+ * log 0 kg and count in stats. Bodyweight kinds are exempt: blank means just
+ * bodyweight, and an explicit 0 is always allowed.
+ */
+export function missingWeight(set: LoggedSet, ref: LoggedSet | undefined, kind: ExerciseKind): boolean {
+  if (kind !== 'weight_reps') return false
+  return set.weight === null && ref?.weight == null
 }

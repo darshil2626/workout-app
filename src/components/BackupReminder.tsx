@@ -8,9 +8,9 @@ import { IconClose } from './Icons'
  * Nudges towards Export backup when enough history has built up without one.
  * Reuses the install banner's look so the two read as the same kind of prompt.
  */
-export function BackupReminder() {
+export function BackupReminder({ hidden }: { hidden?: boolean } = {}) {
   const status = useLiveQuery(() => getBackupStatus(), [])
-  if (!status || !shouldRemindBackup(status, Date.now())) return null
+  if (hidden || !status || !shouldRemindBackup(status, Date.now())) return null
 
   const never = status.lastBackupAt === null
   return (

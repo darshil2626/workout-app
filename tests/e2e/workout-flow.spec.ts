@@ -15,7 +15,7 @@ async function startEmptyAndAddBench(page: Page) {
   await expect(page.locator('.ex-block .ex-name')).toContainText('Bench Press')
 }
 
-test('core loop: log, complete, PR, finish, history, stats', async ({ page }) => {
+test('core loop: log, complete, finish, history, stats', async ({ page }) => {
   await startEmptyAndAddBench(page)
 
   // A fresh exercise block starts with one blank set; add a second.
@@ -32,11 +32,10 @@ test('core loop: log, complete, PR, finish, history, stats', async ({ page }) =>
   await expect(page.locator('.rest-bar-body')).toBeVisible()
   await expect(page.locator('.rest-label')).toHaveText('Rest')
 
-  // A heavier second set beats the first, so the row turns gold.
+  // First time logging this lift sets the baseline, so a heavier second set is not a record.
   await logSet(page, 1, '80', '5')
   await expect(rows.nth(1)).toHaveClass(/done/)
-  await expect(rows.nth(1)).toHaveClass(/\bpr\b/)
-  await expect(rows.nth(1).locator('.check-btn')).toHaveAttribute('aria-label', /Personal record/)
+  await expect(rows.nth(1)).not.toHaveClass(/\bpr\b/)
 
   // Finish -> confirm -> rating sheet -> skip.
   await page.getByRole('button', { name: 'Finish', exact: true }).click()
@@ -47,7 +46,7 @@ test('core loop: log, complete, PR, finish, history, stats', async ({ page }) =>
   const sheet = page.getByRole('dialog', { name: 'Workout complete' })
   await expect(sheet).toBeVisible()
   await expect(sheet.locator('.finish-summary')).toContainText('700 kg')
-  await expect(sheet.locator('.finish-prs')).toBeVisible()
+  await expect(sheet.locator('.finish-prs')).toHaveCount(0)
   await sheet.getByRole('button', { name: 'Skip' }).click()
 
   // Lands on the saved workout's detail page.

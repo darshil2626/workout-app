@@ -1,7 +1,24 @@
 import { test, expect, seed } from './helpers/fixtures'
 
-test.beforeEach(async ({ context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+test.beforeEach(async ({ context, browserName }) => {
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    return
+  }
+  // Playwright cannot grant clipboard permissions in WebKit, so stand in for the
+  // system clipboard: the app's writeText call still runs, and readText returns it.
+  await context.addInitScript(() => {
+    let copied = ''
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          copied = text
+        },
+        readText: async () => copied,
+      },
+    })
+  })
 })
 
 test('Settings offers feedback, and copy-debug-info holds facts but no workout content', async ({ page }) => {

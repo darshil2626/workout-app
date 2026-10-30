@@ -1,6 +1,6 @@
 name: Feedback or idea
 description: Something you would like Trana to do, or do differently
-labels: [enhancement]
+labels: [enhancement, triage]
 body:
   - type: textarea
     id: idea

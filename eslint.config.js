@@ -50,7 +50,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['tests/**/*.ts', 'scripts/**/*.mjs', '*.config.{js,ts}'],
+    files: ['tests/**/*.ts', 'scripts/**/*.mjs', '.claude/hooks/*.mjs', '*.config.{js,ts}'],
     languageOptions: { globals: globals.node },
     rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-irregular-whitespace': 'off' },
   },

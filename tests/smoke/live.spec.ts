@@ -127,6 +127,9 @@ test.describe('a first visit from a stranger', () => {
       .getByRole('button', { name: 'Finish', exact: true })
       .click()
     await page.getByRole('dialog', { name: 'Workout complete' }).getByRole('button', { name: 'Skip' }).click()
+    // The app opens the saved workout once the finish is written; loading another page
+    // before then cuts the write off and leaves the session active.
+    await expect(page).toHaveURL(/\/history\/[^/]+$/)
     await page.goto(`${SITE}/history`)
     await expect(page.locator('.history-ex-list').first()).toContainText('Bench Press (Barbell)')
   })

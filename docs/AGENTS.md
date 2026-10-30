@@ -67,7 +67,8 @@ These hold in every phase.
    `CLAUDE.md` or `package.json` scripts** except in a PR you review. `CODEOWNERS` marks
    those paths as yours.
 4. **One open PR per issue, at most two open agent PRs at a time.** After two rounds of
-   requested changes, the issue goes to `needs-human`.
+   requested changes, the issue goes back to you: `agent-ready` comes off and
+   `needs-human` goes on. Add `agent-ready` again once you have answered.
 5. **No weakening tests.** Deleted tests, loosened assertions, added retries or skips,
    longer timeouts and edited fixtures are flagged by the reviewer and need your explicit
    say-so.
@@ -81,7 +82,7 @@ These hold in every phase.
 | --------------- | ------------------------------------------------------------------ | --------------- |
 | `triage`        | New, not yet looked at                                             | Issue templates |
 | `agent-ready`   | Clear problem, acceptance criteria and test plan; safe to build    | You only        |
-| `needs-human`   | Waiting on a decision or information from a person                 | Anyone          |
+| `needs-human`   | Waiting on a person; agents skip it and remove `agent-ready`       | Anyone          |
 | `data-risk`     | Touches stored data, schema, backups or import; needs extra review | Anyone          |
 | `data-loss`     | Someone lost data; outranks everything                             | Anyone          |
 | `by-agent`      | Written by an agent                                                | Agents          |

@@ -15,6 +15,7 @@
     "format:check": "node node_modules/prettier/bin/prettier.cjs --check .",
     "stage": "node scripts/stage.mjs",
     "icons": "node scripts/make-icons.mjs",
+    "labels": "node scripts/labels.mjs",
     "art": "node scripts/match-exercise-illustrations.mjs",
     "test:unit": "node node_modules/vitest/vitest.mjs run",
     "test:e2e": "node node_modules/@playwright/test/cli.js test",

@@ -1,0 +1,7 @@
+# The paths that steer agents and CI. With "Require review from Code Owners" on in
+# branch protection, no change to them merges without the owner (docs/AGENTS.md).
+/.claude/        @darshil2626
+/CLAUDE.md       @darshil2626
+/.github/        @darshil2626
+/package.json    @darshil2626
+/scripts/        @darshil2626

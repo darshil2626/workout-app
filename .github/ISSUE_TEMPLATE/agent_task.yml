@@ -1,0 +1,38 @@
+name: Agent task
+description: A piece of work written so the builder agent can pick it up (see docs/AGENTS.md)
+labels: [triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What a user sees or cannot do today.
+    validations:
+      required: true
+  - type: textarea
+    id: cause
+    attributes:
+      label: Cause
+      description: If known, the files and functions involved (path:line).
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: Observable, testable outcomes. One per line.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test plan
+      description: Which unit, integration or e2e test proves it.
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: Pick data-risk if it touches stored data, schema, backups or import.
+      options:
+        - low
+        - data-risk
+    validations:
+      required: true

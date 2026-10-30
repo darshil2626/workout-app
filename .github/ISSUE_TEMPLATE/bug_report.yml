@@ -1,6 +1,6 @@
 name: Bug report
 description: Something did not work, or looked wrong
-labels: [bug]
+labels: [bug, triage]
 body:
   - type: textarea
     id: what

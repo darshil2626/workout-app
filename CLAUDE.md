@@ -43,6 +43,10 @@ build, e2e). Run it before opening a PR. Faster loops: `npm run typecheck`,
 Scripts call tools by path (`node node_modules/...`) so they work on WSL-mounted drives;
 keep that style when adding scripts.
 
+In cloud sessions (scheduled routines) GitHub's GraphQL API is blocked, so `gh pr list`,
+`gh pr create`, `gh issue list` and similar fail. Use the GitHub MCP tools
+(`mcp__github__*`) or `gh api` against the REST endpoints instead.
+
 ## Working style
 
 - One issue per branch, one concern per PR, small diffs (aim under ~300 changed lines

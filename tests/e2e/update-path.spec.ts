@@ -166,7 +166,12 @@ test.describe('releasing a new version to an installed copy', () => {
         async () => {
           await reopened.goto(`${origin}/`)
           await waitForApp(reopened)
-          return controllingBuild(reopened).catch(() => 'uncontrolled')
+          const build = await controllingBuild(reopened).catch(() => 'uncontrolled')
+          // A page the old worker still controls keeps it alive, and so does going straight from
+          // one controlled document to the next. Leave between attempts so it can let go and
+          // the waiting worker can activate.
+          if (build !== 'new') await reopened.goto('about:blank')
+          return build
         },
         { timeout: 20_000 },
       )

@@ -18,14 +18,23 @@ test('set inputs reject negatives and absurd values instead of storing them', as
   await weight.fill('99999999999')
   await weight.blur()
   await expect(weight).toHaveValue('')
+  // ...and the row says why, to sighted and screen reader users alike.
+  const weightHint = row.getByText('Max 1000 kg')
+  await expect(weightHint).toBeVisible()
+  await expect(weight).toHaveAttribute('aria-describedby', (await weightHint.getAttribute('id')) ?? '')
 
   // A minus sign is not turned into a positive number.
   await weight.fill('-20')
   await weight.blur()
   await expect(weight).toHaveValue('')
+  await expect(row.getByText('Must be 0 or more')).toBeVisible()
   await reps.fill('-5')
   await reps.blur()
   await expect(reps).toHaveValue('')
+  await reps.fill('1000')
+  await expect(row.getByText('Max 999 reps')).toBeVisible()
+  await reps.fill('8')
+  await expect(row.getByText('Max 999 reps')).toBeHidden()
 
   // Normal values still work.
   await weight.fill('60')

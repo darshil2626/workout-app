@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Ref } from 'react'
+import { useEffect, useId, useRef, useState, type Ref } from 'react'
 import type { ExerciseKind, LoggedSet } from '../db/types'
 import { blankFill, fieldsFor, missingWeight } from '../lib/workout'
 import type { Formatters } from '../lib/useSettings'
@@ -37,7 +37,8 @@ function NumberField({
 }: {
   display: string
   placeholder: string
-  onCommit: (text: string) => void
+  /** Returns a short hint when the text was refused, so the field can say why. */
+  onCommit: (text: string) => string | null | void
   ariaLabel: string
   inputMode?: 'decimal' | 'numeric' | 'text'
   /** Marks the field as needing a value, visually and for screen readers. */
@@ -46,37 +47,49 @@ function NumberField({
 }) {
   const [text, setText] = useState(display)
   const [focused, setFocused] = useState(false)
+  const [hint, setHint] = useState<string | null>(null)
+  const hintId = useId()
 
   useEffect(() => {
     if (!focused) setText(display)
   }, [display, focused])
 
   return (
-    <input
-      ref={inputRef}
-      aria-invalid={invalid || undefined}
-      className={`set-input${invalid ? ' set-input-invalid' : ''}`}
-      type="text"
-      inputMode={inputMode}
-      enterKeyHint="done"
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') e.currentTarget.blur()
-      }}
-      value={text}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      onFocus={(e) => {
-        setFocused(true)
-        e.currentTarget.select()
-      }}
-      onBlur={() => setFocused(false)}
-      onChange={(e) => {
-        setText(e.target.value)
-        onCommit(e.target.value)
-      }}
-    />
+    <>
+      <input
+        ref={inputRef}
+        aria-invalid={invalid || hint !== null || undefined}
+        aria-describedby={hint ? hintId : undefined}
+        className={`set-input${invalid ? ' set-input-invalid' : ''}`}
+        type="text"
+        inputMode={inputMode}
+        enterKeyHint="done"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+        }}
+        value={text}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        onFocus={(e) => {
+          setFocused(true)
+          setHint(null)
+          e.currentTarget.select()
+        }}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => {
+          setText(e.target.value)
+          setHint(onCommit(e.target.value) ?? null)
+        }}
+      />
+      {/* Always rendered so the live region exists before its text changes. */}
+      <span id={hintId} className="set-hint" role="status">
+        {hint}
+      </span>
+    </>
   )
 }
+
+const NEGATIVE_HINT = 'Must be 0 or more'
 
 function hasMinus(text: string): boolean {
   return text.includes('-') || text.includes('−')
@@ -192,33 +205,37 @@ export function SetRow({
 
   // Typed text that is a negative or beyond the limits is not stored, so the
   // last good value stays and the field shows it again on blur.
-  function commitWeight(text: string) {
-    if (hasMinus(text)) return
+  function commitWeight(text: string): string | null {
+    if (hasMinus(text)) return NEGATIVE_HINT
     const n = parseNumber(text)
     const kg = n === null ? null : round3(displayToKg(n, weightUnit))
-    if (kg !== null && kg > MAX_WEIGHT_KG) return
+    if (kg !== null && kg > MAX_WEIGHT_KG) return `Max ${formatWeight(MAX_WEIGHT_KG, weightUnit)} ${weightUnit}`
     onChange({ weight: kg })
+    return null
   }
 
-  function commitReps(text: string) {
-    if (hasMinus(text)) return
+  function commitReps(text: string): string | null {
+    if (hasMinus(text)) return NEGATIVE_HINT
     const n = parseNumber(text)
-    if (n !== null && n > MAX_REPS) return
+    if (n !== null && n > MAX_REPS) return `Max ${MAX_REPS} reps`
     onChange({ reps: n === null ? null : Math.max(0, Math.round(n)) })
+    return null
   }
 
-  function commitDuration(text: string) {
+  function commitDuration(text: string): string | null {
     const sec = parseDuration(text)
-    if (sec !== null && sec > MAX_SET_DURATION_SEC) return
+    if (sec !== null && sec > MAX_SET_DURATION_SEC) return `Max ${MAX_SET_DURATION_SEC / 3600} h`
     onChange({ durationSec: sec })
+    return null
   }
 
-  function commitDistance(text: string) {
-    if (hasMinus(text)) return
+  function commitDistance(text: string): string | null {
+    if (hasMinus(text)) return NEGATIVE_HINT
     const n = parseNumber(text)
     const m = n === null ? null : round3(displayToMetres(n, distanceUnit))
-    if (m !== null && m > MAX_DISTANCE_M) return
+    if (m !== null && m > MAX_DISTANCE_M) return `Max ${formatDistance(MAX_DISTANCE_M, distanceUnit)} ${distanceUnit}`
     onChange({ distanceM: m })
+    return null
   }
 
   /**
@@ -321,7 +338,7 @@ export function SetRow({
             placeholder={weightPlaceholder}
             onCommit={(text) => {
               setWeightNeeded(false)
-              commitWeight(text)
+              return commitWeight(text)
             }}
             ariaLabel="Weight"
             invalid={weightNeeded}

@@ -34,6 +34,9 @@ function NumberField({
   inputMode = 'decimal',
   invalid,
   inputRef,
+  hint,
+  hintId,
+  onHint,
 }: {
   display: string
   placeholder: string
@@ -44,50 +47,62 @@ function NumberField({
   /** Marks the field as needing a value, visually and for screen readers. */
   invalid?: boolean
   inputRef?: Ref<HTMLInputElement>
+  /** Why the last entry was refused; shown by the parent beside the field. */
+  hint: string | null
+  hintId: string
+  onHint: (hint: string | null) => void
 }) {
   const [text, setText] = useState(display)
   const [focused, setFocused] = useState(false)
-  const [hint, setHint] = useState<string | null>(null)
-  const hintId = useId()
 
   useEffect(() => {
     if (!focused) setText(display)
   }, [display, focused])
 
   return (
-    <>
-      <input
-        ref={inputRef}
-        aria-invalid={invalid || hint !== null || undefined}
-        aria-describedby={hint ? hintId : undefined}
-        className={`set-input${invalid ? ' set-input-invalid' : ''}`}
-        type="text"
-        inputMode={inputMode}
-        enterKeyHint="done"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur()
-        }}
-        value={text}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        onFocus={(e) => {
-          setFocused(true)
-          setHint(null)
-          e.currentTarget.select()
-        }}
-        onBlur={() => setFocused(false)}
-        onChange={(e) => {
-          setText(e.target.value)
-          setHint(onCommit(e.target.value) ?? null)
-        }}
-      />
-      {/* Always rendered so the live region exists before its text changes. */}
-      <span id={hintId} className="set-hint" role="status">
-        {hint}
-      </span>
-    </>
+    <input
+      ref={inputRef}
+      aria-invalid={invalid || hint !== null || undefined}
+      aria-describedby={hint ? hintId : undefined}
+      className={`set-input${invalid ? ' set-input-invalid' : ''}`}
+      type="text"
+      inputMode={inputMode}
+      enterKeyHint="done"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+      }}
+      value={text}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      onFocus={(e) => {
+        setFocused(true)
+        onHint(null)
+        e.currentTarget.select()
+      }}
+      onBlur={() => setFocused(false)}
+      onChange={(e) => {
+        setText(e.target.value)
+        onHint(onCommit(e.target.value) ?? null)
+      }}
+    />
   )
 }
+
+/**
+ * Sits outside the flex rows that hold a field's +/- or timer button, so it
+ * takes a line of its own under the field instead of squeezing the input.
+ * Always rendered so the live region exists before its text changes.
+ */
+function FieldHint({ id, hint }: { id: string; hint: string | null }) {
+  return (
+    <span id={id} className="set-hint" role="status">
+      {hint}
+    </span>
+  )
+}
+
+type HintField = 'weight' | 'reps' | 'duration' | 'distance'
+const NO_HINTS: Record<HintField, string | null> = { weight: null, reps: null, duration: null, distance: null }
 
 const NEGATIVE_HINT = 'Must be 0 or more'
 
@@ -190,6 +205,17 @@ export function SetRow({
 
   const repsStep = 1
 
+  // Why an entry was refused, per field. Cleared when a field is focused or the
+  // units change, since a message like "Max 1000 kg" would then name the wrong unit.
+  const idBase = useId()
+  const [hints, setHints] = useState<Record<HintField, string | null>>(NO_HINTS)
+  useEffect(() => setHints(NO_HINTS), [weightUnit, distanceUnit])
+  const hintProps = (field: HintField) => ({
+    hint: hints[field],
+    hintId: `${idBase}-${field}`,
+    onHint: (hint: string | null) => setHints((h) => (h[field] === hint ? h : { ...h, [field]: hint })),
+  })
+
   /** Blank inputs step off last time's number, matching the placeholder shown. */
   function stepReps(delta: number) {
     const base = set.reps ?? previous?.reps ?? 0
@@ -223,6 +249,7 @@ export function SetRow({
   }
 
   function commitDuration(text: string): string | null {
+    if (hasMinus(text)) return NEGATIVE_HINT
     const sec = parseDuration(text)
     if (sec !== null && sec > MAX_SET_DURATION_SEC) return `Max ${MAX_SET_DURATION_SEC / 3600} h`
     onChange({ durationSec: sec })
@@ -328,7 +355,9 @@ export function SetRow({
             placeholder={distancePlaceholder}
             onCommit={commitDistance}
             ariaLabel="Distance"
+            {...hintProps('distance')}
           />
+          <FieldHint id={`${idBase}-distance`} hint={hints.distance} />
         </td>
       )}
       {f.weight && (
@@ -343,7 +372,9 @@ export function SetRow({
             ariaLabel="Weight"
             invalid={weightNeeded}
             inputRef={weightRef}
+            {...hintProps('weight')}
           />
+          <FieldHint id={`${idBase}-weight`} hint={hints.weight} />
         </td>
       )}
       {f.duration && (
@@ -367,6 +398,7 @@ export function SetRow({
                 onCommit={commitDuration}
                 ariaLabel="Duration"
                 inputMode="text"
+                {...hintProps('duration')}
               />
               {/* Holds are timed, not remembered: a plank is logged from the
                   clock rather than typed in afterwards. */}
@@ -382,6 +414,7 @@ export function SetRow({
               )}
             </div>
           )}
+          <FieldHint id={`${idBase}-duration`} hint={hints.duration} />
         </td>
       )}
       {f.reps && (
@@ -402,6 +435,7 @@ export function SetRow({
               onCommit={commitReps}
               ariaLabel="Reps"
               inputMode="numeric"
+              {...hintProps('reps')}
             />
             <button
               type="button"
@@ -413,6 +447,7 @@ export function SetRow({
               +
             </button>
           </div>
+          <FieldHint id={`${idBase}-reps`} hint={hints.reps} />
         </td>
       )}
       <td className="col-check">

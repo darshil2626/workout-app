@@ -166,7 +166,12 @@ test.describe('releasing a new version to an installed copy', () => {
         async () => {
           await reopened.goto(`${origin}/`)
           await waitForApp(reopened)
-          return controllingBuild(reopened).catch(() => 'uncontrolled')
+          const build = await controllingBuild(reopened).catch(() => 'uncontrolled')
+          // A page on this origin is a client of the old worker, and a waiting worker only
+          // activates once no client is left. Leave the origin between attempts, or a first
+          // attempt that lands before the old window has fully gone keeps the old worker alive.
+          if (build !== 'new') await reopened.goto('about:blank')
+          return build
         },
         { timeout: 20_000 },
       )

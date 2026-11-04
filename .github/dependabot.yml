@@ -21,3 +21,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # CodeQL's init and analyze steps must run the same version, or analyze fails.
+      # Separate PRs for each can never pass on their own.
+      codeql-action:
+        patterns: ['github/codeql-action*']

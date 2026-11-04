@@ -4,7 +4,7 @@
 couple of taps, see your lifts climb, and know what to train next. No account, no
 subscription, no paywalled features, and it works with no signal in the basement gym.
 
-**[Open Trana → darshil2626.github.io/workout-app](https://darshil2626.github.io/workout-app/)**
+**[Open Trana → usetrana.com](https://usetrana.com/)**
 
 ## Get it on your phone (30 seconds)
 

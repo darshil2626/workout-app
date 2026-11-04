@@ -49,6 +49,8 @@ let server: http.Server
 let origin = ''
 let oldDir = ''
 let newDir = ''
+/** How many times a browser has fetched the worker script, i.e. checked for an update. */
+let workerChecks = 0
 
 test.beforeAll(async () => {
   test.skip(!fs.existsSync(DIST), 'run `npm run build` first')
@@ -57,6 +59,7 @@ test.beforeAll(async () => {
   root = oldDir
   server = http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://x')
+    if (url.pathname === '/sw.js') workerChecks++
     let file = path.join(root, decodeURIComponent(url.pathname))
     // Single-page app: unknown routes get the shell, as GitHub Pages' 404 fallback does.
     if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
@@ -146,6 +149,35 @@ test.describe('releasing a new version to an installed copy', () => {
     const workouts = await readStore(page, 'workouts')
     expect(workouts.filter((w) => w.status === 'active').map((w) => w.name)).toEqual([WORKOUT_NAME])
     await expect(page.getByRole('status').filter({ hasText: 'New version ready' })).toHaveCount(0)
+  })
+
+  test('an app paused in the background finds the update when it comes back to the screen', async ({ page }) => {
+    // A phone pauses an installed app instead of closing it, so the page never navigates
+    // and the browser never looks for a new worker on its own. Coming back has to.
+    const checksBefore = workerChecks
+    await installOldBuildWithWorkoutInProgress(page)
+    // Chromium answers a page load with an update check of its own, held back until the
+    // page goes quiet. Let it land on the old build, or it finds the new one with no help
+    // from the app. Browsers that do not schedule one leave this to time out harmlessly.
+    await expect
+      .poll(() => workerChecks, { timeout: 5_000 })
+      .toBeGreaterThan(checksBefore + 1)
+      .catch(() => {})
+    // A worker that has never checked counts as overdue and is checked on the next file
+    // the page asks for. A real install checked when it launched, so do that here too.
+    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.update())
+    root = newDir
+
+    await page.evaluate(() => {
+      let state: DocumentVisibilityState = 'hidden'
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
+      document.dispatchEvent(new Event('visibilitychange'))
+      state = 'visible'
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    await expect(page.getByRole('status').filter({ hasText: 'New version ready' })).toBeVisible()
+    expect(await controllingBuild(page)).toBe('old')
   })
 
   test('an update nobody accepts still takes over once the app is closed and reopened', async ({ page, context }) => {

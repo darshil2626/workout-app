@@ -392,3 +392,16 @@ tr.pr .check-btn.on {
   font-size: var(--text-lg);
   color: var(--text);
 }
+
+/* Why an entry was refused. Always in the DOM (it is a live region) but takes
+   no room while empty. --danger is darkened for light mode to keep 4.5:1. */
+.set-hint {
+  display: block;
+  font-size: var(--text-2xs);
+  line-height: 1.2;
+  color: var(--danger);
+}
+
+.set-hint:empty {
+  display: none;
+}

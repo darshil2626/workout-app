@@ -142,10 +142,12 @@ test('the last routine button clears the active-workout banner', async ({ page }
   await page.getByRole('button', { name: 'Empty workout' }).click()
   await page.getByRole('button', { name: 'Minimise workout' }).click()
   await expect(page.locator('.active-banner')).toBeVisible()
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  // Scroll on every check, not once before them: Home can still grow after a single
+  // scroll (slow WebKit on CI did), leaving the last button below the old bottom.
   await expect
     .poll(async () =>
       page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight)
         const banner = document.querySelector('.active-banner')!.getBoundingClientRect().top
         const last = Math.max(
           ...[...document.querySelectorAll('.page .btn')].map((e) => e.getBoundingClientRect().bottom),

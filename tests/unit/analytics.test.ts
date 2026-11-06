@@ -53,4 +53,17 @@ describe('sanitizeEventProperties', () => {
       platform: 'ios',
     })
   })
+
+  it('scrubs URLs PostHog attaches under other names, such as the previous page', () => {
+    const out = sanitizeEventProperties({
+      $prev_pageview_pathname: '/exercises/romanian-deadlift-barbell',
+      $referrer: 'https://usetrana.com/history/baaf94f2-57a9-4df4-8220-288a9e63e9c6',
+      duration_bucket: '<15',
+    })
+    expect(out).toEqual({
+      $prev_pageview_pathname: '/exercises/:id',
+      $referrer: 'https://usetrana.com/history/:id',
+      duration_bucket: '<15',
+    })
+  })
 })

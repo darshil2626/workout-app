@@ -161,16 +161,15 @@ export function routePattern(path: string): string {
     .replace(/\/routines\/[^/?#]+(?=$|[?#])/, '/routines/:id')
 }
 
-/** PostHog adds the page's real URL to every event under these names. */
-const URL_PROPERTIES = ['$current_url', '$pathname', '$initial_current_url', '$initial_pathname']
-
 /**
  * Runs on every event just before it is sent, so no event can carry an id in
  * its URL, whichever call produced it or whatever PostHog attaches by default.
+ * Every string is scrubbed, not a list of known URL properties: PostHog adds the
+ * real URL under more names than it documents ($prev_pageview_pathname, for one),
+ * and a list would miss the next one it adds.
  */
 export function sanitizeEventProperties(properties: Record<string, unknown>): Record<string, unknown> {
-  for (const key of URL_PROPERTIES) {
-    const value = properties[key]
+  for (const [key, value] of Object.entries(properties)) {
     if (typeof value === 'string') properties[key] = routePattern(value)
   }
   return properties

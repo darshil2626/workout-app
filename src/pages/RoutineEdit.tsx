@@ -646,7 +646,10 @@ function TargetField({
           setFocused(true)
           e.currentTarget.select()
         }}
-        onBlur={() => setFocused(false)}
+        onBlur={() => {
+          setFocused(false)
+          setHint(null)
+        }}
         onChange={(e) => {
           setText(e.target.value)
           setHint(onCommit(e.target.value))

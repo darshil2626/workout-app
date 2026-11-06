@@ -115,6 +115,8 @@ test('routine target fields reject values over the set-row limits', async ({ pag
   await expect(block.getByText('Max 1000 kg')).toBeVisible()
   await weight.blur()
   await expect(weight).toHaveValue('')
+  // The hint goes away with the rejected text.
+  await expect(block.getByText('Max 1000 kg')).toBeHidden()
 
   await reps.fill('1000')
   await expect(block.getByText('Max 999 reps')).toBeVisible()
@@ -125,4 +127,28 @@ test('routine target fields reject values over the set-row limits', async ({ pag
   await expect(block.getByText('Max 1000 kg')).toBeHidden()
   await weight.blur()
   await expect(weight).toHaveValue('100')
+})
+
+test('a rejected routine target keeps the last good value, and distance has a limit', async ({ page }) => {
+  await page.goto('/')
+  await waitForApp(page)
+  await page.getByRole('button', { name: 'New routine' }).click()
+  await page.locator('#routine-name').fill('Limits 2')
+  await addExercise(page, 'Bench Press (Barbell)')
+  const weight = page.locator('.ex-block').first().getByLabel('Target weight').first()
+  await weight.fill('100')
+  await weight.fill('99999')
+  await weight.blur()
+  await expect(weight).toHaveValue('100')
+
+  await addExercise(page, 'Running (Treadmill)')
+  const run = page.locator('.ex-block').nth(1)
+  const distance = run.getByLabel('Target distance').first()
+  await distance.fill('1001')
+  await expect(run.getByText('Max 1000 km')).toBeVisible()
+  await distance.blur()
+  await expect(distance).toHaveValue('')
+  await distance.fill('5')
+  await distance.blur()
+  await expect(distance).toHaveValue('5')
 })

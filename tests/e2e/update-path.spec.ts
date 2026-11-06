@@ -22,9 +22,13 @@ const OLD_BUILD = process.env.OLD_BUILD_DIR ? path.resolve(process.env.OLD_BUILD
 
 const WORKOUT_NAME = 'Mid-set when the update lands'
 
-/** Lets a page ask the worker controlling it which build it came from. */
+/**
+ * Lets a page ask the worker controlling it which build it came from, and has each
+ * worker tell the server when it activates, which it can do with no page open.
+ */
 const whoAmI = (label: string) => `
 ;self.addEventListener('message', (e) => { if (e.data === 'whoami') e.ports[0].postMessage('${label}') })
+;self.addEventListener('activate', () => { fetch('/__activated/${label}').catch(() => {}) })
 `
 
 function stage(source: string, label: string): string {
@@ -51,6 +55,8 @@ let oldDir = ''
 let newDir = ''
 /** How many times a browser has fetched the worker script, i.e. checked for an update. */
 let workerChecks = 0
+/** Builds whose worker has activated since the test began, as the workers report it. */
+let activated = new Set<string>()
 
 test.beforeAll(async () => {
   test.skip(!fs.existsSync(DIST), 'run `npm run build` first')
@@ -60,6 +66,11 @@ test.beforeAll(async () => {
   server = http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://x')
     if (url.pathname === '/sw.js') workerChecks++
+    if (url.pathname.startsWith('/__activated/')) {
+      activated.add(url.pathname.slice('/__activated/'.length))
+      res.writeHead(204).end()
+      return
+    }
     let file = path.join(root, decodeURIComponent(url.pathname))
     // Single-page app: unknown routes get the shell, as GitHub Pages' 404 fallback does.
     if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
@@ -82,6 +93,7 @@ test.afterAll(async () => {
 
 test.beforeEach(() => {
   root = oldDir
+  activated = new Set()
 })
 
 async function controllingBuild(page: Page): Promise<string> {
@@ -193,21 +205,15 @@ test.describe('releasing a new version to an installed copy', () => {
     await reopened.goto('about:blank')
     await page.close()
 
-    await expect
-      .poll(
-        async () => {
-          await reopened.goto(`${origin}/`)
-          await waitForApp(reopened)
-          const build = await controllingBuild(reopened).catch(() => 'uncontrolled')
-          // A page on this origin is a client of the old worker, and a waiting worker only
-          // activates once no client is left. Leave the origin between attempts, or a first
-          // attempt that lands before the old window has fully gone keeps the old worker alive.
-          if (build !== 'new') await reopened.goto('about:blank')
-          return build
-        },
-        { timeout: 20_000 },
-      )
-      .toBe('new')
+    // A waiting worker only activates once the old one has no page left and has finished
+    // its work. Wait for that with nothing open: reopening to check would make a new page
+    // of the old worker each time, and on a slow runner the old one never ran out of work
+    // between attempts, so the update never got its turn. A person reopens once, later.
+    await expect.poll(() => activated.has('new'), { timeout: 20_000 }).toBe(true)
+
+    await reopened.goto(`${origin}/`)
+    await waitForApp(reopened)
+    expect(await controllingBuild(reopened)).toBe('new')
     const workouts = await readStore(reopened, 'workouts')
     expect(workouts.filter((w) => w.status === 'active').map((w) => w.name)).toEqual([WORKOUT_NAME])
   })

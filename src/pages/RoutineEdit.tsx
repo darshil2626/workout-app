@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { listExercises, getRoutine, countRoutines, listFolders, saveRoutine } from '../db/repo'
 import { useParams } from 'react-router-dom'
 import { useNavigate } from '../lib/navigate'
@@ -11,7 +11,16 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
 import { useFormatters } from '../lib/useSettings'
 import { fieldsFor, SET_TYPE_LABEL, setBadges } from '../lib/workout'
-import { displayToKg, displayToMetres, formatDistance, formatWeight, parseNumber } from '../lib/units'
+import {
+  MAX_DISTANCE_M,
+  MAX_REPS,
+  MAX_WEIGHT_KG,
+  displayToKg,
+  displayToMetres,
+  formatDistance,
+  formatWeight,
+  parseNumber,
+} from '../lib/units'
 import { formatDuration, parseDuration } from '../lib/time'
 import { track } from '../lib/analytics'
 import { useSwipeToDelete } from '../lib/useSwipeToDelete'
@@ -297,9 +306,12 @@ export function RoutineEditPage() {
                                 placeholder="-"
                                 onCommit={(t) => {
                                   const n = parseNumber(t)
-                                  updateTarget(re.id, i, {
-                                    distanceM: n === null ? null : displayToMetres(n, fmt.distanceUnit),
-                                  })
+                                  const m = n === null ? null : displayToMetres(n, fmt.distanceUnit)
+                                  if (m !== null && m > MAX_DISTANCE_M) {
+                                    return `Max ${formatDistance(MAX_DISTANCE_M, fmt.distanceUnit)} ${fmt.distanceUnit}`
+                                  }
+                                  updateTarget(re.id, i, { distanceM: m })
+                                  return null
                                 }}
                                 ariaLabel="Target distance"
                               />
@@ -312,9 +324,12 @@ export function RoutineEditPage() {
                                 placeholder="-"
                                 onCommit={(t) => {
                                   const n = parseNumber(t)
-                                  updateTarget(re.id, i, {
-                                    weight: n === null ? null : displayToKg(n, fmt.weightUnit),
-                                  })
+                                  const kg = n === null ? null : displayToKg(n, fmt.weightUnit)
+                                  if (kg !== null && kg > MAX_WEIGHT_KG) {
+                                    return `Max ${formatWeight(MAX_WEIGHT_KG, fmt.weightUnit)} ${fmt.weightUnit}`
+                                  }
+                                  updateTarget(re.id, i, { weight: kg })
+                                  return null
                                 }}
                                 ariaLabel="Target weight"
                               />
@@ -325,7 +340,10 @@ export function RoutineEditPage() {
                               <TargetField
                                 display={s.durationSec === null ? '' : formatDuration(s.durationSec)}
                                 placeholder="-"
-                                onCommit={(t) => updateTarget(re.id, i, { durationSec: parseDuration(t) })}
+                                onCommit={(t) => {
+                                  updateTarget(re.id, i, { durationSec: parseDuration(t) })
+                                  return null
+                                }}
                                 ariaLabel="Target time"
                                 inputMode="text"
                               />
@@ -338,9 +356,11 @@ export function RoutineEditPage() {
                                 placeholder="-"
                                 onCommit={(t) => {
                                   const n = parseNumber(t)
+                                  if (n !== null && n > MAX_REPS) return `Max ${MAX_REPS} reps`
                                   updateTarget(re.id, i, {
                                     reps: n === null ? null : Math.max(0, Math.round(n)),
                                   })
+                                  return null
                                 }}
                                 ariaLabel="Target reps"
                                 inputMode="numeric"
@@ -600,32 +620,43 @@ function TargetField({
 }: {
   display: string
   placeholder: string
-  onCommit: (text: string) => void
+  /** Returns a hint when the text is over a limit and was not stored, else null. */
+  onCommit: (text: string) => string | null
   ariaLabel: string
   inputMode?: 'decimal' | 'numeric' | 'text'
 }) {
   const [text, setText] = useState(display)
   const [focused, setFocused] = useState(false)
+  const [hint, setHint] = useState<string | null>(null)
+  const hintId = useId()
   useEffect(() => {
     if (!focused) setText(display)
   }, [display, focused])
   return (
-    <input
-      className="set-input"
-      type="text"
-      inputMode={inputMode}
-      value={text}
-      placeholder={placeholder}
-      aria-label={ariaLabel}
-      onFocus={(e) => {
-        setFocused(true)
-        e.currentTarget.select()
-      }}
-      onBlur={() => setFocused(false)}
-      onChange={(e) => {
-        setText(e.target.value)
-        onCommit(e.target.value)
-      }}
-    />
+    <>
+      <input
+        className="set-input"
+        type="text"
+        inputMode={inputMode}
+        aria-describedby={hint ? hintId : undefined}
+        value={text}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        onFocus={(e) => {
+          setFocused(true)
+          e.currentTarget.select()
+        }}
+        onBlur={() => setFocused(false)}
+        onChange={(e) => {
+          setText(e.target.value)
+          setHint(onCommit(e.target.value))
+        }}
+      />
+      {hint && (
+        <span id={hintId} className="set-hint" role="status">
+          {hint}
+        </span>
+      )}
+    </>
   )
 }

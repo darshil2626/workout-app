@@ -100,3 +100,29 @@ test('cancel on a changed routine asks before discarding', async ({ page }) => {
   await expect(page).toHaveURL(/\/$/)
   await expect(page.locator('.card', { hasText: 'Throwaway' })).toHaveCount(0)
 })
+
+test('routine target fields reject values over the set-row limits', async ({ page }) => {
+  await page.goto('/')
+  await waitForApp(page)
+  await page.getByRole('button', { name: 'New routine' }).click()
+  await page.locator('#routine-name').fill('Limits')
+  await addExercise(page, 'Bench Press (Barbell)')
+  const block = page.locator('.ex-block').first()
+  const weight = block.getByLabel('Target weight').first()
+  const reps = block.getByLabel('Target reps').first()
+
+  await weight.fill('99999')
+  await expect(block.getByText('Max 1000 kg')).toBeVisible()
+  await weight.blur()
+  await expect(weight).toHaveValue('')
+
+  await reps.fill('1000')
+  await expect(block.getByText('Max 999 reps')).toBeVisible()
+  await reps.blur()
+  await expect(reps).toHaveValue('')
+
+  await weight.fill('100')
+  await expect(block.getByText('Max 1000 kg')).toBeHidden()
+  await weight.blur()
+  await expect(weight).toHaveValue('100')
+})

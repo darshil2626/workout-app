@@ -423,14 +423,18 @@ export function StatsPage() {
                 key={m.muscle}
                 className="bar-row tappable"
                 onClick={() => navigate(`/exercises?muscle=${encodeURIComponent(m.muscle)}`)}
-                aria-label={`${m.muscle}: ${m.sets} set${m.sets === 1 ? '' : 's'} and a tap opens its exercises`}
               >
+                {/* No aria-label: the visible text is the name, so voice control
+                    ("tap Chest") works (WCAG 2.5.3). The hidden words add what the
+                    bar shows only visually. */}
                 <span className="bar-label truncate">{m.muscle}</span>
                 <div className="bar-track">
                   <div className="bar-fill" style={{ width: `${Math.max((m.sets / muscleMax) * 100, 1.5)}%` }} />
                 </div>
                 <span className="bar-value mono">
+                  <span className="sr-only"> </span>
                   {m.sets}
+                  <span className="sr-only">{` set${m.sets === 1 ? '' : 's'}, opens its exercises`}</span>
                   <span className="bar-chevron" aria-hidden="true">
                     {'›'}
                   </span>

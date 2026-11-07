@@ -121,9 +121,8 @@ export function ActiveWorkoutPage() {
   // exercise look unknown for a tick, which silently suppresses PR badges and
   // shows the wrong input columns for anything that is not weight × reps.
   const exercises = useLiveQuery(() => listExercises(), [], undefined)
-  // A one-time tip for someone who has never finished a workout. It goes away
-  // for good when dismissed, and on its own once a set has been ticked.
-  const doneCount = useLiveQuery(() => countDoneWorkouts(), [], undefined)
+  // A one-time tip for someone who has never used the tick in this app. It goes
+  // away for good when dismissed, and once a set has been ticked.
   const [tickHintSeen, setTickHintSeen] = useState(() => {
     try {
       return localStorage.getItem('trana.tickHintSeen') === '1'
@@ -139,6 +138,10 @@ export function ActiveWorkoutPage() {
       /* private mode: the tip just shows again next time */
     }
   }
+  const anyTicked = !!workout?.exercises.some((le) => le.sets.some((s) => s.completed))
+  useEffect(() => {
+    if (anyTicked) dismissTickHint()
+  }, [anyTicked])
   const byId = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
   const previous = usePreviousPerformances(workout?.exerciseIds ?? [], workout?.id)
   const baselines = useRecordBaselines(
@@ -392,10 +395,7 @@ export function ActiveWorkoutPage() {
   const anyCompleted = workout.exercises.some((le) => le.sets.some((s) => s.completed))
 
   const showTickHint =
-    !tickHintSeen &&
-    doneCount === 0 &&
-    workout.exercises.length > 0 &&
-    !workout.exercises.some((le) => le.sets.some((st) => st.completed))
+    !tickHintSeen && workout.exercises.length > 0 && !workout.exercises.some((le) => le.sets.some((st) => st.completed))
 
   return (
     <>

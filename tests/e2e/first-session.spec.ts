@@ -1,4 +1,4 @@
-import { test, expect, waitForApp, logSet } from './helpers/fixtures'
+import { test, expect, waitForApp, logSet, importBackup } from './helpers/fixtures'
 
 async function startBench(page: import('@playwright/test').Page) {
   await page.goto('/')
@@ -58,4 +58,25 @@ test('an empty History offers to start the first workout', async ({ page }) => {
   await waitForApp(page)
   await page.getByRole('button', { name: 'Start your first workout' }).click()
   await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+})
+
+test('the hint still shows for someone with imported history', async ({ page }) => {
+  await importBackup(page, 'tests/fixtures/backups/01-ironlog-first-release.json')
+  await startBench(page)
+  await expect(page.getByRole('note')).toContainText('tap the tick')
+})
+
+test('ticking a set remembers it, so the hint does not return in a later workout', async ({ page }) => {
+  await startBench(page)
+  await logSet(page, 0, '60', '5')
+  expect(await page.evaluate(() => localStorage.getItem('trana.tickHintSeen'))).toBe('1')
+  await page.getByRole('button', { name: 'Finish', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Finish workout?' })
+    .getByRole('button', { name: 'Finish', exact: true })
+    .click()
+  await page.getByRole('dialog', { name: 'Workout complete' }).getByRole('button', { name: 'Skip' }).click()
+  await expect(page).toHaveURL(/\/history\/[^/]+$/)
+  await startBench(page)
+  await expect(page.getByRole('note')).toHaveCount(0)
 })

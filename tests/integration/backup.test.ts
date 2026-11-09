@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initDb, DEFAULT_SETTINGS } from '../../src/db/db'
 import { SEED_EXERCISES, SEED_VERSION } from '../../src/db/seed'
 import {
@@ -151,6 +151,22 @@ describe('backup round trip', () => {
       const text = JSON.stringify({ ...b, settings: { ...b.settings, trainingDays: bad } })
       expect(() => parseBackup(text), JSON.stringify(bad)).toThrow(/settings\.trainingDays/)
     }
+  })
+
+  it('restoring a kg backup on a fresh US install brings back kg/km/cm, not the locale default', async () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+    try {
+      // A new US install starts in lb before anything is imported...
+      await initDb()
+      expect((await db.settings.get(1))?.weightUnit).toBe('lb')
+      // ...and the restore (then the initDb the import flow runs) must keep the backup's units.
+      await restoreBackup(readFixture('tests/fixtures/backups/01-ironlog-first-release.json'))
+      await initDb()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    const s = await db.settings.get(1)
+    expect([s?.weightUnit, s?.distanceUnit, s?.lengthUnit]).toEqual(['kg', 'km', 'cm'])
   })
 
   it('wipeAllData clears every table', async () => {

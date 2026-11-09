@@ -35,6 +35,8 @@ interface ActiveWorkoutValue {
   insertSet: (loggedExerciseId: string, index: number, set: LoggedSet) => void
   updateSet: (loggedExerciseId: string, setId: string, patch: Partial<LoggedSet>) => void
   updateExercise: (loggedExerciseId: string, patch: Partial<Omit<LoggedExercise, 'sets' | 'id'>>) => void
+  /** Rewrites every entered weight in this session; history is never touched. */
+  mapSetWeights: (fn: (kg: number) => number) => void
   setName: (name: string) => void
   /** Moves the session's start, for when the workout began before the app was opened. */
   setStartedAt: (startedAt: number) => void
@@ -309,6 +311,18 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
     [mutateExercise],
   )
 
+  const mapSetWeights = useCallback(
+    (fn: (kg: number) => number) =>
+      mutate((w) => ({
+        ...w,
+        exercises: w.exercises.map((le) => ({
+          ...le,
+          sets: le.sets.map((s) => (s.weight === null ? s : { ...s, weight: fn(s.weight) })),
+        })),
+      })),
+    [mutate],
+  )
+
   const setName = useCallback((name: string) => mutate((w) => ({ ...w, name })), [mutate])
   const setStartedAt = useCallback(
     (startedAt: number) => mutate((w) => ({ ...w, startedAt: Math.min(startedAt, Date.now()) })),
@@ -386,6 +400,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       insertSet,
       updateSet,
       updateExercise,
+      mapSetWeights,
       setName,
       setStartedAt,
       setNotes,
@@ -407,6 +422,7 @@ export function ActiveWorkoutProvider({ children }: { children: ReactNode }) {
       insertSet,
       updateSet,
       updateExercise,
+      mapSetWeights,
       setName,
       setStartedAt,
       setNotes,

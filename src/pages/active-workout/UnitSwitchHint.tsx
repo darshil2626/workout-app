@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { countDoneWorkouts } from '../../db/repo'
 import { updateSettings, useSettings } from '../../lib/useSettings'
-import { flippedUnits } from '../../lib/units'
+import { flippedUnits, reinterpretWeight } from '../../lib/units'
+import { gearForUnit } from '../../lib/plates'
+import { useActiveWorkout } from '../../state/ActiveWorkoutContext'
 import { IconClose } from '../../components/Icons'
 
 const SEEN_KEY = 'trana.unitHintSeen'
@@ -21,6 +23,7 @@ export function UnitSwitchHint({
   dismissedWithTip: boolean
 }) {
   const settings = useSettings()
+  const { mapSetWeights } = useActiveWorkout()
   const doneCount = useLiveQuery(() => countDoneWorkouts(), [], undefined)
   const [seen, setSeen] = useState(() => {
     try {
@@ -42,11 +45,19 @@ export function UnitSwitchHint({
   }, [dismissedWithTip])
 
   if (seen || !hasExercises || doneCount !== 0) return null
-  const other = settings.weightUnit === 'kg' ? 'lb' : 'kg'
+  const from = settings.weightUnit
+  const other = from === 'kg' ? 'lb' : 'kg'
+  const switchUnits = () => {
+    // Someone who taps this has just noticed the label is wrong, so the numbers
+    // they typed were meant in the other unit: keep 60 as 60 (now lb) rather
+    // than converting it to 132.28. Only this unsaved session is rewritten.
+    mapSetWeights((kg) => reinterpretWeight(kg, from, other))
+    void updateSettings({ ...flippedUnits(settings), ...gearForUnit(settings, other) })
+  }
   return (
     <div style={{ marginTop: 8, display: 'flex', gap: 4, alignItems: 'center', fontSize: '0.875rem' }}>
       <span>Logging in {settings.weightUnit} ·</span>
-      <button className="btn btn-ghost btn-sm" onClick={() => void updateSettings(flippedUnits(settings))}>
+      <button className="btn btn-ghost btn-sm" onClick={switchUnits}>
         Use {other}
       </button>
       <button className="icon-btn" style={{ marginLeft: 'auto' }} onClick={dismiss} aria-label="Dismiss unit tip">

@@ -127,6 +127,17 @@ export function defaultUnitsForLocale(locale: string | undefined): UnitChoice {
   return region && IMPERIAL_REGIONS.has(region.toUpperCase()) ? IMPERIAL_UNITS : METRIC_UNITS
 }
 
+/**
+ * A stored weight re-read in another unit at the same face value: 60 entered
+ * in kg becomes 60 lb (27.216 kg). Used when someone realises mid-session that
+ * they typed in the wrong unit; converting instead would turn their 60 into 132.28.
+ * The face value is what the set row shows (two decimals), rounded like SetRow.
+ */
+export function reinterpretWeight(kg: number, from: WeightUnit, to: WeightUnit): number {
+  const faceValue = Number(trimNumber(kgToDisplay(kg, from)))
+  return Math.round(displayToKg(faceValue, to) * 1000) / 1000
+}
+
 /** The device's preferred locale, or undefined where there is no navigator. */
 export function deviceLocale(): string | undefined {
   if (typeof navigator === 'undefined') return undefined

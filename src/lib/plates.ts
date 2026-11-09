@@ -63,3 +63,26 @@ function lbToKg(lb: number): number {
 }
 
 export const BAR_PRESETS_KG = [20, 15, 10, 25, lbToKg(45), lbToKg(35)]
+
+const GEAR = {
+  kg: { barWeightKg: 20, availablePlatesKg: PLATE_PRESETS[0].platesKg },
+  lb: { barWeightKg: lbToKg(45), availablePlatesKg: PLATE_PRESETS[2].platesKg },
+}
+
+/**
+ * Bar and plates to go with a switch to `to`. Each is swapped only while it is
+ * still the other system's preset, so a hand-edited bar or plate list is kept.
+ */
+export function gearForUnit(
+  current: { barWeightKg: number; availablePlatesKg: number[] },
+  to: 'kg' | 'lb',
+): { barWeightKg?: number; availablePlatesKg?: number[] } {
+  const from = GEAR[to === 'kg' ? 'lb' : 'kg']
+  const same = (a: number[], b: number[]) => a.length === b.length && a.every((v, i) => v === b[i])
+  return {
+    ...(current.barWeightKg === from.barWeightKg && { barWeightKg: GEAR[to].barWeightKg }),
+    ...(same(current.availablePlatesKg, from.availablePlatesKg) && {
+      availablePlatesKg: [...GEAR[to].availablePlatesKg],
+    }),
+  }
+}

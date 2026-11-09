@@ -1,5 +1,5 @@
 import Dexie from 'dexie'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initDb, DEFAULT_SETTINGS } from '../../src/db/db'
 import { migrateLegacyDatabase, migrateLegacyStorage } from '../../src/db/legacyMigration'
 import { SEED_EXERCISES } from '../../src/db/seed'
@@ -203,6 +203,28 @@ describe('schema upgrades keep installed data', () => {
     expect((await db.meta.get('starterRoutineSeeded'))?.value).toBe(1)
     // Workouts untouched.
     expect(await db.workouts.get('w1')).toEqual(w1)
+  })
+
+  it('v1 -> current on a US device: a metric user keeps kg/km/cm, not the locale default', async () => {
+    await makeOld(1)
+    const raw = new Dexie('trana')
+    raw.version(1).stores(V1_STORES)
+    await raw.open()
+    await raw.table('settings').put({ id: 1, weightUnit: 'kg', distanceUnit: 'km', defaultRestSeconds: 120 })
+    raw.close()
+
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+    try {
+      await db.open()
+      await initDb()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    const s = (await db.settings.get(1)) as Settings
+    expect([s.weightUnit, s.distanceUnit, s.lengthUnit]).toEqual(['kg', 'km', 'cm'])
+    expect(s.barWeightKg).toBe(DEFAULT_SETTINGS.barWeightKg)
+    expect(s.availablePlatesKg).toEqual(DEFAULT_SETTINGS.availablePlatesKg)
+    expect(s.defaultRestSeconds).toBe(120)
   })
 
   it('a v1 row diverging from its seed keeps the user wording (first versioned seeding)', async () => {

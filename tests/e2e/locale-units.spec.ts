@@ -1,4 +1,5 @@
-import { test, expect, waitForApp, logSet } from './helpers/fixtures'
+import { test, expect, waitForApp, logSet, readStore } from './helpers/fixtures'
+import type { Workout } from '../../src/db/types'
 
 async function startBench(page: import('@playwright/test').Page) {
   await page.goto('/')
@@ -56,4 +57,22 @@ test('ticking a set keeps the unit line, since a wrong unit shows up after the f
   await startBench(page)
   await logSet(page, 0, '60', '5')
   await expect(page.getByRole('button', { name: 'Use lb' })).toBeVisible()
+})
+
+test('switching keeps the typed number and changes what it means (60 kg becomes 60 lb)', async ({ page }) => {
+  await startBench(page)
+  await logSet(page, 0, '60', '5')
+  const weight = page.locator('.set-table tbody tr').first().getByLabel('Weight', { exact: true })
+  await expect(weight).toHaveValue('60')
+
+  await page.getByRole('button', { name: 'Use lb' }).click()
+  await expect(weightHeader(page)).toHaveText('Weight (lb)')
+  await expect(weight).toHaveValue('60')
+  // Stored as 60 lb in kg, not left at 60 kg (which would read 132.28 lb).
+  await expect
+    .poll(async () => {
+      const w = (await readStore<Workout>(page, 'workouts')).find((x) => x.status === 'active')
+      return w?.exercises[0]?.sets[0]?.weight
+    })
+    .toBe(27.216)
 })

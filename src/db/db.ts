@@ -13,6 +13,7 @@ import type {
 import { SEED_EXERCISES, SEED_VERSION } from './seed'
 import type { BackupFile } from '../lib/backup'
 import { defaultUnitsForLocale, deviceLocale } from '../lib/units'
+import { gearForUnit } from '../lib/plates'
 
 /** Internal bookkeeping that is not user-facing configuration. */
 interface MetaRow {
@@ -148,9 +149,10 @@ export async function initDb(): Promise<void> {
   await db.transaction('rw', db.exercises, db.settings, db.meta, db.routines, db.workouts, async () => {
     const existing = await db.settings.get(1)
     if (!existing) {
-      // A new install starts in the units its region lifts in. Only here: an
-      // existing row (and the backfill below) never has its units changed.
-      await db.settings.put({ ...DEFAULT_SETTINGS, ...defaultUnitsForLocale(deviceLocale()) })
+      // A new install starts in the units (and bar and plates) its region lifts
+      // in. Only here: an existing row (and the backfill below) is never changed.
+      const units = defaultUnitsForLocale(deviceLocale())
+      await db.settings.put({ ...DEFAULT_SETTINGS, ...units, ...gearForUnit(DEFAULT_SETTINGS, units.weightUnit) })
     } else {
       // Backfill keys added by later app versions without clobbering choices.
       await db.settings.put({ ...DEFAULT_SETTINGS, ...existing })

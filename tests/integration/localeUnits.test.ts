@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, DEFAULT_SETTINGS, initDb } from '../../src/db/db'
+import { PLATE_PRESETS } from '../../src/lib/plates'
+import { LB_PER_KG } from '../../src/lib/units'
 import { resetDb } from './helpers'
 
 function stubLocale(language: string, languages: string[] = [language]) {
@@ -10,14 +12,17 @@ beforeEach(resetDb)
 afterEach(() => vi.unstubAllGlobals())
 
 describe('starting units for a new install', () => {
-  it('a US device starts in lb, mi and in', async () => {
+  it('a US device starts in lb, mi and in, with a 45 lb bar and pound plates', async () => {
     stubLocale('en-US')
     await initDb()
+    const pounds = PLATE_PRESETS.find((p) => p.label.startsWith('Pounds'))!
     expect(await db.settings.get(1)).toEqual({
       ...DEFAULT_SETTINGS,
       weightUnit: 'lb',
       distanceUnit: 'mi',
       lengthUnit: 'in',
+      barWeightKg: 45 / LB_PER_KG,
+      availablePlatesKg: pounds.platesKg,
     })
   })
 

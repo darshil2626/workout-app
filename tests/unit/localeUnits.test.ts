@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../../src/db/db'
 import { measurementWeightUnit } from '../../src/lib/measurements'
-import { defaultUnitsForLocale, flippedUnits, IMPERIAL_UNITS, METRIC_UNITS } from '../../src/lib/units'
+import { gearForUnit, PLATE_PRESETS } from '../../src/lib/plates'
+import {
+  defaultUnitsForLocale,
+  flippedUnits,
+  formatWeight,
+  IMPERIAL_UNITS,
+  LB_PER_KG,
+  METRIC_UNITS,
+  reinterpretWeight,
+} from '../../src/lib/units'
 
 describe('defaultUnitsForLocale', () => {
   it.each([
@@ -20,6 +29,36 @@ describe('defaultUnitsForLocale', () => {
     ['US', METRIC_UNITS],
   ])('%s', (locale, expected) => {
     expect(defaultUnitsForLocale(locale)).toEqual(expected)
+  })
+})
+
+describe('reinterpretWeight', () => {
+  it('keeps the typed number and changes only what it means', () => {
+    expect(reinterpretWeight(60, 'kg', 'lb')).toBe(27.216)
+    expect(formatWeight(reinterpretWeight(60, 'kg', 'lb'), 'lb')).toBe('60')
+    // 135 typed in lb is stored as 61.235 kg by SetRow; read as kg it is 135.
+    expect(reinterpretWeight(61.235, 'lb', 'kg')).toBe(135)
+    expect(reinterpretWeight(22.5, 'kg', 'kg')).toBe(22.5)
+  })
+})
+
+describe('gearForUnit', () => {
+  const pounds = PLATE_PRESETS.find((p) => p.label.startsWith('Pounds'))!.platesKg
+
+  it('swaps the metric bar and plates for pound ones, and back', () => {
+    const lb = gearForUnit(DEFAULT_SETTINGS, 'lb')
+    expect(lb).toEqual({ barWeightKg: 45 / LB_PER_KG, availablePlatesKg: pounds })
+    expect(gearForUnit({ barWeightKg: lb.barWeightKg!, availablePlatesKg: pounds }, 'kg')).toEqual({
+      barWeightKg: 20,
+      availablePlatesKg: DEFAULT_SETTINGS.availablePlatesKg,
+    })
+  })
+
+  it('keeps a bar or plate list that was edited by hand', () => {
+    expect(gearForUnit({ barWeightKg: 15, availablePlatesKg: [20, 10, 5] }, 'lb')).toEqual({})
+    expect(gearForUnit({ barWeightKg: 20, availablePlatesKg: [20, 10, 5] }, 'lb')).toEqual({
+      barWeightKg: 45 / LB_PER_KG,
+    })
   })
 })
 

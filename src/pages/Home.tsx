@@ -113,7 +113,7 @@ function HomeNotices({ hasHistory }: { hasHistory: boolean }) {
   if (settings.analyticsConsentAt === null) return <AnalyticsConsent />
   return (
     <>
-      <InstallBanner onShownChange={setInstallShown} />
+      <InstallBanner hasHistory={hasHistory} onShownChange={setInstallShown} />
       <BackupReminder hidden={installShown} />
     </>
   )

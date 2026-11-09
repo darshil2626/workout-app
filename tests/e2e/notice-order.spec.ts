@@ -59,7 +59,7 @@ test.describe('iPhone, in a Safari tab', () => {
     await seed(page)
     const banner = page.getByRole('region', { name: 'Install Trana' })
     await expect(banner).toContainText('Add to Home Screen to keep your data')
-    await expect(banner).toContainText('Settings → Import')
+    await expect(banner).toContainText('export a backup, install, then use Settings → Import in the app')
     await expect(banner.getByRole('button', { name: 'Export backup' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Usage data' })).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Back up your data' })).toHaveCount(0)

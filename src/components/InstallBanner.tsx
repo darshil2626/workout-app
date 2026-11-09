@@ -17,10 +17,10 @@ import { IconClose } from './Icons'
  * history it offers an export to carry it across (Settings → Import in the app).
  */
 export function InstallBanner({
-  hasHistory = true,
+  hasHistory,
   onShownChange,
 }: {
-  hasHistory?: boolean
+  hasHistory: boolean
   onShownChange?: (shown: boolean) => void
 }) {
   const { installed, canPromptNatively, install } = useInstall()
@@ -59,7 +59,7 @@ export function InstallBanner({
         ]
       : [
           'Add to Home Screen to keep your data',
-          'Safari can delete a website’s data after about a week unused, and the Home Screen app starts empty. Export a backup, install, then use Settings → Import in the app.',
+          'Safari can delete a website’s data after about a week unused, but not an installed app’s. To bring your workouts across, export a backup, install, then use Settings → Import in the app.',
         ]
 
   return (

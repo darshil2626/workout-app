@@ -51,3 +51,21 @@ test('the Export backup button in the install offer saves a real backup', async 
     .poll(() => page.evaluate(() => (window as unknown as { __shared?: { name: string } }).__shared?.name))
     .toMatch(/^trana-backup-\d{4}-\d{2}-\d{2}\.json$/)
 })
+
+test.describe('already installed (Home Screen app)', () => {
+  test.beforeEach(async ({ page }) => {
+    // iOS Safari reports a Home Screen launch through navigator.standalone.
+    await page.addInitScript(() => {
+      Object.defineProperty(window.navigator, 'standalone', { get: () => true })
+    })
+  })
+
+  test('with history: the analytics question first and no install banner', async ({ page }) => {
+    await seed(page)
+    await expect(page.getByRole('region', { name: 'Usage data' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Install Trana' })).toHaveCount(0)
+    await page.getByRole('region', { name: 'Usage data' }).getByRole('button', { name: 'No thanks' }).click()
+    await expect(page.getByRole('region', { name: 'Usage data' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Install Trana' })).toHaveCount(0)
+  })
+})

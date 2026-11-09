@@ -7,11 +7,11 @@ test.describe('iPhone, not installed', () => {
   test.use({ userAgent: IPHONE_SAFARI })
 
   test('says plainly that Safari can delete the data until it is added to the Home Screen', async ({ page }) => {
-    // The install offer comes after the first workout and the analytics question.
+    // On iOS the install offer comes before the analytics question: a tab and a Home
+    // Screen app keep separate storage, so installing is a data-safety step there.
     await seed(page)
     await page.goto('/')
     await waitForApp(page)
-    await page.getByRole('region', { name: 'Usage data' }).getByRole('button', { name: 'No thanks' }).click()
     const banner = page.getByRole('region', { name: 'Install Trana' })
     await expect(banner).toContainText('Add to Home Screen to keep your data')
     await expect(banner).toContainText(/delete a website.s data/)

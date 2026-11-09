@@ -48,6 +48,11 @@ test('core loop: log, complete, finish, history, stats', async ({ page }) => {
   await expect(sheet.locator('.finish-summary')).toContainText('700 kg')
   await expect(sheet.locator('.finish-prs')).toHaveCount(0)
   await sheet.getByRole('button', { name: 'Skip' }).click()
+  // This is the first-ever finish, so the optional training-days step follows.
+  await page
+    .getByRole('dialog', { name: 'Which days do you usually train?' })
+    .getByRole('button', { name: 'Skip' })
+    .click()
 
   // Lands on the saved workout's detail page.
   await expect(page).toHaveURL(/\/history\/[^/]+$/)
@@ -83,6 +88,11 @@ test('rating the session saves effort and feeling', async ({ page }) => {
   await sheet.locator('.rpe-row').first().locator('.chip').nth(2).click()
   await expect(sheet.locator('.rpe-row').first().locator('.chip').nth(2)).toHaveAttribute('aria-pressed', 'true')
   await sheet.getByRole('button', { name: 'Save' }).click()
+  // First-ever finish: the optional training-days step follows the rating.
+  await page
+    .getByRole('dialog', { name: 'Which days do you usually train?' })
+    .getByRole('button', { name: 'Skip' })
+    .click()
   await expect(page).toHaveURL(/\/history\/[^/]+$/)
 })
 

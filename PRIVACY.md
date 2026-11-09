@@ -24,19 +24,20 @@ change it.
 
 Events are about the app, not your training:
 
-| Event                                                                                                                         | Detail sent                                                                               |
-| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `app_opened`                                                                                                                  | whether it is installed, platform (ios / android / desktop), whether it is the first open |
-| `$pageview`                                                                                                                   | the screen, with ids replaced: `/history/:id`, `/exercises/:id`, never the real one       |
-| `workout_started`                                                                                                             | whether it came from a routine                                                            |
-| `workout_completed`                                                                                                           | duration and set count as ranges (for example "30-45 min"), not exact values              |
-| `routine_created`                                                                                                             | how many exercises it has                                                                 |
-| `theme_changed`                                                                                                               | which theme was chosen                                                                    |
-| `backup_exported`, `backup_imported`, `backup_restore_undone`, `csv_import_used`, `history_cleanup_run`, `exercise_match_run` | that it happened, and which app a CSV came from                                           |
-| `pwa_install_prompt_shown`, `pwa_install_accepted`, `pwa_install_dismissed`                                                   | none                                                                                      |
-| `$opt_in`                                                                                                                     | PostHog's own marker that you said yes                                                    |
-| `render_error`, `unhandled_error`                                                                                             | that something failed, and its kind. No message, stack or content                         |
-| `storage_persist`                                                                                                             | whether the browser agreed to keep your data                                              |
+| Event                                                                                                                         | Detail sent                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `app_opened`                                                                                                                  | whether it is installed, platform (ios / android / desktop), whether it is the first open                          |
+| `$pageview`                                                                                                                   | the screen, with ids replaced: `/history/:id`, `/exercises/:id`, never the real one                                |
+| `workout_started`                                                                                                             | whether it came from a routine                                                                                     |
+| `workout_completed`                                                                                                           | duration and set count as ranges (for example "30-45 min"), not exact values                                       |
+| `routine_created`                                                                                                             | how many exercises it has                                                                                          |
+| `theme_changed`                                                                                                               | which theme was chosen                                                                                             |
+| `backup_exported`, `backup_imported`, `backup_restore_undone`, `csv_import_used`, `history_cleanup_run`, `exercise_match_run` | that it happened, and which app a CSV came from                                                                    |
+| `pwa_install_prompt_shown`, `pwa_install_accepted`, `pwa_install_dismissed`                                                   | none                                                                                                               |
+| `$opt_in`                                                                                                                     | PostHog's own marker that you said yes                                                                             |
+| `render_error`, `unhandled_error`                                                                                             | that something failed, and its kind. No message, stack or content                                                  |
+| `storage_persist`                                                                                                             | whether the browser agreed to keep your data                                                                       |
+| `commitment_set`                                                                                                              | how many training days were picked after the first workout, as a range (1-2, 3-4, 5+) or skipped. Never which days |
 
 Never sent: exercise names, weights, reps, routine names, measurements, notes, ids
 of anything you logged, the text of anything you tap, or the contents of any backup.

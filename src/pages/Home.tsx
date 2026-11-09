@@ -20,6 +20,7 @@ import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
 import { IconPlay, IconPlus, IconSettings, IconTrash } from '../components/Icons'
 import { useFormatters } from '../lib/useSettings'
+import { trainingDayPending } from '../lib/trainingDays'
 import { computeStreaks, overallTotals, volumeByDay } from '../lib/stats'
 import {
   habitWindow,
@@ -184,7 +185,8 @@ export function HomePage() {
   // Not memoised, deliberately: it is a date lookup and four comparisons, and
   // recomputing it every render is what keeps the weekday correct on a PWA
   // that has been sitting on the home screen since yesterday.
-  const status = homeStatus(goal, recovery, hasHistory, workout !== null)
+  const trainingToday = trainingDayPending(fmt.settings.trainingDays, workoutList)
+  const status = homeStatus(goal, recovery, hasHistory, workout !== null, undefined, trainingToday)
 
   const recent = useMemo(
     () =>

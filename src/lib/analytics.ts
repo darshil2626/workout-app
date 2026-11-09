@@ -47,6 +47,7 @@ export const ALLOWED_EVENTS: ReadonlySet<string> = new Set([
   'render_error',
   'unhandled_error',
   'storage_persist',
+  'commitment_set',
   // The library's own, and needed: one page view per screen, and the opt-in marker.
   '$pageview',
   '$opt_in',

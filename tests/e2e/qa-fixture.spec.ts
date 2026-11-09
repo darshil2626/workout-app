@@ -139,7 +139,7 @@ test('Home header buttons share a centre line with the title', async ({ page }) 
 })
 
 test('the last routine button clears the active-workout banner', async ({ page }) => {
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: 'Empty workout', exact: true }).click()
   await page.getByRole('button', { name: 'Minimise workout' }).click()
   await expect(page.locator('.active-banner')).toBeVisible()
   // Scroll on every check, not once before them: Home can still grow after a single

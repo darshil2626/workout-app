@@ -1,7 +1,4 @@
-import { test, expect, waitForApp, openTab } from './helpers/fixtures'
-
-/** The first-run "I already lift" card, which a cold start lands on. */
-const ALREADY_LIFT = /I already lift/
+import { test, expect, ALREADY_LIFT, waitForApp, openTab } from './helpers/fixtures'
 
 test.describe('cold start with an empty database', () => {
   // Changed on purpose: a fresh install used to be seeded with a "Full Body

@@ -1,10 +1,10 @@
-import { test, expect, waitForApp, logSet, readStore, waitForWorkoutSaved } from './helpers/fixtures'
+import { test, expect, ALREADY_LIFT, waitForApp, logSet, readStore, waitForWorkoutSaved } from './helpers/fixtures'
 import type { Page } from '@playwright/test'
 
 async function startWithBench(page: Page) {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await expect(page).toHaveURL(/\/workout$/)
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')

@@ -1,4 +1,4 @@
-import { createFolder, saveRoutine } from '../db/repo'
+import { saveRoutinesWithFolder } from '../db/repo'
 import { newId } from '../db/db'
 import type { Folder, Routine, RoutineSetTarget } from '../db/types'
 
@@ -13,6 +13,11 @@ import type { Folder, Routine, RoutineSetTarget } from '../db/types'
  * Ordered so the dumbbell and machine options come first. A third of new gym
  * users name the squat rack as the thing that intimidates them, so the
  * barbell routine is offered, not led with.
+ *
+ * Days never share an exercise. Home suggests the routine whose exercises are
+ * most rested (`suggestNextRoutine`), and a lift shared by days A and B is
+ * fresh in both the day after A, which ties them and suggests A again. A test
+ * checks that each day is followed by the next.
  */
 
 interface TemplateExercise {
@@ -66,7 +71,8 @@ export const TEMPLATES: Template[] = [
           ex('romanian-deadlift-dumbbell', 3, 8),
           ex('overhead-press-dumbbell', 3, 8),
           ex('lunge-dumbbell', 3, 8),
-          ex('bent-over-row-dumbbell', 3, 8),
+          // A different row from day A on purpose; see "Days never share an exercise" above.
+          ex('single-arm-row-dumbbell', 3, 8),
         ],
       },
     ],
@@ -193,10 +199,12 @@ export function buildTemplate(template: Template, now = Date.now()): { folder: F
   return { folder, routines }
 }
 
-/** Saves a template as the user's own routines and returns the first day, ready to start. */
+/**
+ * Saves a template as the user's own routines and returns the first day, ready
+ * to start. All or nothing, so a failure never leaves an empty folder behind.
+ */
 export async function installTemplate(template: Template): Promise<Routine> {
   const { folder, routines } = buildTemplate(template)
-  if (folder) await createFolder(folder)
-  for (const r of routines) await saveRoutine(r)
+  await saveRoutinesWithFolder(folder, routines)
   return routines[0]
 }

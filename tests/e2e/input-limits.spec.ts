@@ -1,9 +1,9 @@
-import { test, expect, waitForApp } from './helpers/fixtures'
+import { test, expect, ALREADY_LIFT, waitForApp } from './helpers/fixtures'
 
 test('set inputs reject negatives and absurd values instead of storing them', async ({ page }) => {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')
   await picker.getByPlaceholder('Search exercises').fill('Bench Press (Barbell)')
@@ -45,7 +45,7 @@ test('set inputs reject negatives and absurd values instead of storing them', as
 test('hints cover distance and duration, follow the unit, and clear on focus', async ({ page }) => {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')
   await picker.getByPlaceholder('Search exercises').fill('Plank')
@@ -75,7 +75,7 @@ test('the weight hint names the limit in the chosen unit', async ({ page }) => {
     .click()
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')
   await picker.getByPlaceholder('Search exercises').fill('Bench Press (Barbell)')

@@ -1,4 +1,13 @@
-import { test, expect, waitForApp, openTab, logSet, readStore, waitForWorkoutSaved } from './helpers/fixtures'
+import {
+  test,
+  expect,
+  ALREADY_LIFT,
+  waitForApp,
+  openTab,
+  logSet,
+  readStore,
+  waitForWorkoutSaved,
+} from './helpers/fixtures'
 import type { Page } from '@playwright/test'
 
 async function swReady(page: Page) {
@@ -51,7 +60,7 @@ test('a full session offline: log, finish, history and stats, then back online w
   await page.goto('/')
   await waitForApp(page)
 
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await expect(page).toHaveURL(/\/workout$/)
   await addBench(page)
   await logSet(page, 0, '60', '5')
@@ -75,7 +84,7 @@ test('going offline partway through a workout loses nothing', async ({ page, con
   await page.goto('/')
   await waitForApp(page)
   await swReady(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await expect(page).toHaveURL(/\/workout$/)
   await addBench(page)
   await logSet(page, 0, '60', '5')

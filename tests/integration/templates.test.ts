@@ -1,13 +1,59 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, initDb } from '../../src/db/db'
 import { SEED_EXERCISES } from '../../src/db/seed'
-import { listFolders, listRoutines, getRoutine } from '../../src/db/repo'
+import { listFolders, listRoutines, getRoutine, saveRoutinesWithFolder } from '../../src/db/repo'
+import { suggestNextRoutine } from '../../src/lib/home'
 import { TEMPLATES, buildTemplate, installTemplate } from '../../src/lib/templates'
-import { resetDb } from './helpers'
+import type { Routine, Workout } from '../../src/db/types'
+import { logged, resetDb, set, workout } from './helpers'
 
 beforeEach(resetDb)
 
+const DAY = 86_400_000
+
+/** A finished session that did every exercise of the routine, `at` ms since epoch. */
+function performed(r: Routine, at: number): Workout {
+  return workout({
+    id: `w-${r.id}-${at}`,
+    name: r.name,
+    routineId: r.id,
+    startedAt: at - 3_600_000,
+    finishedAt: at,
+    exercises: r.exercises.map((e) => logged(e.exerciseId, [set()])),
+  })
+}
+
 describe('starter templates', () => {
+  it('multi-day templates: Home suggests day N+1 after day N, and day A again after the last', async () => {
+    const multiDay = TEMPLATES.filter((t) => t.days.length > 1)
+    expect(multiDay.length).toBeGreaterThan(0)
+    for (const t of multiDay) {
+      await installTemplate(t)
+      const routines = (await listRoutines()).filter((r) => t.days.some((d) => d.name === r.name))
+      routines.sort((a, b) => a.order - b.order)
+      const history: Workout[] = []
+      let now = 1_700_000_000_000
+      for (let n = 0; n < routines.length; n++) {
+        now += 2 * DAY
+        history.push(performed(routines[n], now))
+        const next = routines[(n + 1) % routines.length]
+        expect(
+          suggestNextRoutine(routines, history, now + DAY)?.routine.name,
+          `${t.id} after ${routines[n].name}`,
+        ).toBe(next.name)
+      }
+    }
+  })
+
+  it('a failed install saves nothing, not even the folder', async () => {
+    const { folder, routines } = buildTemplate(TEMPLATES[0])
+    // A routine with no id cannot be stored, so the write fails after the folder was added.
+    const broken = [routines[0], { ...routines[1], id: undefined as unknown as string }]
+    await expect(saveRoutinesWithFolder(folder, broken)).rejects.toThrow()
+    expect(await db.folders.count()).toBe(0)
+    expect(await db.routines.count()).toBe(0)
+  })
+
   it('every template exercise id is a built-in exercise', () => {
     const ids = new Set(SEED_EXERCISES.map((e) => e.id))
     for (const t of TEMPLATES)

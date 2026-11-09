@@ -28,6 +28,7 @@ import { useSwipeToDelete } from '../lib/useSwipeToDelete'
 import { useLongPress } from '../lib/useLongPress'
 import { formatVolumeCompact } from '../lib/units'
 import { RestEditorSheet } from './active-workout/RestEditorSheet'
+import { UnitSwitchHint } from './active-workout/UnitSwitchHint'
 import { RPE_VALUES, startsRestOnCompletion, toLocalInput } from './active-workout/helpers'
 import { usePreviousPerformances, useRecordBaselines } from './active-workout/hooks'
 import {
@@ -139,6 +140,8 @@ export function ActiveWorkoutPage() {
       /* private mode: the tip just shows again next time */
     }
   }
+  // "Got it" on the tick tip also retires the unit line; ticking a set does not.
+  const [tipGotIt, setTipGotIt] = useState(false)
   const anyTicked = !!workout?.exercises.some((le) => le.sets.some((s) => s.completed))
   useEffect(() => {
     if (anyTicked) dismissTickHint()
@@ -505,11 +508,18 @@ export function ActiveWorkoutPage() {
               <strong>How logging works:</strong> type the weight and reps, then tap the tick when a set is done. Tick
               each set as you finish it. Ticked sets are the ones saved.
             </p>
-            <button className="btn btn-ghost btn-sm" onClick={dismissTickHint}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                dismissTickHint()
+                setTipGotIt(true)
+              }}
+            >
               Got it
             </button>
           </div>
         )}
+        <UnitSwitchHint hasExercises={workout.exercises.length > 0} dismissedWithTip={tipGotIt} />
 
         <div style={{ marginTop: 16 }}>
           {workout.exercises.map((le, exIndex) => {

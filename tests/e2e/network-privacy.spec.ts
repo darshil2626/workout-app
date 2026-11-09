@@ -88,9 +88,26 @@ test('a typical session only talks to allowed origins, and analytics carry no wo
   const forbidden = [...exercises, ...routines].filter((s) => s.length > 2)
   expect(forbidden.length).toBeGreaterThan(0)
   const analytics = requests.filter((r) => r.origin === 'https://us.i.posthog.com')
+  if (analytics.length === 0) {
+    // The e2e build has no VITE_POSTHOG_KEY, so PostHog never starts and there is nothing to inspect.
+    // Say so in the report rather than passing silently; a keyed build would make this live.
+    test.info().annotations.push({
+      type: 'analytics-payload-check-not-live',
+      description: 'No analytics requests were made (no VITE_POSTHOG_KEY in this build), so no payload was checked.',
+    })
+  }
   for (const r of analytics) {
-    const body = decodeURIComponent(r.body ?? '')
-    for (const term of forbidden) expect(body, `analytics body mentions "${term}"`).not.toContain(term)
-    expect(body).not.toContain('61.5')
+    // Bodies may be compressed or percent-encoded; check the raw text and, when it decodes, the decoded text.
+    const raw = r.body ?? ''
+    let decoded = raw
+    try {
+      decoded = decodeURIComponent(raw)
+    } catch {
+      // keep the raw text
+    }
+    for (const body of [raw, decoded]) {
+      for (const term of forbidden) expect(body, `analytics body mentions "${term}"`).not.toContain(term)
+      expect(body).not.toContain('61.5')
+    }
   }
 })

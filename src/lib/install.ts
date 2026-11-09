@@ -97,6 +97,16 @@ export function uninstalledDataAtRisk(installed: boolean): boolean {
   return detectInstallPlatform() === 'ios' && !installed
 }
 
+/**
+ * Whether the install banner stays out of sight. On desktop it only shows when the
+ * browser can install in one click, so it never nags with steps for a browser that
+ * may not support it. Shared with Home, which needs the answer on its first render
+ * to keep two notices from flashing up together.
+ */
+export function installBannerHidden(opts: { installed: boolean; snoozed: boolean; canPromptNatively: boolean }) {
+  return opts.installed || opts.snoozed || (detectInstallPlatform() === 'desktop' && !opts.canPromptNatively)
+}
+
 export function isInstallSnoozed(): boolean {
   try {
     const at = Number(window.localStorage.getItem(DISMISS_KEY))

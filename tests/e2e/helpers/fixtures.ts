@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test'
+import { test as base, expect, type Locator, type Page } from '@playwright/test'
 import path from 'node:path'
 
 export const ROOT = process.cwd()
@@ -31,6 +31,18 @@ export const test = base.extend<{ errors: string[] }>({
 })
 
 export { expect }
+
+/**
+ * On iOS in a browser tab, Home shows the install nudge before any other notice
+ * (the WebKit project runs as an iPhone). Waits until either the nudge or `next`
+ * is up, and dismisses the nudge if it is the one showing, so a spec can go on to
+ * assert `next` exactly as on other platforms.
+ */
+export async function dismissInstallNudgeIfShown(page: Page, next: Locator) {
+  const install = page.getByRole('region', { name: 'Install Trana' })
+  await expect(install.or(next)).toBeVisible()
+  if (await install.isVisible()) await install.getByRole('button', { name: 'Dismiss' }).click()
+}
 
 /** Waits until the app shell has mounted (bottom nav or a fullscreen header). */
 export async function waitForApp(page: Page) {

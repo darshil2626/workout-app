@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
-import { test, expect, seed, openTab, logSet, readStore } from './helpers/fixtures'
+import { test, expect, seed, openTab, logSet, readStore, dismissInstallNudgeIfShown } from './helpers/fixtures'
 
 const ANALYTICS_URL = 'https://us.i.posthog.com/**'
 const FEEDBACK_URL = 'https://api.web3forms.com/submit'
@@ -36,7 +36,10 @@ test('a typical session only talks to allowed origins, and analytics carry no wo
 
   // First launch with a history, then say yes to analytics so any sending path is live.
   await seed(page)
-  await page.getByRole('region', { name: 'Usage data' }).getByRole('button', { name: 'Share' }).click()
+  // On iOS (the WebKit project) the install nudge comes first; get past it.
+  const consent = page.getByRole('region', { name: 'Usage data' })
+  await dismissInstallNudgeIfShown(page, consent)
+  await consent.getByRole('button', { name: 'Share' }).click()
 
   // The allowed origins are the CSP's, and PRIVACY.md names the same two services.
   const allowed = new Set([sameOrigin, ...(await cspConnectOrigins(page))])

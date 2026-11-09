@@ -18,6 +18,13 @@
   font-weight: 600;
 }
 
+/* Stacked, so a second button (Export backup) does not squeeze the text on a phone. */
+.install-banner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .install-steps ol {
   margin: var(--space-3) 0 0;
   padding-left: 1.25em;

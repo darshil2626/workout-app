@@ -1,9 +1,11 @@
-import { test, expect, seed, waitForApp, readStore } from './helpers/fixtures'
+import { test, expect, seed, waitForApp, readStore, dismissInstallNudgeIfShown } from './helpers/fixtures'
 
 const card = (page: import('@playwright/test').Page) => page.getByRole('region', { name: 'Usage data' })
 
 test('a new install is asked, and the answer sticks', async ({ page }) => {
   await seed(page)
+  // On iOS (the WebKit project) the install nudge comes first; get past it.
+  await dismissInstallNudgeIfShown(page, card(page))
   await expect(card(page)).toContainText('Nothing is sent unless you say yes')
   await expect(card(page).getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', /PRIVACY\.md/)
 
@@ -20,6 +22,8 @@ test('a new install is asked, and the answer sticks', async ({ page }) => {
 
 test('saying yes records it and shows the switch on in Settings', async ({ page }) => {
   await seed(page)
+  // On iOS (the WebKit project) the install nudge comes first; get past it.
+  await dismissInstallNudgeIfShown(page, card(page))
   await card(page).getByRole('button', { name: 'Share' }).click()
   await expect(card(page)).toHaveCount(0)
   await page.goto('/settings')
@@ -56,5 +60,7 @@ test('an install that had analytics on by default is asked again, not assumed', 
   )
   await page.goto('/')
   await waitForApp(page)
+  // On iOS (the WebKit project) the install nudge comes first; get past it.
+  await dismissInstallNudgeIfShown(page, card(page))
   await expect(card(page)).toBeVisible()
 })

@@ -44,6 +44,7 @@ import { Skeleton } from '../components/Skeleton'
 import { InstallBanner } from '../components/InstallBanner'
 import { BackupReminder } from '../components/BackupReminder'
 import { AnalyticsConsent } from '../components/AnalyticsConsent'
+import { installBannerHidden, isInstallSnoozed, uninstalledDataAtRisk, useInstall } from '../lib/install'
 
 /**
  * How many finished sessions are scanned for personal records.
@@ -88,18 +89,31 @@ function HomeSkeleton() {
 }
 
 /**
- * Nothing until there is a workout in history, so a new lifter's first screen is
- * just Start. Then one notice at a time: the analytics question, then the
+ * One notice at a time. Usually nothing until there is a workout in history, so a
+ * new lifter's first screen is just Start; then the analytics question, then the
  * install offer, then the backup reminder.
+ *
+ * iOS in a browser tab is the exception. There a tab and a Home Screen app keep
+ * separate storage, and Safari may delete a tab's data after about a week unused,
+ * so installing is a data-safety step: the install offer comes first, before any
+ * history and before the analytics question.
  */
 function HomeNotices({ hasHistory }: { hasHistory: boolean }) {
   const settings = useLiveQuery(() => getSettings(), [])
-  const [installShown, setInstallShown] = useState(false)
-  if (!settings || !hasHistory) return null
+  const { installed, canPromptNatively } = useInstall()
+  // Known on the first render, so the banner and the next notice never flash up together.
+  const [installShown, setInstallShown] = useState(
+    () => !installBannerHidden({ installed, snoozed: isInstallSnoozed(), canPromptNatively }),
+  )
+  const installFirst = uninstalledDataAtRisk(installed)
+  if (!settings || (!hasHistory && !installFirst)) return null
+  if (installFirst && (installShown || !hasHistory)) {
+    return <InstallBanner hasHistory={hasHistory} onShownChange={setInstallShown} />
+  }
   if (settings.analyticsConsentAt === null) return <AnalyticsConsent />
   return (
     <>
-      <InstallBanner onShownChange={setInstallShown} />
+      <InstallBanner hasHistory={hasHistory} onShownChange={setInstallShown} />
       <BackupReminder hidden={installShown} />
     </>
   )

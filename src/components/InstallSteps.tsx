@@ -25,7 +25,8 @@ export function InstallSteps() {
             Open Trana in <strong>Safari</strong>.
           </li>
           <li>
-            Tap the <strong>Share</strong> button (the square with an arrow pointing up).
+            Tap the <strong>Share</strong> button (square with an arrow). In the compact Safari layout, tap{' '}
+            <strong>•••</strong> first, then <strong>Share</strong>.
           </li>
           <li>
             Scroll down and tap <strong>Add to Home Screen</strong>.

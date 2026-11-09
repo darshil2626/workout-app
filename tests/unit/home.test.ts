@@ -15,6 +15,15 @@ import {
   type WeekProgress,
 } from '../../src/lib/home'
 import type { Routine } from '../../src/db/types'
+import {
+  daysBucket,
+  formatTrainingDays,
+  markTrainingDaysAsked,
+  orderedWeekdays,
+  shouldAskTrainingDays,
+  toggleDay,
+  trainingDayPending,
+} from '../../src/lib/trainingDays'
 import { mkEx, mkLogged, mkSet, mkWorkout, uid } from './helpers'
 
 const DAY = 86_400_000
@@ -352,6 +361,74 @@ describe('homeStatus', () => {
   })
   it('only the stalest (first) muscle is considered', () => {
     expect(homeStatus(goal(), [rec('Chest', 1), rec('Back', 9)], true, false, NOW).fact).toBe('1 of 4 this week')
+  })
+  it('a pending training day comes after session, at-risk week and overdue muscle', () => {
+    expect(homeStatus(goal(), [], true, false, NOW, true).fact).toBe('training day')
+    expect(homeStatus(goal({ state: 'hit', done: 4 }), [], true, false, NOW, true).fact).toBe('training day')
+    expect(homeStatus(goal(), [], true, true, NOW, true).fact).toBe('session running')
+    expect(homeStatus(goal({ state: 'atRisk' }), [], true, false, NOW, true).fact).toBe('3 to go this week')
+    expect(homeStatus(goal(), [rec('Back', 9)], true, false, NOW, true).fact).toBe('Back is overdue')
+    // Not a training day: the usual line, and never anything about a missed day.
+    expect(homeStatus(goal(), [], true, false, NOW, false).fact).toBe('1 of 4 this week')
+  })
+})
+
+describe('trainingDayPending', () => {
+  // NOW is a Wednesday (3).
+  it('true on a chosen day with nothing logged today', () => {
+    expect(trainingDayPending([1, 3, 5], [done(NOW - DAY)], NOW)).toBe(true)
+  })
+  it('false once something is logged today, on other days, or with no days chosen', () => {
+    expect(trainingDayPending([1, 3, 5], [done(L(8, 26, 7))], NOW)).toBe(false)
+    expect(trainingDayPending([1, 5], [], NOW)).toBe(false)
+    expect(trainingDayPending([], [], NOW)).toBe(false)
+  })
+  it('an active session started today does not count as done', () => {
+    expect(trainingDayPending([3], [done(L(8, 26, 7), { status: 'active' })], NOW)).toBe(true)
+  })
+})
+
+describe('training-days helpers', () => {
+  it('orders the week from the chosen first day', () => {
+    expect(orderedWeekdays(1)).toEqual([1, 2, 3, 4, 5, 6, 0])
+    expect(orderedWeekdays(0)).toEqual([0, 1, 2, 3, 4, 5, 6])
+  })
+  it('formats in week order, or null when none', () => {
+    expect(formatTrainingDays([0, 1, 5], 1)).toBe('Mon, Fri, Sun')
+    expect(formatTrainingDays([0, 1, 5], 0)).toBe('Sun, Mon, Fri')
+    expect(formatTrainingDays([], 1)).toBeNull()
+  })
+  it('toggling keeps the list sorted and unique', () => {
+    expect(toggleDay([1, 5], 3)).toEqual([1, 3, 5])
+    expect(toggleDay([1, 3, 5], 3)).toEqual([1, 5])
+  })
+  it('buckets the count without naming days', () => {
+    expect([[], [1], [1, 2], [1, 2, 3], [1, 2, 3, 4], [0, 1, 2, 3, 4]].map(daysBucket)).toEqual([
+      'skipped',
+      '1-2',
+      '1-2',
+      '3-4',
+      '3-4',
+      '5+',
+    ])
+  })
+  it('asks only before the first finish, with no days chosen, and never after an answer', () => {
+    const store = new Map<string, string>()
+    const original = globalThis.localStorage
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) },
+    })
+    try {
+      expect(shouldAskTrainingDays(0, [])).toBe(true)
+      expect(shouldAskTrainingDays(undefined, [])).toBe(false)
+      expect(shouldAskTrainingDays(1, [])).toBe(false)
+      expect(shouldAskTrainingDays(0, [2])).toBe(false)
+      markTrainingDaysAsked()
+      expect(shouldAskTrainingDays(0, [])).toBe(false)
+    } finally {
+      Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: original })
+    }
   })
 })
 

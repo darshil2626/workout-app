@@ -19,6 +19,7 @@ import { ExercisePicker } from '../components/ExercisePicker'
 import { ConfirmSheet, Sheet } from '../components/Sheet'
 import { PlateCalculator } from '../components/PlateCalculator'
 import { FinishSheet } from '../components/FinishSheet'
+import { shouldAskTrainingDays } from '../lib/trainingDays'
 import { Toast } from '../components/Toast'
 import { CelebrationBanner } from '../components/CelebrationBanner'
 import { DeltaBadge } from '../components/DeltaBadge'
@@ -980,6 +981,10 @@ export function ActiveWorkoutPage() {
         }}
         onClose={() => setRating(false)}
         onSave={(r) => void handleFinish(r)}
+        askTrainingDays={shouldAskTrainingDays(
+          workoutNumber === undefined ? undefined : workoutNumber - 1,
+          fmt.settings.trainingDays,
+        )}
       />
 
       <ConfirmSheet

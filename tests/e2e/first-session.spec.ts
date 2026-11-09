@@ -76,6 +76,11 @@ test('ticking a set remembers it, so the hint does not return in a later workout
     .getByRole('button', { name: 'Finish', exact: true })
     .click()
   await page.getByRole('dialog', { name: 'Workout complete' }).getByRole('button', { name: 'Skip' }).click()
+  // A first-ever finish asks for training days next (optional); skip that too.
+  await page
+    .getByRole('dialog', { name: 'Which days do you usually train?' })
+    .getByRole('button', { name: 'Skip' })
+    .click()
   await expect(page).toHaveURL(/\/history\/[^/]+$/)
   await startBench(page)
   await expect(page.getByRole('note')).toHaveCount(0)

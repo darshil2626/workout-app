@@ -2,6 +2,7 @@ import { db, DEFAULT_SETTINGS } from '../db/db'
 import { findBackupProblems } from './backupSchema'
 import { recordBackup } from './backupReminder'
 import { detectInstallPlatform } from './platform'
+import { normaliseTrainingDays } from './trainingDays'
 import type { Exercise, Folder, Measurement, Routine, Settings, Workout } from '../db/types'
 
 /** v2 added `measurements`; v1 files still import, they just have none. */
@@ -187,6 +188,7 @@ async function replaceAll(data: BackupFile): Promise<void> {
       ...data.settings,
       analyticsEnabled: mine?.analyticsEnabled ?? DEFAULT_SETTINGS.analyticsEnabled,
       analyticsConsentAt: mine?.analyticsConsentAt ?? DEFAULT_SETTINGS.analyticsConsentAt,
+      trainingDays: normaliseTrainingDays(data.settings.trainingDays ?? []),
       id: 1,
     })
   }

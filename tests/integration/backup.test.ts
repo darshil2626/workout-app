@@ -118,6 +118,41 @@ describe('backup round trip', () => {
     expect(await db.settings.get(1)).toEqual({ ...DEFAULT_SETTINGS, weightUnit: 'lb', id: 1 })
   })
 
+  it('training days survive export and restore', async () => {
+    await initDb()
+    await db.settings.update(1, { trainingDays: [0, 2, 4], weeklyGoalWorkouts: 3 })
+    const text = JSON.stringify(await buildBackup())
+    expect(JSON.parse(text).settings.trainingDays).toEqual([0, 2, 4])
+    await wipeAllData()
+    await restoreBackup(text)
+    expect(await db.settings.get(1)).toMatchObject({ trainingDays: [0, 2, 4], weeklyGoalWorkouts: 3 })
+  })
+
+  it('a backup written before training days existed restores with none chosen', async () => {
+    await initDb()
+    const b = await buildBackup()
+    const { trainingDays: _dropped, ...older } = b.settings
+    await db.settings.update(1, { trainingDays: [1, 3] })
+    await restoreBackup(JSON.stringify({ ...b, settings: older }))
+    expect((await db.settings.get(1))?.trainingDays).toEqual([])
+  })
+
+  it('restores duplicated or unsorted training days as a clean list', async () => {
+    await initDb()
+    const b = await buildBackup()
+    await restoreBackup(JSON.stringify({ ...b, settings: { ...b.settings, trainingDays: [5, 1, 1, 1, 5] } }))
+    expect((await db.settings.get(1))?.trainingDays).toEqual([1, 5])
+  })
+
+  it('refuses training days that are not weekdays', async () => {
+    await initDb()
+    const b = await buildBackup()
+    for (const bad of ['Mon', [7], [1.5], null]) {
+      const text = JSON.stringify({ ...b, settings: { ...b.settings, trainingDays: bad } })
+      expect(() => parseBackup(text), JSON.stringify(bad)).toThrow(/settings\.trainingDays/)
+    }
+  })
+
   it('wipeAllData clears every table', async () => {
     await populate()
     await wipeAllData()

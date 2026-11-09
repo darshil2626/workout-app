@@ -239,6 +239,13 @@ export interface Settings {
   bodyweightKg: number | null
   /** Workouts per week the home goal ring is measured against. */
   weeklyGoalWorkouts: number
+  /**
+   * Weekdays the person said they usually train, 0 = Sunday … 6 = Saturday,
+   * sorted and unique. Empty means never chosen. Asked once after the first
+   * workout and editable in Settings; only ever used as a prompt, never to
+   * count a day as missed.
+   */
+  trainingDays: number[]
   /** 'system' follows the OS's light/dark preference and stays live if it changes. */
   theme: Theme
   /**

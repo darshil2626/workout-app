@@ -19,6 +19,8 @@ import { CopyDebugInfo } from '../components/CopyDebugInfo'
 import { InstallSteps } from '../components/InstallSteps'
 import { useInstall } from '../lib/install'
 import { DataDialogs, DataSection } from './settings/DataSection'
+import { TrainingDayChips } from '../components/TrainingDayChips'
+import { formatTrainingDays } from '../lib/trainingDays'
 import { useDataTransfer } from './settings/useDataTransfer'
 
 const REST_PRESETS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
@@ -36,6 +38,9 @@ export function SettingsPage() {
   const [stepSheet, setStepSheet] = useState(false)
   const [barSheet, setBarSheet] = useState(false)
   const [plateSheet, setPlateSheet] = useState(false)
+  // Draft days while the training-days sheet is open; null when it is closed.
+  const [draftDays, setDraftDays] = useState<number[] | null>(null)
+  const [goalFollowsDays, setGoalFollowsDays] = useState(false)
   const [bodyweight, setBodyweight] = useState<string | null>(null)
   // Set while a bulk rewrite of stored history is in flight.
   const [busy, setBusy] = useState(false)
@@ -68,6 +73,23 @@ export function SettingsPage() {
     }
   }
 
+  /**
+   * Goal rule: the weekly goal follows the days only when it still equals the
+   * previous number of days, i.e. it was set from them (or never moved away
+   * from them). A goal set separately with the stepper is left alone unless
+   * the person ticks the switch in the sheet.
+   */
+  function openDaysSheet() {
+    setDraftDays(settings.trainingDays)
+    setGoalFollowsDays(settings.weeklyGoalWorkouts === settings.trainingDays.length)
+  }
+
+  function saveDays(days: number[]) {
+    const goalChange = goalFollowsDays && days.length > 0 ? { weeklyGoalWorkouts: days.length } : {}
+    void updateSettings({ trainingDays: days, ...goalChange })
+    setDraftDays(null)
+  }
+
   function saveBodyweight() {
     const n = bodyweight === null ? null : parseNumber(bodyweight)
     void updateSettings({
@@ -97,6 +119,16 @@ export function SettingsPage() {
             <div className="stack grow" style={{ textAlign: 'left' }}>
               <span>Body measurements</span>
               <span className="faint">Bodyweight, body fat and circumferences</span>
+            </div>
+            <span className="muted">›</span>
+          </button>
+          <div className="divider" />
+          <button className="row-between" style={{ width: '100%' }} onClick={openDaysSheet}>
+            <div className="stack grow" style={{ textAlign: 'left' }}>
+              <span>Training days</span>
+              <span className="faint">
+                {formatTrainingDays(settings.trainingDays, settings.firstDayOfWeek) ?? 'Not set'}
+              </span>
             </div>
             <span className="muted">›</span>
           </button>
@@ -512,6 +544,31 @@ export function SettingsPage() {
             </button>
           )
         })}
+      </Sheet>
+
+      <Sheet
+        open={draftDays !== null}
+        title="Training days"
+        onClose={() => setDraftDays(null)}
+        footer={
+          <button className="btn btn-primary grow" onClick={() => draftDays && saveDays(draftDays)}>
+            Save
+          </button>
+        }
+      >
+        <TrainingDayChips value={draftDays ?? []} firstDayOfWeek={settings.firstDayOfWeek} onChange={setDraftDays} />
+        {draftDays && draftDays.length > 0 && draftDays.length !== settings.weeklyGoalWorkouts && (
+          <div className="row-between" style={{ marginTop: 12 }}>
+            <span className="grow">Set weekly goal to {draftDays.length}</span>
+            <button
+              className={`switch${goalFollowsDays ? ' on' : ''}`}
+              role="switch"
+              aria-checked={goalFollowsDays}
+              aria-label={`Set weekly goal to ${draftDays.length}`}
+              onClick={() => setGoalFollowsDays(!goalFollowsDays)}
+            />
+          </div>
+        )}
       </Sheet>
 
       <DataDialogs data={data} />

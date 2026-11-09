@@ -127,6 +127,11 @@ test.describe('a first visit from a stranger', () => {
       .getByRole('button', { name: 'Finish', exact: true })
       .click()
     await page.getByRole('dialog', { name: 'Workout complete' }).getByRole('button', { name: 'Skip' }).click()
+    // A first-ever finish asks for training days next (optional); skip that too.
+    await page
+      .getByRole('dialog', { name: 'Which days do you usually train?' })
+      .getByRole('button', { name: 'Skip' })
+      .click()
     // The app opens the saved workout once the finish is written; loading another page
     // before then cuts the write off and leaves the session active.
     await expect(page).toHaveURL(/\/history\/[^/]+$/)

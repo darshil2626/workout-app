@@ -509,6 +509,10 @@ export interface HomeStatus {
  * only one of the three that will still be true tomorrow. A new user gets the
  * weekday alone — inventing a fact from no data is how a dashboard starts
  * lying.
+ *
+ * `trainingDayToday` (one of the person's chosen days, nothing logged yet) is
+ * a nudge, so it sits below all three. It only ever names today: a chosen day
+ * that went by without a session is never mentioned.
  */
 export function homeStatus(
   goal: WeekProgress,
@@ -516,6 +520,7 @@ export function homeStatus(
   hasHistory: boolean,
   sessionRunning: boolean,
   now = Date.now(),
+  trainingDayToday = false,
 ): HomeStatus {
   const day = new Date(now).toLocaleDateString(undefined, { weekday: 'long' })
   if (sessionRunning) return { day, fact: 'session running' }
@@ -534,6 +539,8 @@ export function homeStatus(
   if (stalest && restState(stalest.daysSince) === 'overdue') {
     return { day, fact: `${stalest.muscle} is overdue` }
   }
+
+  if (trainingDayToday) return { day, fact: 'training day' }
 
   if (goal.goal > 0) {
     if (goal.state === 'hit') return { day, fact: 'week’s goal hit' }

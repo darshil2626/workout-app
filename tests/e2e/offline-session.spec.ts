@@ -24,6 +24,11 @@ async function finishAndSkipRating(page: Page) {
     .getByRole('button', { name: 'Finish', exact: true })
     .click()
   await page.getByRole('dialog', { name: 'Workout complete' }).getByRole('button', { name: 'Skip' }).click()
+  // A first-ever finish asks for training days next (optional); skip that too.
+  await page
+    .getByRole('dialog', { name: 'Which days do you usually train?' })
+    .getByRole('button', { name: 'Skip' })
+    .click()
   await expect(page).toHaveURL(/\/history\/[^/]+$/)
 }
 

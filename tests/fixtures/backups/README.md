@@ -9,6 +9,7 @@ screen. They are never edited to "catch up": the point is that they stay old.
 | `01-ironlog-first-release.json`     | the first release (named IronLog)     | backup version 1: no `measurements`, only the original settings, no effort or feeling |
 | `02-ironlog-with-measurements.json` | IronLog after measurements arrived    | backup version 2, measurements, a folder, a workout left running, lb units            |
 | `03-trana-current.json`             | Trana as of this directory's creation | every field today's build writes, including effort, feeling and the analytics consent |
+| `04-trana-training-days.json`       | Trana with training days              | `03` plus `settings.trainingDays` (Mon, Wed, Fri)                                     |
 
 They are consumed by `tests/integration/backupHistory.test.ts` (restore and calculations)
 and `tests/e2e/restore-old-backups.spec.ts` (through the real Import screen).

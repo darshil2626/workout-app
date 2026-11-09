@@ -39,6 +39,7 @@ describe('the fixture set', () => {
       '01-ironlog-first-release.json',
       '02-ironlog-with-measurements.json',
       '03-trana-current.json',
+      '04-trana-training-days.json',
     ])
   })
 

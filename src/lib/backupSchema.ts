@@ -124,6 +124,13 @@ export function findBackupProblems(b: {
   }
 
   if (b.settings !== undefined && b.settings !== null && !isRow(b.settings)) p.add('settings', 'an object')
+  else if (isRow(b.settings) && b.settings.trainingDays !== undefined) {
+    // Absent in files written before it existed; restore fills it with [].
+    // Duplicates and order are fixed on restore (normaliseTrainingDays).
+    const days = b.settings.trainingDays
+    if (!Array.isArray(days) || !days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))
+      p.add('settings.trainingDays', 'a list of weekdays 0-6')
+  }
 
   return p.list
 }

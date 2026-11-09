@@ -3,6 +3,7 @@ import { listDoneWorkouts } from '../db/repo'
 import { useState } from 'react'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useSearchParams } from 'react-router-dom'
 import type { DistanceUnit, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { Sheet } from '../components/Sheet'
@@ -33,6 +34,9 @@ export function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const data = useDataTransfer({ setMessage, setError })
+  // Set by the first-run "switching from another app" choice.
+  const [searchParams] = useSearchParams()
+  const highlightImport = searchParams.get('import') === '1'
 
   const [restSheet, setRestSheet] = useState(false)
   const [stepSheet, setStepSheet] = useState(false)
@@ -386,7 +390,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <DataSection data={data} />
+        <DataSection data={data} highlightImport={highlightImport} />
 
         <div className="section-title">Privacy</div>
         <div className="card">

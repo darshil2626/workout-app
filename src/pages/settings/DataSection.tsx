@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { countDoneWorkouts, countExercises, countRoutines } from '../../db/repo'
 import type { DistanceUnit, WeightUnit } from '../../db/types'
@@ -5,8 +6,25 @@ import { ConfirmSheet, Sheet } from '../../components/Sheet'
 import { formatRelative } from '../../lib/time'
 import { describeCsvPreview, describeExerciseFixes, describeHistoryIssues, type DataTransfer } from './useDataTransfer'
 
-/** The "Your data" card: counts, backup, import, cleanup and delete-all. */
-export function DataSection({ data }: { data: DataTransfer }) {
+/**
+ * The "Your data" card: counts, backup, import, cleanup and delete-all.
+ *
+ * `highlightImport` comes from the first-run "switching from another app"
+ * choice: the import button is scrolled to, focused and made the primary
+ * action. The file picker itself is not opened, because browsers only allow
+ * that from the user's own tap.
+ */
+export function DataSection({ data, highlightImport = false }: { data: DataTransfer; highlightImport?: boolean }) {
+  const importRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!highlightImport) return
+    // A frame later, so it lands after the shell's scroll-to-top for a new screen.
+    const raf = requestAnimationFrame(() => {
+      importRef.current?.scrollIntoView({ block: 'center' })
+      importRef.current?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [highlightImport])
   const {
     fileRef,
     backupStatus,
@@ -53,7 +71,11 @@ export function DataSection({ data }: { data: DataTransfer }) {
           <button className="btn btn-ghost btn-block" onClick={() => void exportBackup()}>
             Export backup (.json)
           </button>
-          <button className="btn btn-ghost btn-block" onClick={() => fileRef.current?.click()}>
+          <button
+            ref={importRef}
+            className={`btn ${highlightImport ? 'btn-primary' : 'btn-ghost'} btn-block`}
+            onClick={() => fileRef.current?.click()}
+          >
             Import backup or CSV
           </button>
           {restoreSnapshot && (

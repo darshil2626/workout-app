@@ -70,7 +70,17 @@ test('minimise returns to the tabs and the banner resumes the workout', async ({
 })
 
 test('starting a second workout while one is running is blocked', async ({ page }) => {
-  await startWithBench(page)
+  // A fresh install no longer comes with a routine to try starting, so take one
+  // from the first-run templates: that saves one routine (outside any folder,
+  // so its card is on Home) and starts it.
+  await page.goto('/')
+  await waitForApp(page)
+  await page.getByRole('button', { name: /I’m new to lifting/ }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Full Body \(Machines\)/ })
+    .click()
+  await expect(page).toHaveURL(/\/workout$/)
   await page.getByRole('button', { name: 'Minimise workout' }).click()
   // PrimaryAction becomes "resume"; a routine start is refused with a prompt.
   await page.getByRole('button', { name: 'Start routine' }).click()

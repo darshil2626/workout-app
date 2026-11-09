@@ -34,6 +34,8 @@ import {
 } from '../lib/home'
 import { ConsistencyCalendar } from '../components/home/ConsistencyCalendar'
 import { FirstRun } from '../components/home/FirstRun'
+import { TemplateSheet } from '../components/home/TemplateSheet'
+import { installTemplate, type Template } from '../lib/templates'
 import { GoalRing } from '../components/home/GoalRing'
 import { PrimaryAction } from '../components/home/PrimaryAction'
 import { RecentWins, collectWins, type Win } from '../components/home/RecentWins'
@@ -144,6 +146,9 @@ export function HomePage() {
   const [folderName, setFolderName] = useState('')
   const [deletingFolder, setDeletingFolder] = useState<Folder | null>(null)
   const [startBlocked, setStartBlocked] = useState<null | { routine?: Routine }>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  // A second tap while the first template is still saving would install it twice.
+  const installing = useRef(false)
   const routinesRef = useRef<HTMLDivElement>(null)
 
   const folderList = useMemo(() => folders ?? [], [folders])
@@ -290,6 +295,19 @@ export function HomePage() {
     navigate('/workout')
   }
 
+  /** Saves a starter template as the user's own routines and starts its first day. */
+  async function startTemplate(template: Template) {
+    if (installing.current) return
+    installing.current = true
+    try {
+      const first = await installTemplate(template)
+      setTemplatesOpen(false)
+      await start(first)
+    } finally {
+      installing.current = false
+    }
+  }
+
   async function createFolder() {
     const name = folderName.trim()
     if (name === '') return
@@ -381,7 +399,12 @@ export function HomePage() {
           <HomeSkeleton />
         ) : firstRun ? (
           <>
-            <FirstRun onStartEmpty={() => void start()} onNewRoutine={() => navigate('/routines/new')} />
+            <FirstRun
+              onNewToLifting={() => setTemplatesOpen(true)}
+              onStartEmpty={() => void start()}
+              onSwitching={() => navigate('/settings?import=1')}
+              onNewRoutine={() => navigate('/routines/new')}
+            />
             {/* Below the main action, so the first thing on screen is starting a workout. */}
             <HomeNotices hasHistory={hasHistory} />
           </>
@@ -424,6 +447,12 @@ export function HomePage() {
           </>
         )}
       </div>
+
+      <TemplateSheet
+        open={templatesOpen}
+        onPick={(t) => void startTemplate(t)}
+        onClose={() => setTemplatesOpen(false)}
+      />
 
       <Sheet open={menuRoutine !== null} title={menuRoutine?.name} onClose={() => setMenuRoutine(null)}>
         <button

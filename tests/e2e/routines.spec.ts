@@ -17,7 +17,8 @@ test('create, edit, and start a routine with prefilled targets', async ({ page }
   await waitForApp(page)
 
   // --- create ---
-  await page.getByRole('button', { name: 'New routine' }).click()
+  // No seeded routine any more, so an empty install opens on the first-run question.
+  await page.getByRole('button', { name: 'Build a routine first' }).click()
   await expect(page).toHaveURL(/\/routines\/new$/)
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
   await page.locator('#routine-name').fill('Push Day')
@@ -104,7 +105,7 @@ test('cancel on a changed routine asks before discarding', async ({ page }) => {
 test('routine target fields reject values over the set-row limits', async ({ page }) => {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'New routine' }).click()
+  await page.getByRole('button', { name: 'Build a routine first' }).click()
   await page.locator('#routine-name').fill('Limits')
   await addExercise(page, 'Bench Press (Barbell)')
   const block = page.locator('.ex-block').first()
@@ -132,7 +133,7 @@ test('routine target fields reject values over the set-row limits', async ({ pag
 test('a rejected routine target keeps the last good value, and distance has a limit', async ({ page }) => {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'New routine' }).click()
+  await page.getByRole('button', { name: 'Build a routine first' }).click()
   await page.locator('#routine-name').fill('Limits 2')
   await addExercise(page, 'Bench Press (Barbell)')
   const weight = page.locator('.ex-block').first().getByLabel('Target weight').first()

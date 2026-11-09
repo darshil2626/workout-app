@@ -1,31 +1,22 @@
 import { test, expect, waitForApp, openTab } from './helpers/fixtures'
 
-test.describe('cold start with an empty database', () => {
-  test('loads with the starter routine and no active workout', async ({ page }) => {
-    await page.goto('/')
-    await waitForApp(page)
-    // A fresh install is seeded with one starter routine, so the dashboard
-    // (not the first-run screen) is what a brand-new user lands on.
-    await expect(page.getByRole('button', { name: 'Start Full Body Starter' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
-    await expect(page.locator('.active-banner')).toHaveCount(0)
-  })
+/** The first-run "I already lift" card, which a cold start lands on. */
+const ALREADY_LIFT = /I already lift/
 
-  test('first-run screen shows once the starter routine is deleted', async ({ page }) => {
+test.describe('cold start with an empty database', () => {
+  // Changed on purpose: a fresh install used to be seeded with a "Full Body
+  // Starter" routine, so it opened on the dashboard (and the first-run screen
+  // was only reachable by deleting that routine). It now has no routine and
+  // opens on the first-run question instead.
+  test('loads on the first-run question with no routine and no active workout', async ({ page }) => {
     await page.goto('/')
     await waitForApp(page)
-    await page.locator('.card', { hasText: 'Full Body Starter' }).getByRole('button').first().click()
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: /Delete routine/ })
-      .click()
-    await page
-      .getByRole('dialog', { name: /Delete/ })
-      .getByRole('button', { name: 'Delete', exact: true })
-      .click()
-    await expect(page.getByRole('heading', { name: /log the first one/i })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Start empty workout' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'How do you want to start?' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /I’m new to lifting/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: ALREADY_LIFT })).toBeVisible()
+    await expect(page.getByRole('button', { name: /I’m switching from another app/ })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Build a routine first' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Full Body Starter/ })).toHaveCount(0)
     await expect(page.locator('.active-banner')).toHaveCount(0)
   })
 
@@ -48,7 +39,8 @@ test.describe('cold start with an empty database', () => {
     await openTab(page, 'Home')
     await expect(page).toHaveURL(/\/$/)
     await expect(nav.getByRole('link', { name: 'Home' })).toHaveClass(/active/)
-    await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+    // Was 'Empty workout' on the seeded dashboard; an empty install now shows the first-run cards.
+    await expect(page.getByRole('button', { name: ALREADY_LIFT })).toBeVisible()
   })
 
   test('header shortcuts open the exercise library and settings', async ({ page }) => {
@@ -63,6 +55,6 @@ test.describe('cold start with an empty database', () => {
   test('unknown routes fall back to home', async ({ page }) => {
     await page.goto('/no-such-page')
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+    await expect(page.getByRole('button', { name: ALREADY_LIFT })).toBeVisible()
   })
 })

@@ -36,7 +36,13 @@ import { ConsistencyCalendar } from '../components/home/ConsistencyCalendar'
 import { FirstRun } from '../components/home/FirstRun'
 import { TemplateSheet } from '../components/home/TemplateSheet'
 import { installTemplate, type Template } from '../lib/templates'
-import { detectInstallPlatform, useInstall } from '../lib/install'
+import {
+  detectInstallPlatform,
+  installBannerHidden,
+  isInstallSnoozed,
+  uninstalledDataAtRisk,
+  useInstall,
+} from '../lib/install'
 import { InstallSteps } from '../components/InstallSteps'
 import { GoalRing } from '../components/home/GoalRing'
 import { PrimaryAction } from '../components/home/PrimaryAction'
@@ -48,7 +54,6 @@ import { Skeleton } from '../components/Skeleton'
 import { InstallBanner } from '../components/InstallBanner'
 import { BackupReminder } from '../components/BackupReminder'
 import { AnalyticsConsent } from '../components/AnalyticsConsent'
-import { installBannerHidden, isInstallSnoozed, uninstalledDataAtRisk, useInstall } from '../lib/install'
 
 /**
  * How many finished sessions are scanned for personal records.

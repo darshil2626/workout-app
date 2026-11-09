@@ -40,6 +40,8 @@ export const DEFAULT_SETTINGS: Settings = {
   // home screen explains where the number comes from and offers one drawn
   // from your own history once there is enough of it.
   weeklyGoalWorkouts: 3,
+  // Empty until the person picks their days (see Settings.trainingDays).
+  trainingDays: [],
   // Follows the OS by default rather than staying pinned to the dark palette
   // this app shipped with until now — an install on a light-mode device will
   // see that the moment this build lands, before ever opening Settings.
@@ -94,6 +96,19 @@ class TranaDB extends Dexie {
     this.version(4).stores({
       snapshots: 'id',
     })
+    // v5 adds `trainingDays` to the settings row. No store or index changes;
+    // the upgrade only fills the new field so every reader can rely on it, and
+    // leaves every other setting exactly as it was.
+    this.version(5)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table('settings')
+          .toCollection()
+          .modify((s: Partial<Settings>) => {
+            if (!Array.isArray(s.trainingDays)) s.trainingDays = []
+          }),
+      )
   }
 }
 

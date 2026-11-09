@@ -15,6 +15,7 @@ const V1_STORES = {
 }
 const V2_STORES = { measurements: 'id, type, takenAt, [type+takenAt]' }
 const V3_STORES = { meta: 'key' }
+const V4_STORES = { snapshots: 'id' }
 
 const exA: Exercise = {
   id: 'my-custom',
@@ -64,13 +65,14 @@ const routine: Routine = {
 const oldSettings = { id: 1, weightUnit: 'lb', distanceUnit: 'mi', defaultRestSeconds: 120 }
 
 /** Closes the app db, wipes it, and builds a raw database of an older schema under the same name. */
-async function makeOld(version: 1 | 2 | 3): Promise<void> {
+async function makeOld(version: 1 | 2 | 3 | 4): Promise<void> {
   db.close()
   await db.delete()
   const raw = new Dexie('trana')
   raw.version(1).stores(V1_STORES)
   if (version >= 2) raw.version(2).stores(V2_STORES)
   if (version >= 3) raw.version(3).stores(V3_STORES)
+  if (version >= 4) raw.version(4).stores(V4_STORES)
   await raw.open()
   await raw.table('exercises').bulkPut([exA])
   await raw.table('workouts').bulkPut([w1, w2])
@@ -94,13 +96,14 @@ describe('schema upgrades keep installed data', () => {
   it('v1 -> current: every row survives unchanged and indexes work', async () => {
     await makeOld(1)
     await db.open()
-    expect(db.verno).toBe(4)
+    expect(db.verno).toBe(5)
     expect(await db.exercises.get('my-custom')).toEqual(exA)
     expect(await db.workouts.get('w1')).toEqual(w1)
     expect(await db.workouts.get('w2')).toEqual(w2)
     expect(await db.routines.get('r1')).toEqual(routine)
     expect(await db.folders.get('f1')).toEqual({ id: 'f1', name: 'Upper', order: 0, createdAt: 3 })
-    expect(await db.settings.get(1)).toEqual(oldSettings)
+    // v5 adds `trainingDays: []` to the settings row and changes nothing else.
+    expect(await db.settings.get(1)).toEqual({ ...oldSettings, trainingDays: [] })
     // New tables exist and are empty.
     expect(await db.measurements.count()).toBe(0)
     expect(await db.meta.count()).toBe(0)
@@ -117,11 +120,56 @@ describe('schema upgrades keep installed data', () => {
   it('v3 -> current: gains an empty snapshots table and keeps everything else', async () => {
     await makeOld(3)
     await db.open()
-    expect(db.verno).toBe(4)
+    expect(db.verno).toBe(5)
     expect(await db.snapshots.count()).toBe(0)
     expect(await db.workouts.count()).toBe(2)
     expect(await db.measurements.count()).toBe(3)
     expect(await db.exercises.get('my-custom')).toEqual(exA)
+  })
+
+  it('v4 -> current: the settings row gains an empty trainingDays and loses nothing', async () => {
+    db.close()
+    await db.delete()
+    const raw = new Dexie('trana')
+    raw.version(1).stores(V1_STORES)
+    raw.version(2).stores(V2_STORES)
+    raw.version(3).stores(V3_STORES)
+    raw.version(4).stores(V4_STORES)
+    await raw.open()
+    // A full row as the v4 build wrote it: every field a person may have chosen.
+    const { trainingDays: _absent, ...v4Settings } = {
+      ...DEFAULT_SETTINGS,
+      weightUnit: 'lb' as const,
+      weeklyGoalWorkouts: 5,
+      firstDayOfWeek: 0 as const,
+      bodyweightKg: 82.5,
+      analyticsEnabled: true,
+      analyticsConsentAt: 1_700_000_000_000,
+    }
+    await raw.table('settings').put(v4Settings)
+    await raw.table('workouts').bulkPut([w1, w2])
+    await raw.table('snapshots').put({ id: 'pre-restore', createdAt: 7, backup: { app: 'trana' } })
+    raw.close()
+
+    await db.open()
+    expect(db.verno).toBe(5)
+    expect(await db.settings.get(1)).toEqual({ ...v4Settings, trainingDays: [] })
+    expect(await db.workouts.get('w1')).toEqual(w1)
+    expect(await db.snapshots.count()).toBe(1)
+    // And starting the app on top keeps it that way.
+    await initDb()
+    expect(await db.settings.get(1)).toEqual({ ...v4Settings, trainingDays: [] })
+  })
+
+  it('v5 upgrade leaves an already-present trainingDays alone', async () => {
+    await makeOld(4)
+    const raw = new Dexie('trana')
+    raw.version(4).stores({ ...V1_STORES, ...V2_STORES, ...V3_STORES, ...V4_STORES })
+    await raw.open()
+    await raw.table('settings').put({ ...oldSettings, trainingDays: [1, 3, 5] })
+    raw.close()
+    await db.open()
+    expect((await db.settings.get(1))?.trainingDays).toEqual([1, 3, 5])
   })
 
   it('v2 -> current: measurements and compound index survive', async () => {

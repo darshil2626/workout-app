@@ -33,7 +33,8 @@ test('Settings offers feedback, and copy-debug-info holds facts but no workout c
   const text = await page.evaluate(() => navigator.clipboard.readText())
   expect(text).toContain('Build:')
   expect(text).toMatch(/Stored: \d+ workouts, \d+ routines/)
-  expect(text).toMatch(/Database version: 4(\r?\n|$)/)
+  // 5 since the schema version that added settings.trainingDays.
+  expect(text).toMatch(/Database version: 5(\r?\n|$)/)
   // Nothing from inside the history.
   expect(text).not.toContain('Bench Press')
 })

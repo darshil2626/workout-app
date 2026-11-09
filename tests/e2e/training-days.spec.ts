@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 
 const DAYS_DIALOG = 'Which days do you usually train?'
 
-async function logAndFinish(page: Page) {
+async function logAndFinish(page: Page, rating?: { effort: string; feeling: string }) {
   await page.goto('/')
   await waitForApp(page)
   await page.getByRole('button', { name: 'Empty workout' }).click()
@@ -19,7 +19,14 @@ async function logAndFinish(page: Page) {
     .getByRole('dialog', { name: 'Finish workout?' })
     .getByRole('button', { name: 'Finish', exact: true })
     .click()
-  await page.getByRole('dialog', { name: 'Workout complete' }).getByRole('button', { name: 'Skip' }).click()
+  const sheet = page.getByRole('dialog', { name: 'Workout complete' })
+  if (rating) {
+    await sheet.getByRole('button', { name: rating.effort, exact: true }).click()
+    await sheet.getByRole('button', { name: rating.feeling, exact: true }).click()
+    await sheet.getByRole('button', { name: 'Save' }).click()
+  } else {
+    await sheet.getByRole('button', { name: 'Skip' }).click()
+  }
 }
 
 const settingsRow = async (page: Page) => (await readStore(page, 'settings'))[0]
@@ -60,6 +67,50 @@ test('the first finish asks for training days once, and Settings shows the answe
   await logAndFinish(page)
   await expect(page).toHaveURL(/\/history\/[^/]+$/)
   await expect(page.getByRole('dialog', { name: DAYS_DIALOG })).toHaveCount(0)
+})
+
+test('the rating from the first step lands on the workout after days are picked', async ({ page }) => {
+  await logAndFinish(page, { effort: 'Hard', feeling: 'Good' })
+  const step = page.getByRole('dialog', { name: DAYS_DIALOG })
+  await step.getByRole('button', { name: 'Tuesday' }).click()
+  await step.getByRole('button', { name: 'Save' }).click()
+  await expect(page).toHaveURL(/\/history\/[^/]+$/)
+  const done = (await readStore(page, 'workouts')).filter((w) => w.status === 'done')
+  expect(done).toHaveLength(1)
+  expect(done[0]).toMatchObject({ effort: 3, feeling: 4 })
+  expect(await settingsRow(page)).toMatchObject({ trainingDays: [2], weeklyGoalWorkouts: 1 })
+})
+
+test('Escape on the days step acts as Skip: workout finished, rating kept, not asked again', async ({ page }) => {
+  await logAndFinish(page, { effort: 'Easy', feeling: 'Great' })
+  await expect(page.getByRole('dialog', { name: DAYS_DIALOG })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page).toHaveURL(/\/history\/[^/]+$/)
+  const workouts = await readStore(page, 'workouts')
+  expect(workouts.filter((w) => w.status === 'active')).toHaveLength(0)
+  const done = workouts.filter((w) => w.status === 'done')
+  expect(done).toHaveLength(1)
+  expect(done[0]).toMatchObject({ effort: 1, feeling: 5 })
+  expect(await settingsRow(page)).toMatchObject({ trainingDays: [], weeklyGoalWorkouts: 3 })
+  expect(await page.evaluate(() => localStorage.getItem('trana.trainingDaysAsked'))).toBe('1')
+})
+
+test('Delete all data forgets the answer, so an erased device is asked again', async ({ page }) => {
+  await logAndFinish(page)
+  await page.getByRole('dialog', { name: DAYS_DIALOG }).getByRole('button', { name: 'Skip' }).click()
+  await expect(page).toHaveURL(/\/history\/[^/]+$/)
+  await page.goto('/settings')
+  await waitForApp(page)
+  await page.getByRole('button', { name: 'Delete all data', exact: true }).click()
+  await page
+    .getByRole('dialog', { name: 'Delete all data?' })
+    .getByRole('button', { name: 'Delete everything' })
+    .click()
+  await expect(page.getByText('All data deleted.')).toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('trana.trainingDaysAsked'))).toBeNull()
+
+  await logAndFinish(page)
+  await expect(page.getByRole('dialog', { name: DAYS_DIALOG })).toBeVisible()
 })
 
 test('Skip changes nothing and is remembered across a reload', async ({ page }) => {

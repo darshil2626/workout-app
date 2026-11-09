@@ -40,6 +40,20 @@ export function markTrainingDaysAsked(): void {
   }
 }
 
+/** After Delete all data the device is new again, so the question may come back. */
+export function forgetTrainingDaysAsked(): void {
+  try {
+    localStorage.removeItem(TRAINING_DAYS_ASKED_KEY)
+  } catch {
+    /* nothing stored, nothing to forget */
+  }
+}
+
+/** Sorted and unique, so a hand-edited or odd backup cannot store [1, 1, 1]. */
+export function normaliseTrainingDays(days: number[]): number[] {
+  return [...new Set(days)].sort((a, b) => a - b)
+}
+
 /** Only on the first-ever finish, and never again once answered or skipped. */
 export function shouldAskTrainingDays(doneBefore: number | undefined, trainingDays: number[]): boolean {
   return doneBefore === 0 && trainingDays.length === 0 && !askedBefore()

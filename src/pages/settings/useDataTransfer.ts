@@ -4,6 +4,7 @@ import { initDb } from '../../db/db'
 import { listExercises } from '../../db/repo'
 import type { DistanceUnit, Exercise, WeightUnit, Workout } from '../../db/types'
 import { useSettings } from '../../lib/useSettings'
+import { forgetTrainingDaysAsked } from '../../lib/trainingDays'
 import {
   getRestoreSnapshot,
   parseBackup,
@@ -343,6 +344,7 @@ export function useDataTransfer({ setMessage, setError }: DataReporter) {
     setConfirmWipe(false)
     restTimer.stop()
     await wipeAllData()
+    forgetTrainingDaysAsked()
     // Restore the built-in library so the app is usable straight afterwards.
     await initDb()
     setMessage('All data deleted.')

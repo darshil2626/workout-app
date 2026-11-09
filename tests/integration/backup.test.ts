@@ -137,6 +137,13 @@ describe('backup round trip', () => {
     expect((await db.settings.get(1))?.trainingDays).toEqual([])
   })
 
+  it('restores duplicated or unsorted training days as a clean list', async () => {
+    await initDb()
+    const b = await buildBackup()
+    await restoreBackup(JSON.stringify({ ...b, settings: { ...b.settings, trainingDays: [5, 1, 1, 1, 5] } }))
+    expect((await db.settings.get(1))?.trainingDays).toEqual([1, 5])
+  })
+
   it('refuses training days that are not weekdays', async () => {
     await initDb()
     const b = await buildBackup()

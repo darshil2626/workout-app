@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sheet } from './Sheet'
 import type { SessionRating } from '../state/ActiveWorkoutContext'
 import { updateSettings, useSettings } from '../lib/useSettings'
@@ -61,6 +61,9 @@ export function FinishSheet({ open, summary, onClose, onSave, askTrainingDays = 
   // The rating held while the training-days step is up; null on the first step.
   const [heldRating, setHeldRating] = useState<SessionRating | null>(null)
   const [days, setDays] = useState<number[]>([])
+  // Set from the first answer until the sheet hands the workout back, so a
+  // Save tap followed by Escape (or a double tap) cannot finish twice.
+  const answering = useRef(false)
 
   // Fires once as the sheet opens on a PR, alongside the celebration text —
   // keyed on `open` alone since `summary`/`settings` are a snapshot for the
@@ -84,11 +87,15 @@ export function FinishSheet({ open, summary, onClose, onSave, askTrainingDays = 
   }
 
   // A commitment the person picks themselves, not a target handed to them:
-  // saving makes the weekly goal the number of days chosen. Skip changes nothing.
+  // saving makes the weekly goal the number of days chosen. Skip, Escape and a
+  // tap outside the sheet all count as skipping: they change no setting but
+  // still save the workout with its rating and mark the question as asked.
   async function answerDays(chosen: number[]) {
+    if (!heldRating || answering.current) return
+    answering.current = true
     markTrainingDaysAsked()
     track('commitment_set', { days_bucket: daysBucket(chosen) })
-    const rating = heldRating ?? {}
+    const rating = heldRating
     try {
       if (chosen.length > 0)
         await updateSettings({ trainingDays: chosen, weeklyGoalWorkouts: Math.max(1, chosen.length) })
@@ -96,6 +103,7 @@ export function FinishSheet({ open, summary, onClose, onSave, askTrainingDays = 
       // The workout is saved whatever happens to this optional answer.
       setHeldRating(null)
       setDays([])
+      answering.current = false
       onSave(rating)
     }
   }
@@ -105,10 +113,7 @@ export function FinishSheet({ open, summary, onClose, onSave, askTrainingDays = 
       <Sheet
         open={open}
         title="Which days do you usually train?"
-        onClose={() => {
-          setHeldRating(null)
-          onClose()
-        }}
+        onClose={() => void answerDays([])}
         hideClose
         footer={
           <>

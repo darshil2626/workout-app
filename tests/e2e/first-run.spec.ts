@@ -63,8 +63,13 @@ test.describe('first-run question', () => {
 
   test('"I\'m switching from another app" opens Settings at the import button, once', async ({ page }) => {
     await page.getByRole('button', { name: /I’m switching from another app/ }).click()
-    await expect(page).toHaveURL(/\/settings$/) // the one-off flag is dropped from the address
+    // On iOS (the WebKit project) the card first offers "Install first, then import";
+    // that sheet has its own test below. Here, continue past it to the import path.
     const importButton = page.getByRole('button', { name: 'Import backup or CSV' })
+    const installFirst = page.getByRole('dialog', { name: 'Install first, then import' })
+    await expect(installFirst.or(importButton)).toBeVisible()
+    if (await installFirst.isVisible()) await installFirst.getByRole('button', { name: 'Import anyway' }).click()
+    await expect(page).toHaveURL(/\/settings$/) // the one-off flag is dropped from the address
     await expect(importButton).toBeInViewport()
     await expect(importButton).toBeFocused()
     await expect(importButton).toHaveClass(/btn-primary/)

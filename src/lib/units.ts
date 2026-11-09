@@ -99,3 +99,58 @@ export function parseNumber(text: string): number | null {
   const n = Number(cleaned)
   return Number.isFinite(n) ? n : null
 }
+
+/** Regions that lift in pounds. The UK lifts in kg, so GB stays metric. */
+const IMPERIAL_REGIONS = new Set(['US', 'LR', 'MM'])
+
+export interface UnitChoice {
+  weightUnit: WeightUnit
+  distanceUnit: DistanceUnit
+  lengthUnit: LengthUnit
+}
+
+export const METRIC_UNITS: UnitChoice = { weightUnit: 'kg', distanceUnit: 'km', lengthUnit: 'cm' }
+export const IMPERIAL_UNITS: UnitChoice = { weightUnit: 'lb', distanceUnit: 'mi', lengthUnit: 'in' }
+
+/**
+ * Starting units for a new install, from a BCP 47 locale such as "en-US".
+ * Anything without a pound-using region, or anything unparseable, is metric.
+ */
+export function defaultUnitsForLocale(locale: string | undefined): UnitChoice {
+  if (!locale) return METRIC_UNITS
+  let region: string | undefined
+  try {
+    region = new Intl.Locale(locale.replace(/_/g, '-')).region
+  } catch {
+    return METRIC_UNITS
+  }
+  return region && IMPERIAL_REGIONS.has(region.toUpperCase()) ? IMPERIAL_UNITS : METRIC_UNITS
+}
+
+/**
+ * A stored weight re-read in another unit at the same face value: 60 entered
+ * in kg becomes 60 lb (27.216 kg). Used when someone realises mid-session that
+ * they typed in the wrong unit; converting instead would turn their 60 into 132.28.
+ * The face value is what the set row shows (two decimals), rounded like SetRow.
+ */
+export function reinterpretWeight(kg: number, from: WeightUnit, to: WeightUnit): number {
+  const faceValue = Number(trimNumber(kgToDisplay(kg, from)))
+  return Math.round(displayToKg(faceValue, to) * 1000) / 1000
+}
+
+/** The device's preferred locale, or undefined where there is no navigator. */
+export function deviceLocale(): string | undefined {
+  if (typeof navigator === 'undefined') return undefined
+  return navigator.languages?.[0] ?? navigator.language
+}
+
+/**
+ * The units after the one-tap kg/lb switch. Distance and length follow only while
+ * all three still match one system; a mix means someone chose them by hand.
+ */
+export function flippedUnits(current: UnitChoice): Partial<UnitChoice> {
+  const from = current.weightUnit === 'kg' ? METRIC_UNITS : IMPERIAL_UNITS
+  const to = current.weightUnit === 'kg' ? IMPERIAL_UNITS : METRIC_UNITS
+  const untouched = current.distanceUnit === from.distanceUnit && current.lengthUnit === from.lengthUnit
+  return untouched ? { ...to } : { weightUnit: to.weightUnit }
+}

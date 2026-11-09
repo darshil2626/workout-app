@@ -12,6 +12,9 @@ export default defineConfig({
     baseURL: 'http://localhost:4199',
     serviceWorkers: 'allow',
     trace: 'retain-on-failure',
+    // A new install picks its units from the locale (US → lb). Pin a metric one so
+    // the suite does not depend on the machine; specs that need another override it.
+    locale: 'en-GB',
   },
   // WebKit is Safari's engine, which is what every iPhone browser runs. It catches
   // engine bugs, not iOS behaviour: Home Screen install, storage eviction and audio

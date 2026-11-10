@@ -1,4 +1,4 @@
-import { test, expect, waitForApp } from './helpers/fixtures'
+import { test, expect, ALREADY_LIFT, waitForApp } from './helpers/fixtures'
 
 async function openBench(page: import('@playwright/test').Page, fresh = true) {
   if (fresh) {
@@ -21,7 +21,7 @@ test('an exercise page starts a workout with that exercise', async ({ page }) =>
 test('with a workout running it adds to it, and does not add twice', async ({ page }) => {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await page.getByRole('button', { name: 'Minimise workout' }).click()
   await openBench(page, false)
   await page.getByRole('button', { name: 'Add to current workout' }).click()

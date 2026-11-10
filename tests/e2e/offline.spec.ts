@@ -1,4 +1,4 @@
-import { test, expect, waitForApp, openTab } from './helpers/fixtures'
+import { test, expect, ALREADY_LIFT, waitForApp, openTab } from './helpers/fixtures'
 
 test('app shell and visited routes work offline after the service worker is ready', async ({ page, context }) => {
   await page.goto('/')
@@ -26,7 +26,10 @@ test('app shell and visited routes work offline after the service worker is read
   await openTab(page, 'Stats')
   await expect(page.locator('.header-title')).toHaveText('Stats')
   await openTab(page, 'Home')
-  await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+  // An empty install's Home is the first-run question; its "I already lift" card is
+  // the proof that Home rendered offline (there is no dashboard without data).
+  await expect(page.getByRole('heading', { name: 'How do you want to start?' })).toBeVisible()
+  await expect(page.getByRole('button', { name: ALREADY_LIFT })).toBeVisible()
 
   // A hard navigation to a route never visited in this session also renders.
   await page.goto('/settings')
@@ -34,7 +37,7 @@ test('app shell and visited routes work offline after the service worker is read
 
   // And data still writes offline: a workout can be started and survives a reload.
   await page.goto('/')
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await expect(page).toHaveURL(/\/workout$/)
   await page.reload()
   await expect(page).toHaveURL(/\/workout$/)

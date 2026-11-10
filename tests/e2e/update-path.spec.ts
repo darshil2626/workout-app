@@ -4,7 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import type { AddressInfo } from 'node:net'
 import type { Page } from '@playwright/test'
-import { test, expect, waitForApp, readStore, waitForWorkoutSaved } from './helpers/fixtures'
+import { test, expect, ALREADY_LIFT, waitForApp, readStore, waitForWorkoutSaved } from './helpers/fixtures'
 
 // What an installed copy goes through when a release lands: the new service worker
 // downloads while the old page keeps running, a prompt offers the reload, and nobody
@@ -120,7 +120,7 @@ async function installOldBuildWithWorkoutInProgress(page: Page) {
   await waitForApp(page)
   await expect.poll(() => controllingBuild(page)).toBe('old')
 
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await page.getByLabel('Workout name').fill(WORKOUT_NAME)
   await page.getByLabel('Workout name').blur()
   await waitForWorkoutSaved(page, (w) => w.name === WORKOUT_NAME)

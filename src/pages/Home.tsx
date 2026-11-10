@@ -34,6 +34,16 @@ import {
 } from '../lib/home'
 import { ConsistencyCalendar } from '../components/home/ConsistencyCalendar'
 import { FirstRun } from '../components/home/FirstRun'
+import { TemplateSheet } from '../components/home/TemplateSheet'
+import { installTemplate, type Template } from '../lib/templates'
+import {
+  detectInstallPlatform,
+  installBannerHidden,
+  isInstallSnoozed,
+  uninstalledDataAtRisk,
+  useInstall,
+} from '../lib/install'
+import { InstallSteps } from '../components/InstallSteps'
 import { GoalRing } from '../components/home/GoalRing'
 import { PrimaryAction } from '../components/home/PrimaryAction'
 import { RecentWins, collectWins, type Win } from '../components/home/RecentWins'
@@ -44,7 +54,6 @@ import { Skeleton } from '../components/Skeleton'
 import { InstallBanner } from '../components/InstallBanner'
 import { BackupReminder } from '../components/BackupReminder'
 import { AnalyticsConsent } from '../components/AnalyticsConsent'
-import { installBannerHidden, isInstallSnoozed, uninstalledDataAtRisk, useInstall } from '../lib/install'
 
 /**
  * How many finished sessions are scanned for personal records.
@@ -144,6 +153,12 @@ export function HomePage() {
   const [folderName, setFolderName] = useState('')
   const [deletingFolder, setDeletingFolder] = useState<Folder | null>(null)
   const [startBlocked, setStartBlocked] = useState<null | { routine?: Routine }>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  // A second tap while the first template is still saving would install it twice.
+  const installing = useRef(false)
+  const [templateFailed, setTemplateFailed] = useState(false)
+  const [installFirst, setInstallFirst] = useState(false)
+  const { installed } = useInstall()
   const routinesRef = useRef<HTMLDivElement>(null)
 
   const folderList = useMemo(() => folders ?? [], [folders])
@@ -290,6 +305,32 @@ export function HomePage() {
     navigate('/workout')
   }
 
+  /** Saves a starter template as the user's own routines and starts its first day. */
+  async function startTemplate(template: Template) {
+    if (installing.current) return
+    installing.current = true
+    try {
+      const first = await installTemplate(template)
+      setTemplatesOpen(false)
+      await start(first)
+    } catch {
+      setTemplateFailed(true)
+    } finally {
+      installing.current = false
+    }
+  }
+
+  /**
+   * In an iPhone browser tab, imported history would land in Safari's storage,
+   * which can be cleared after about a week and does not carry over to the
+   * Home Screen app. So installing is offered first, and importing anyway is
+   * still one tap.
+   */
+  function chooseSwitching() {
+    if (detectInstallPlatform() === 'ios' && !installed) setInstallFirst(true)
+    else navigate('/settings?import=1')
+  }
+
   async function createFolder() {
     const name = folderName.trim()
     if (name === '') return
@@ -334,7 +375,10 @@ export function HomePage() {
     routinesRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
   }
 
-  const firstRun = loaded && !hasHistory && routineList.length === 0 && folderList.length === 0 && !workout
+  // Empty folders do not count: deleting both days of a starter template leaves
+  // its folder behind, and an empty folder is not a reason to hide the question.
+  // With no routines at all, every folder is empty, so only routines matter.
+  const firstRun = loaded && !hasHistory && routineList.length === 0 && !workout
 
   // Each block earns its place or is absent. A goal of zero has no arc to draw,
   // a handful of sessions is not yet a strength trend, and one lonely muscle
@@ -381,7 +425,12 @@ export function HomePage() {
           <HomeSkeleton />
         ) : firstRun ? (
           <>
-            <FirstRun onStartEmpty={() => void start()} onNewRoutine={() => navigate('/routines/new')} />
+            <FirstRun
+              onNewToLifting={() => setTemplatesOpen(true)}
+              onStartEmpty={() => void start()}
+              onSwitching={chooseSwitching}
+              onNewRoutine={() => navigate('/routines/new')}
+            />
             {/* Below the main action, so the first thing on screen is starting a workout. */}
             <HomeNotices hasHistory={hasHistory} />
           </>
@@ -424,6 +473,31 @@ export function HomePage() {
           </>
         )}
       </div>
+
+      <TemplateSheet
+        open={templatesOpen}
+        onPick={(t) => void startTemplate(t)}
+        onClose={() => setTemplatesOpen(false)}
+      />
+
+      <Sheet
+        open={installFirst}
+        title="Install first, then import"
+        onClose={() => setInstallFirst(false)}
+        footer={
+          <button
+            className="btn btn-ghost grow"
+            onClick={() => {
+              setInstallFirst(false)
+              navigate('/settings?import=1')
+            }}
+          >
+            Import anyway
+          </button>
+        }
+      >
+        <InstallSteps />
+      </Sheet>
 
       <Sheet open={menuRoutine !== null} title={menuRoutine?.name} onClose={() => setMenuRoutine(null)}>
         <button
@@ -531,6 +605,11 @@ export function HomePage() {
         actionLabel="Undo"
         onAction={() => void undoDeleteRoutine()}
         onDismiss={() => setUndoRoutine(null)}
+      />
+
+      <Toast
+        message={templateFailed ? 'Could not set up that routine. Please try again.' : null}
+        onDismiss={() => setTemplateFailed(false)}
       />
     </>
   )

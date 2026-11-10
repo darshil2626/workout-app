@@ -56,6 +56,14 @@ export const deleteRoutine = (id: string): Promise<void> => db.routines.delete(i
 
 export const createFolder = (folder: Folder): Promise<string> => db.folders.add(folder)
 
+/** Saves a set of routines and the folder they belong to (if any) in one transaction: all or nothing. */
+export function saveRoutinesWithFolder(folder: Folder | null, routines: Routine[]): Promise<void> {
+  return db.transaction('rw', db.routines, db.folders, async () => {
+    if (folder) await db.folders.add(folder)
+    await db.routines.bulkPut(routines)
+  })
+}
+
 /** Removes the folder only; its routines are kept and become unfiled. */
 export function deleteFolder(id: string): Promise<void> {
   return db.transaction('rw', db.routines, db.folders, async () => {

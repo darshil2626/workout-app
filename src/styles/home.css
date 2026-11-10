@@ -464,3 +464,36 @@
   display: block;
   color: var(--text-faint);
 }
+
+/* The first-run question: a heading and three equal choices. */
+.first-run-title {
+  font-size: var(--text-xl);
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.first-run-choices {
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.first-run-choices .card + .card {
+  margin-top: 0;
+}
+
+.first-run-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  text-align: left;
+}
+
+.first-run-card-title {
+  color: var(--text);
+  font-size: var(--text-lg);
+  font-weight: 650;
+}
+
+.first-run-card-body {
+  color: var(--text-dim);
+  font-size: var(--text-base);
+}

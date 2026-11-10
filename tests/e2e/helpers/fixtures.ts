@@ -44,6 +44,20 @@ export async function dismissInstallNudgeIfShown(page: Page, next: Locator) {
   if (await install.isVisible()) await install.getByRole('button', { name: 'Dismiss' }).click()
 }
 
+/**
+ * The first-run "I already lift" card, which starts an empty workout. An empty
+ * install opens on the first-run question, so this is the start button on a
+ * cold start. Once there is a routine or history, Home shows the dashboard and
+ * its own button instead (`DASHBOARD_EMPTY_WORKOUT`).
+ */
+export const ALREADY_LIFT = /I already lift/
+
+/**
+ * The dashboard's empty-workout button: the secondary "Empty workout" when a
+ * routine is suggested, or the primary "Start empty workout" when none is.
+ */
+export const DASHBOARD_EMPTY_WORKOUT = /^(Start )?empty workout$/i
+
 /** Waits until the app shell has mounted (bottom nav or a fullscreen header). */
 export async function waitForApp(page: Page) {
   await expect(page.locator('.app')).toBeVisible()

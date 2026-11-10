@@ -1,9 +1,18 @@
-import { test, expect, waitForApp, logSet, importBackup } from './helpers/fixtures'
+import {
+  test,
+  expect,
+  ALREADY_LIFT,
+  DASHBOARD_EMPTY_WORKOUT,
+  waitForApp,
+  logSet,
+  importBackup,
+} from './helpers/fixtures'
 
-async function startBench(page: import('@playwright/test').Page) {
+/** `hasHistory`: Home is the dashboard, not the first-run question, so its start button differs. */
+async function startBench(page: import('@playwright/test').Page, hasHistory = false) {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: hasHistory ? DASHBOARD_EMPTY_WORKOUT : ALREADY_LIFT }).click()
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')
   await picker.getByPlaceholder('Search exercises').fill('Bench Press (Barbell)')
@@ -62,7 +71,7 @@ test('an empty History offers to start the first workout', async ({ page }) => {
 
 test('the hint still shows for someone with imported history', async ({ page }) => {
   await importBackup(page, 'tests/fixtures/backups/01-ironlog-first-release.json')
-  await startBench(page)
+  await startBench(page, true)
   await expect(page.getByRole('note')).toContainText('tap the tick')
 })
 
@@ -82,6 +91,6 @@ test('ticking a set remembers it, so the hint does not return in a later workout
     .getByRole('button', { name: 'Skip' })
     .click()
   await expect(page).toHaveURL(/\/history\/[^/]+$/)
-  await startBench(page)
+  await startBench(page, true)
   await expect(page.getByRole('note')).toHaveCount(0)
 })

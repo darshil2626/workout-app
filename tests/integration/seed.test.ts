@@ -7,15 +7,14 @@ import { customExercise, logged, resetDb, set, snapshot, workout } from './helpe
 beforeEach(resetDb)
 
 describe('initDb', () => {
-  it('fresh install: seeds exercises, settings, one starter routine, meta flags', async () => {
+  // Changed on purpose: a fresh install used to get a "Full Body Starter"
+  // routine, which hid the first-run screen. It now gets no routine, and the
+  // flag is still written so an older cached build does not add one either.
+  it('fresh install: seeds exercises, settings and meta flags, and no routine', async () => {
     await initDb()
     expect(await db.exercises.count()).toBe(SEED_EXERCISES.length)
     expect(await db.settings.get(1)).toEqual(DEFAULT_SETTINGS)
-    const routines = await db.routines.toArray()
-    expect(routines).toHaveLength(1)
-    expect(routines[0].name).toBe('Full Body Starter')
-    const ids = new Set(SEED_EXERCISES.map((e) => e.id))
-    for (const re of routines[0].exercises) expect(ids.has(re.exerciseId)).toBe(true)
+    expect(await db.routines.count()).toBe(0)
     expect((await db.meta.get('seedVersion'))?.value).toBe(SEED_VERSION)
     expect((await db.meta.get('starterRoutineSeeded'))?.value).toBe(1)
   })
@@ -32,14 +31,24 @@ describe('initDb', () => {
     await Promise.all([initDb(), initDb()])
     expect(await snapshot()).toEqual(first)
     expect(await db.meta.toArray()).toEqual(meta)
-    expect(await db.routines.count()).toBe(1)
+    expect(await db.routines.count()).toBe(0)
   })
 
-  it('does not resurrect the starter routine after the user deletes it', async () => {
+  it('an install that already has the old starter routine keeps it', async () => {
+    const starter = {
+      id: 'starter',
+      name: 'Full Body Starter',
+      folderId: null,
+      order: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      lastPerformedAt: null,
+      exercises: [],
+    }
+    await db.routines.put(starter)
+    await db.meta.put({ key: 'starterRoutineSeeded', value: 1 })
     await initDb()
-    await db.routines.clear()
-    await initDb()
-    expect(await db.routines.count()).toBe(0)
+    expect(await db.routines.toArray()).toEqual([starter])
   })
 
   it('does not add the starter routine when the user already has workouts', async () => {

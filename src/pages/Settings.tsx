@@ -1,8 +1,9 @@
 import { EXERCISE_ART_ENABLED } from '../lib/features'
 import { listDoneWorkouts } from '../db/repo'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from '../lib/navigate'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useSearchParams } from 'react-router-dom'
 import type { DistanceUnit, LengthUnit, Theme, WeightUnit, Workout } from '../db/types'
 import { Header } from '../components/Header'
 import { Sheet } from '../components/Sheet'
@@ -33,6 +34,23 @@ export function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const data = useDataTransfer({ setMessage, setError })
+  // Set by the first-run "switching from another app" choice. Read once into
+  // state and dropped from the address, so coming back to Settings later (or
+  // going back to this entry) does not highlight and focus the button again.
+  const [searchParams] = useSearchParams()
+  const [highlightImport, setHighlightImport] = useState(() => searchParams.get('import') === '1')
+  useEffect(() => {
+    if (searchParams.get('import') === null) return
+    // Not the router's navigate: a new location would make the shell scroll
+    // this screen back to the top, away from the button just scrolled to.
+    const url = new URL(window.location.href)
+    url.searchParams.delete('import')
+    window.history.replaceState(window.history.state, '', url)
+  }, [searchParams])
+  // A finished import (or any other data action) ends the hand-holding.
+  useEffect(() => {
+    if (message !== null) setHighlightImport(false)
+  }, [message])
 
   const [restSheet, setRestSheet] = useState(false)
   const [stepSheet, setStepSheet] = useState(false)
@@ -386,7 +404,7 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <DataSection data={data} />
+        <DataSection data={data} highlightImport={highlightImport} />
 
         <div className="section-title">Privacy</div>
         <div className="card">

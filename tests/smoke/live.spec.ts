@@ -1,4 +1,4 @@
-import { test, expect, waitForApp, logSet, waitForWorkoutSaved } from '../e2e/helpers/fixtures'
+import { test, expect, ALREADY_LIFT, waitForApp, logSet, waitForWorkoutSaved } from '../e2e/helpers/fixtures'
 
 // Runs against the deployed site, not a local build, after every deploy:
 //   SMOKE_URL=https://usetrana.com npm run test:smoke
@@ -86,8 +86,10 @@ test.describe('a first visit from a stranger', () => {
     await page.goto(`${SITE}/`)
     await waitForApp(page)
 
-    // Not a blank page, and a starter routine to tap into.
-    await expect(page.getByRole('button', { name: 'Start Full Body Starter' })).toBeVisible()
+    // Not a blank page: a new visitor is asked how they want to start. (Before
+    // the first-run question, this checked for a seeded "Full Body Starter" routine.)
+    await expect(page.getByRole('heading', { name: 'How do you want to start?' })).toBeVisible()
+    await expect(page.getByRole('button', { name: ALREADY_LIFT })).toBeVisible()
 
     // The worker is what makes it work offline; it must install and take control.
     await page.evaluate(() => navigator.serviceWorker.ready)
@@ -96,7 +98,7 @@ test.describe('a first visit from a stranger', () => {
     expect(await page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true)
 
     // A real workout, set by set.
-    await page.getByRole('button', { name: 'Empty workout' }).click()
+    await page.getByRole('button', { name: ALREADY_LIFT }).click()
     await expect(page).toHaveURL(/\/workout$/)
     await page.getByRole('button', { name: 'Add exercise' }).click()
     const picker = page.getByRole('dialog')

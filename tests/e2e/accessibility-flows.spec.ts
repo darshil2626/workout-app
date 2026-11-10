@@ -20,7 +20,7 @@ async function expectNoViolations(page: Page) {
 async function startWorkoutWithBench(page: Page) {
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: 'Empty workout', exact: true }).click()
   await expect(page).toHaveURL(/\/workout$/)
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')

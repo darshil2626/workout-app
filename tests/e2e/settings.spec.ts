@@ -6,6 +6,7 @@ import {
   importBackup,
   readStore,
   waitForApp,
+  ALREADY_LIFT,
   logSet,
   waitForWorkoutSaved,
   SYNTHETIC,
@@ -68,7 +69,7 @@ test('a weight typed in lb is stored in kg and shown back consistently', async (
   await expect(unitButton(page, 'lb')).toHaveClass(/active/)
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Empty workout' }).click()
+  await page.getByRole('button', { name: ALREADY_LIFT }).click()
   await page.getByRole('button', { name: 'Add exercise' }).click()
   const picker = page.getByRole('dialog')
   await picker.getByPlaceholder('Search exercises').fill('Bench Press (Barbell)')

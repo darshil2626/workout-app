@@ -19,7 +19,8 @@ test.describe('Android', () => {
   test('a first launch shows no notices at all', async ({ page }) => {
     await page.goto('/')
     await waitForApp(page)
-    await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+    // No seeded routine any more, so a first launch opens on the first-run question.
+    await expect(page.getByRole('button', { name: /I already lift/ })).toBeVisible()
     for (const name of regions) await expect(page.getByRole('region', { name })).toHaveCount(0)
   })
 
@@ -40,7 +41,8 @@ test.describe('desktop', () => {
   test('a first launch shows no notices at all', async ({ page }) => {
     await page.goto('/')
     await waitForApp(page)
-    await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+    // No seeded routine any more, so a first launch opens on the first-run question.
+    await expect(page.getByRole('button', { name: /I already lift/ })).toBeVisible()
     for (const name of regions) await expect(page.getByRole('region', { name })).toHaveCount(0)
   })
 })
@@ -51,7 +53,8 @@ test.describe('iPhone, in a Safari tab', () => {
   test('a first launch shows only the install nudge', async ({ page }) => {
     await page.goto('/')
     await waitForApp(page)
-    await expect(page.getByRole('button', { name: 'Empty workout' })).toBeVisible()
+    // No seeded routine any more, so a first launch opens on the first-run question.
+    await expect(page.getByRole('button', { name: /I already lift/ })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Install Trana' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Usage data' })).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Back up your data' })).toHaveCount(0)

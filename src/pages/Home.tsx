@@ -425,14 +425,17 @@ export function HomePage() {
           <HomeSkeleton />
         ) : firstRun ? (
           <>
+            {/* Before any history the only notice is the iOS install-first nudge, and it
+                has to be read before the first workout is logged, so on this screen it
+                comes above the question rather than below it. Every other platform
+                renders nothing here. */}
+            <HomeNotices hasHistory={hasHistory} />
             <FirstRun
               onNewToLifting={() => setTemplatesOpen(true)}
               onStartEmpty={() => void start()}
               onSwitching={chooseSwitching}
               onNewRoutine={() => navigate('/routines/new')}
             />
-            {/* Below the main action, so the first thing on screen is starting a workout. */}
-            <HomeNotices hasHistory={hasHistory} />
           </>
         ) : (
           <>

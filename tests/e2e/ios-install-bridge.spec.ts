@@ -22,6 +22,13 @@ test('a first launch shows only the install nudge, and dismissing it leaves noth
   await expect(page.getByRole('region', { name: 'Usage data' })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Back up your data' })).toHaveCount(0)
 
+  // It must be read before the first workout is logged, so it sits above the
+  // first-run question instead of below the three cards.
+  const question = page.getByRole('heading', { name: 'How do you want to start?' })
+  await expect(question).toBeVisible()
+  const [bannerBox, questionBox] = await Promise.all([banner.boundingBox(), question.boundingBox()])
+  expect(bannerBox!.y + bannerBox!.height).toBeLessThanOrEqual(questionBox!.y)
+
   await banner.getByRole('button', { name: 'How' }).click()
   const sheet = page.getByRole('dialog', { name: 'Install Trana' })
   await expect(sheet).toContainText('In the compact Safari layout, tap ••• first')

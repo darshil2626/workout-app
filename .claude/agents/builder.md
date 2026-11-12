@@ -29,6 +29,25 @@ touch other files, or change labels).
    section filled in, and the `by-agent` label.
 7. If a review requests changes, address them on the same branch. After a second round
    of requested changes, comment on the issue, hand it back (below), and stop.
+8. **Fix your broken PRs before starting new work.** An open `by-agent` PR is broken if a
+   check on its latest commit has failed, or GitHub reports a merge conflict with `main`
+   (`mergeable: false`, `mergeable_state: "dirty"`). Pending checks are not failures;
+   leave the PR for a later run. Skip PRs labelled `needs-human` or `flaky-test`. Fix
+   one PR per run, on its own branch:
+   - **Merge conflict:** `git fetch origin main`, then `git merge origin/main` into the
+     PR branch. Never rebase or force-push. Resolve each conflict so that both `main`'s
+     change and the issue's change survive. If a conflict touches `src/db/`,
+     `src/lib/backup*.ts`, importers or `tests/fixtures/`, or needs a product decision
+     to resolve, hand the issue back instead.
+   - **Failing check:** find the failed job from the PR's check runs and reproduce it
+     with `npm test` (it runs everything CI runs). Fix the code. Step 5 and CLAUDE.md
+     rule 8 still hold: never weaken a test to get green. If the failing test is one the
+     PR does not touch and it passes locally on the PR's code, treat it as a flake:
+     comment on the PR naming the test, add the `flaky-test` label, and stop.
+   - Run `npm test`, push to the same branch, and comment on the PR:
+     `Fix attempt <k>: <what broke, and what changed>`.
+   - Count the earlier `Fix attempt` comments first. If there are already three and the
+     PR is broken again, comment on the issue saying why, hand it back, and stop.
 
 **Handing an issue back** means one label change: remove `agent-ready` and add
 `needs-human`. With `gh`, use `--remove-label agent-ready --add-label needs-human`. The

@@ -69,10 +69,15 @@ These hold in every phase.
 4. **One open PR per issue, at most two open agent PRs at a time.** After two rounds of
    requested changes, the issue goes back to you: `agent-ready` comes off and
    `needs-human` goes on. Add `agent-ready` again once you have answered.
-5. **No weakening tests.** Deleted tests, loosened assertions, added retries or skips,
+5. **Broken agent PRs are fixed before new work.** Each builder run first looks for a
+   `by-agent` PR with failing checks or a merge conflict with `main` and fixes one. It
+   merges `main` in (never rebases or force-pushes), never weakens a test to go green,
+   labels suspected flakes `flaky-test` for you, and hands the issue back after three
+   fix attempts or any conflict in stored-data code.
+6. **No weakening tests.** Deleted tests, loosened assertions, added retries or skips,
    longer timeouts and edited fixtures are flagged by the reviewer and need your explicit
    say-so.
-6. **Data-risk work stays with you for now.** The builder does not take issues that
+7. **Data-risk work stays with you for now.** The builder does not take issues that
    change stored data until its ordinary PRs have earned trust (roughly ten merged with
    little rework). It may write the migration test.
 

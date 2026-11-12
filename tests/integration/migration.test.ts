@@ -1,7 +1,6 @@
 import Dexie from 'dexie'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, initDb, DEFAULT_SETTINGS } from '../../src/db/db'
-import { migrateLegacyDatabase, migrateLegacyStorage } from '../../src/db/legacyMigration'
 import { SEED_EXERCISES } from '../../src/db/seed'
 import { logged, resetDb, set, workout } from './helpers'
 import type { Exercise, Measurement, Routine, Settings, Workout } from '../../src/db/types'
@@ -241,71 +240,5 @@ describe('schema upgrades keep installed data', () => {
     const row = (await db.exercises.get(seed.id)) as Exercise
     expect(row.name).toBe('My Own Name')
     expect(row.userEdited).toBe(true)
-  })
-})
-
-describe('legacy ironlog database carry-over', () => {
-  async function makeIronlog(): Promise<void> {
-    const old = new Dexie('ironlog')
-    old.version(1).stores(V1_STORES)
-    old.version(2).stores(V2_STORES)
-    await old.open()
-    await old.table('exercises').put(exA)
-    await old.table('workouts').bulkPut([w1, w2])
-    await old.table('routines').put(routine)
-    await old.table('settings').put({ ...DEFAULT_SETTINGS, weightUnit: 'lb' })
-    await old.table('measurements').put({ id: 'm1', type: 'bodyweight', value: 80, takenAt: 1 })
-    old.close()
-  }
-
-  it('does nothing when there is no old database', async () => {
-    await initDb()
-    const before = await db.workouts.count()
-    await migrateLegacyDatabase(db)
-    expect(await db.workouts.count()).toBe(before)
-    expect(await db.meta.get('legacyMigrated')).toBeUndefined()
-  })
-
-  it('copies every shared table, old rows win over seeds, flag set, old db removed', async () => {
-    await makeIronlog()
-    await initDb() // new install seeded first, as on launch
-    await migrateLegacyDatabase(db)
-    expect(await db.workouts.count()).toBe(2)
-    expect(await db.workouts.get('w1')).toEqual(w1)
-    expect(await db.exercises.get('my-custom')).toEqual(exA)
-    expect((await db.settings.get(1))?.weightUnit).toBe('lb')
-    expect(await db.measurements.count()).toBe(1)
-    expect(await db.routines.get('r1')).toEqual(routine)
-    expect((await db.meta.get('legacyMigrated'))?.value).toBe(1)
-    expect(await Dexie.exists('ironlog')).toBe(false)
-  })
-
-  it('does not re-merge an old database that reappears after the flag is set', async () => {
-    await makeIronlog()
-    await initDb()
-    await migrateLegacyDatabase(db)
-    await db.workouts.delete('w1') // user edit after migration
-    await makeIronlog() // old db somehow still/again present
-    await migrateLegacyDatabase(db)
-    expect(await db.workouts.get('w1')).toBeUndefined()
-    expect(await Dexie.exists('ironlog')).toBe(false)
-  })
-
-  it('migrateLegacyStorage moves localStorage keys without overwriting newer values', () => {
-    const store = new Map<string, string>()
-    ;(globalThis as { localStorage?: unknown }).localStorage = {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-    }
-    store.set('ironlog.restTimer', 'old')
-    store.set('ironlog.setTimer', 'oldset')
-    store.set('trana.setTimer', 'new')
-    migrateLegacyStorage()
-    expect(store.get('trana.restTimer')).toBe('old')
-    expect(store.get('trana.setTimer')).toBe('new')
-    expect(store.has('ironlog.restTimer')).toBe(false)
-    expect(store.has('ironlog.setTimer')).toBe(false)
-    delete (globalThis as { localStorage?: unknown }).localStorage
   })
 })

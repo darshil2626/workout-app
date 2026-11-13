@@ -5,7 +5,6 @@ import { db, initDb } from './db/db'
 import { applyTheme, resolveTheme } from './lib/theme'
 import { dismissSplash } from './lib/splash'
 import { maybeLoadQaDataset, maybeSeedSyntheticData } from './dev/seedSynthetic'
-import { migrateLegacyDatabase, migrateLegacyStorage } from './db/legacyMigration'
 import { StartupError } from './components/StartupError'
 import { installGlobalErrorHandlers } from './lib/errorReporting'
 import { QUOTA_EVENT, requestPersistentStorage } from './lib/storage'
@@ -25,10 +24,6 @@ installGlobalErrorHandlers(() => window.dispatchEvent(new Event(QUOTA_EVENT)))
 let startupError: unknown = null
 
 function start() {
-  // Carries an install's data across from the app's previous name. Storage keys
-  // first and synchronously, so nothing reads one before it has been moved.
-  migrateLegacyStorage()
-
   // Best-effort guess from the OS alone, before Dexie has even opened — removes
   // the flash of the wrong theme during the `initDb` wait below. `Shell` in
   // App.tsx re-applies (and keeps live) the real stored choice once settings load.
@@ -39,13 +34,7 @@ function start() {
   // own one-shot starter-routine seed below checks routines/workouts counts —
   // running initDb first would seed that routine, make those counts non-zero,
   // and permanently block the synthetic dataset from ever loading afterward.
-  // The database copy must precede everything below: each of them writes into a
-  // database that is empty until it has run, and a seeded one would be merged over.
-  migrateLegacyDatabase(db)
-    .catch((err: unknown) => {
-      // Non-fatal on purpose: the old data is untouched and the next launch retries.
-      console.error('Legacy data migration failed', err)
-    })
+  Promise.resolve()
     .then(() => maybeLoadQaDataset())
     .then(() => maybeSeedSyntheticData())
     .catch((err: unknown) => {
